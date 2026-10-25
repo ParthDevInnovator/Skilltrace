@@ -1,0 +1,41 @@
+{
+  "id": "JOB-003",
+  "title": "Frontend Specialist (Design Systems & Web Performance)",
+  "department": "User Experience Engineering",
+  "location": "Remote (US/Canada)",
+  "description_raw": "We are looking for a dedicated Frontend Specialist passionate about building world-class design systems, pixel-perfect user interfaces, and lightning-fast web applications. In this role, you will define the core component library, establish accessibility standards (WCAG AAA), optimize Core Web Vitals, and champion smooth CSS micro-interactions across our client-facing workspaces.",
+  "requirements": [
+    {
+      "id": "REQ-301",
+      "requirement_text": "4+ years focused frontend expertise with React, TypeScript, and modern CSS",
+      "category": "Frontend",
+      "is_mandatory": true
+    },
+    {
+      "id": "REQ-302",
+      "requirement_text": "Experience building and maintaining component libraries or design systems",
+      "category": "Design System",
+      "is_mandatory": true
+    },
+    {
+      "id": "REQ-303",
+      "requirement_text": "Deep understanding of browser rendering performance, bundle optimization, and Web Vitals",
+      "category": "Performance",
+      "is_mandatory": true
+    },
+    {
+      "id": "REQ-304",
+      "requirement_text": "Expertise in accessibility (a11y), semantic HTML, and ARIA patterns",
+      "category": "Accessibility",
+      "is_mandatory": false
+    }
+  ],
+  "requirements_preview": [
+    "Design Systems",
+    "React / TypeScript",
+    "Modern CSS / Tokens",
+    "Web Performance",
+    "Accessibility (a11y)"
+  ],
+  "created_at": "2026-10-14T14:15:00Z"
+}

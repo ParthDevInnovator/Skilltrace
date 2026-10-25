@@ -1,0 +1,31 @@
+{
+  "id": "CAND-005",
+  "full_name": "Elena Rostova",
+  "email": "elena.rostova@example.com",
+  "headline": "Senior Cloud Infrastructure & Reliability Architect",
+  "location": "Denver, CO",
+  "top_skills": [
+    "AWS",
+    "Terraform",
+    "Kubernetes",
+    "Prometheus",
+    "Go"
+  ],
+  "resume_path": "data/resumes/elena_rostova.pdf",
+  "experience_years": 8.0,
+  "summary": "Cloud architect and SRE veteran with extensive experience managing multi-region Kubernetes clusters and automated GitOps pipelines.",
+  "external_identifiers": {
+    "github": "https://github.com/erostova-infra",
+    "linkedin": "https://linkedin.com/in/elena-rostova-sre",
+    "leetcode": null
+  },
+  "claims_preview": [
+    "Migrated 120+ microservices to multi-tenant EKS clusters with zero production customer outages.",
+    "Automated complete multi-region cloud infrastructure using modular Terraform and Atlantis PR automation.",
+    "Reduced P99 latency by 35% through custom Envoy proxy configurations and eBPF network tracing."
+  ],
+  "match_preview": {
+    "fit_score": 87.0,
+    "evidence_label": "Good"
+  }
+}

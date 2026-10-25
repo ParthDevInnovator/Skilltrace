@@ -1,0 +1,47 @@
+{
+  "id": "JOB-002",
+  "title": "Full-Stack Lead (React & Python)",
+  "department": "Product Engineering",
+  "location": "New York, NY (Remote Friendly)",
+  "description_raw": "We are looking for an experienced Full-Stack Technical Lead to guide development across our customer-facing web applications and backend API platforms. You will direct technical strategy for React frontend architecture, construct robust asynchronous backend services in Python FastAPI, and collaborate closely with product management and design teams to deliver polished, resilient features.",
+  "requirements": [
+    {
+      "id": "REQ-201",
+      "requirement_text": "6+ years full-stack development experience with modern React (18+) and Python",
+      "category": "Full Stack",
+      "is_mandatory": true
+    },
+    {
+      "id": "REQ-202",
+      "requirement_text": "Expertise in TypeScript, state management, and modern CSS architecture",
+      "category": "Frontend",
+      "is_mandatory": true
+    },
+    {
+      "id": "REQ-203",
+      "requirement_text": "Proven track record with FastAPI or Django REST Framework and PostgreSQL",
+      "category": "Backend",
+      "is_mandatory": true
+    },
+    {
+      "id": "REQ-204",
+      "requirement_text": "Experience leading small engineering pods and conducting code reviews",
+      "category": "Leadership",
+      "is_mandatory": false
+    },
+    {
+      "id": "REQ-205",
+      "requirement_text": "Knowledge of CI/CD pipelines, automated testing, and Docker",
+      "category": "DevOps",
+      "is_mandatory": false
+    }
+  ],
+  "requirements_preview": [
+    "React / TypeScript",
+    "Python / FastAPI",
+    "PostgreSQL",
+    "System Design",
+    "Technical Leadership"
+  ],
+  "created_at": "2026-10-12T11:00:00Z"
+}

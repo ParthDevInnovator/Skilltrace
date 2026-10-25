@@ -1,0 +1,31 @@
+{
+  "id": "CAND-003",
+  "full_name": "Priya Sharma",
+  "email": "priya.sharma@example.com",
+  "headline": "Design Systems Lead & UI Architect",
+  "location": "Seattle, WA",
+  "top_skills": [
+    "Design Systems",
+    "React",
+    "TypeScript",
+    "CSS Architecture",
+    "Accessibility (a11y)"
+  ],
+  "resume_path": "data/resumes/priya_sharma.pdf",
+  "experience_years": 7.0,
+  "summary": "Frontend architect focused on scalable design tokens, WCAG AAA accessibility, micro-animations, and high-performance component libraries.",
+  "external_identifiers": {
+    "github": "https://github.com/priyasharma-ui",
+    "linkedin": "https://linkedin.com/in/priya-sharma-ui",
+    "leetcode": null
+  },
+  "claims_preview": [
+    "Created enterprise-wide design system used across 14 product squads with zero visual regressions.",
+    "Engineered dark/light theme switching engine with CSS custom properties and instant zero-repaint switching.",
+    "Conducted company-wide accessibility refactor achieving 100% WCAG AA compliance across all public surfaces."
+  ],
+  "match_preview": {
+    "fit_score": 96.0,
+    "evidence_label": "Strong"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "id": "CAND-006",
+  "full_name": "David Kim",
+  "email": "david.kim@example.com",
+  "headline": "Software Engineer (Backend Focus)",
+  "location": "Chicago, IL",
+  "top_skills": [
+    "Python",
+    "SQL",
+    "FastAPI",
+    "Docker",
+    "Git"
+  ],
+  "resume_path": "data/resumes/david_kim.pdf",
+  "experience_years": 2.0,
+  "summary": "Junior to mid-level backend developer with strong foundations in computer science, Python scripting, and REST APIs. Private enterprise experience.",
+  "external_identifiers": {
+    "github": null,
+    "linkedin": "https://linkedin.com/in/david-kim-eng",
+    "leetcode": null
+  },
+  "claims_preview": [
+    "Built internal reporting microservice with FastAPI and PostgreSQL processing nightly ETL jobs.",
+    "Wrote comprehensive Pytest test suites achieving 80% branch coverage on core billing modules.",
+    "Assisted senior engineers in refactoring legacy stored procedures into Python services."
+  ],
+  "match_preview": {
+    "fit_score": 62.0,
+    "evidence_label": "No public evidence"
+  }
+}

@@ -8,6 +8,10 @@ export interface HealthResponse {
   version: string
   environment: string
   debug: boolean
+  seed_stats?: {
+    total_jobs: number
+    total_candidates: number
+  }
 }
 
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {

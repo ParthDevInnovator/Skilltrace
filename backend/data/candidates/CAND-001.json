@@ -1,0 +1,31 @@
+{
+  "id": "CAND-001",
+  "full_name": "Alex Rivera",
+  "email": "alex.rivera@example.com",
+  "headline": "Senior Staff Distributed Systems Architect",
+  "location": "San Francisco, CA",
+  "top_skills": [
+    "Python",
+    "Go",
+    "Distributed Systems",
+    "Kubernetes",
+    "Apache Kafka"
+  ],
+  "resume_path": "data/resumes/alex_rivera.pdf",
+  "experience_years": 8.5,
+  "summary": "Distributed systems engineer with 8+ years building event-driven streaming pipelines and fault-tolerant microservices handling 50k+ req/sec.",
+  "external_identifiers": {
+    "github": "https://github.com/alexrivera-eng",
+    "linkedin": "https://linkedin.com/in/alex-rivera-systems",
+    "leetcode": "https://leetcode.com/alexrivera"
+  },
+  "claims_preview": [
+    "Designed and implemented high-throughput Kafka streaming pipeline handling 50,000 req/sec with <15ms latency.",
+    "Led migration of monolithic payment services to containerized Kubernetes microservices in Python & Go.",
+    "Engineered distributed cache invalidation protocol reducing database read load by 68%."
+  ],
+  "match_preview": {
+    "fit_score": 94.0,
+    "evidence_label": "Strong"
+  }
+}

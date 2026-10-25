@@ -12,6 +12,8 @@ logging.basicConfig(
     level=logging.INFO if not settings.DEBUG else logging.DEBUG,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
+from backend.services.seed_loader import seed_loader
+
 logger = logging.getLogger("mosaic.api")
 
 
@@ -20,6 +22,8 @@ async def lifespan(app: FastAPI):
     """Lifecycle events for backend application."""
     logger.info("Starting up Mosaic Backend Service...")
     logger.info(f"Environment: {settings.ENVIRONMENT} | Debug: {settings.DEBUG}")
+    # Preload seed data into memory
+    seed_loader.load_all()
     yield
     logger.info("Shutting down Mosaic Backend Service...")
 

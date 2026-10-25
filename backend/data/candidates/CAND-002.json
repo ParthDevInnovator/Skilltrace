@@ -1,0 +1,31 @@
+{
+  "id": "CAND-002",
+  "full_name": "Jordan Lee",
+  "email": "jordan.lee@example.com",
+  "headline": "Lead Full-Stack Engineer",
+  "location": "New York, NY",
+  "top_skills": [
+    "React",
+    "TypeScript",
+    "Python",
+    "FastAPI",
+    "PostgreSQL"
+  ],
+  "resume_path": "data/resumes/jordan_lee.pdf",
+  "experience_years": 6.5,
+  "summary": "Full-stack engineer with 6+ years shipping high-performance web products, scalable API backends, and modular UI architectures.",
+  "external_identifiers": {
+    "github": "https://github.com/jordanlee-dev",
+    "linkedin": "https://linkedin.com/in/jordanlee-fullstack",
+    "leetcode": "https://leetcode.com/jordanlee"
+  },
+  "claims_preview": [
+    "Spearheaded redesign of web app using React 18 and Vite, improving initial page load time by 42%.",
+    "Built and deployed REST and WebSocket APIs serving 2M daily active users with FastAPI.",
+    "Integrated automated end-to-end testing pipelines achieving 88% overall code coverage."
+  ],
+  "match_preview": {
+    "fit_score": 88.5,
+    "evidence_label": "Good"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "id": "CAND-004",
+  "full_name": "Marcus Chen",
+  "email": "marcus.chen@example.com",
+  "headline": "Senior AI / ML Retrieval Engineer",
+  "location": "San Francisco, CA",
+  "top_skills": [
+    "Python",
+    "LLMs",
+    "Vector Databases",
+    "Neo4j",
+    "RAG Architecture"
+  ],
+  "resume_path": "data/resumes/marcus_chen.pdf",
+  "experience_years": 5.0,
+  "summary": "AI engineer specializing in grounding conversational LLMs, hybrid dense/sparse vector retrieval, and deterministic evaluation benchmarks.",
+  "external_identifiers": {
+    "github": "https://github.com/marcuschen-ai",
+    "linkedin": "https://linkedin.com/in/marcus-chen-ml",
+    "leetcode": "https://leetcode.com/marcuschen"
+  },
+  "claims_preview": [
+    "Built hybrid RAG search combining BM25 and vector embeddings, boosting retrieval recall by 34%.",
+    "Deployed Cognee and Neo4j knowledge graph pipeline reducing LLM hallucination rate on domain queries to <2%.",
+    "Authored open-source benchmark suite for evaluating LLM agent multi-step tool calls."
+  ],
+  "match_preview": {
+    "fit_score": 91.5,
+    "evidence_label": "Good"
+  }
+}

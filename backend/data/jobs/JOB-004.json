@@ -1,0 +1,41 @@
+{
+  "id": "JOB-004",
+  "title": "AI/ML Platform & Retrieval Engineer",
+  "department": "Artificial Intelligence & Platform",
+  "location": "Seattle, WA (Hybrid)",
+  "description_raw": "Join our AI Platform team to build the core foundation for retrieval-augmented generation (RAG), embeddings pipelines, and graph-grounded agentic workflows. You will implement deterministic evaluation harnesses, production vector search indexes, and high-throughput model serving pipelines backed by Google Gemini, Ollama, and open-source models.",
+  "requirements": [
+    {
+      "id": "REQ-401",
+      "requirement_text": "3+ years deploying LLM pipelines, RAG systems, or vector databases in production",
+      "category": "AI / ML",
+      "is_mandatory": true
+    },
+    {
+      "id": "REQ-402",
+      "requirement_text": "Proficiency with Python, asynchronous programming, and embedding models",
+      "category": "Engineering",
+      "is_mandatory": true
+    },
+    {
+      "id": "REQ-403",
+      "requirement_text": "Experience with knowledge graphs (Neo4j/Cognee) or hybrid dense-sparse retrieval",
+      "category": "Graph/Vector",
+      "is_mandatory": true
+    },
+    {
+      "id": "REQ-404",
+      "requirement_text": "Understanding of model evaluation metrics, hallucination bounds, and prompt safety",
+      "category": "Evaluation",
+      "is_mandatory": false
+    }
+  ],
+  "requirements_preview": [
+    "LLM Orchestration",
+    "RAG & Vector Search",
+    "Neo4j / Knowledge Graphs",
+    "Python / Async",
+    "Evaluation Benchmarks"
+  ],
+  "created_at": "2026-10-18T16:00:00Z"
+}
