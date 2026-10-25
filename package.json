@@ -1,0 +1,17 @@
+{
+  "name": "mosaic-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Mosaic — Beyond the Resume: AI-Powered Candidate Intelligence & Evidence-Based Recruitment",
+  "scripts": {
+    "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"blue,magenta\" \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": ".venv\\Scripts\\python -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build:frontend": "npm --prefix frontend run build",
+    "test:backend": ".venv\\Scripts\\pytest backend/tests",
+    "test": "npm run test:backend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
