@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.config import settings
-from backend.routers import health
+from backend.routers import candidates, health, jobs
 
 # Setup logging
 logging.basicConfig(
@@ -61,9 +61,13 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
-# Mount health router at root /health (as per PRD) and at /api/v1/health
+# Mount routers
 app.include_router(health.router)
 app.include_router(health.router, prefix=settings.API_V1_PREFIX)
+app.include_router(candidates.router, prefix=f"{settings.API_V1_PREFIX}/candidates")
+app.include_router(candidates.router, prefix="/candidates")
+app.include_router(jobs.router, prefix=f"{settings.API_V1_PREFIX}/jobs")
+app.include_router(jobs.router, prefix="/jobs")
 
 
 @app.get("/", tags=["Root"])

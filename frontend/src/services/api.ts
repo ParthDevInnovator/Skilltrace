@@ -1,4 +1,10 @@
-import type { Job, JobFilterParams, CandidateSummary } from '@/types'
+import type {
+  Job,
+  JobFilterParams,
+  CandidateSummary,
+  CandidateDetail,
+  CandidateFilterParams,
+} from '@/types'
 
 const API_BASE = '' // Uses Vite proxy in development
 
@@ -46,9 +52,14 @@ export const api = {
 
   getJobById: (id: string): Promise<Job> => request<Job>(`/api/v1/jobs/${id}`),
 
-  getCandidates: (): Promise<CandidateSummary[]> =>
-    request<CandidateSummary[]>('/api/v1/candidates'),
+  getCandidates: (params?: CandidateFilterParams): Promise<CandidateSummary[]> => {
+    const query = new URLSearchParams()
+    if (params?.search) query.set('search', params.search)
+    if (params?.skill) query.set('skill', params.skill)
+    const queryString = query.toString() ? `?${query.toString()}` : ''
+    return request<CandidateSummary[]>(`/api/v1/candidates${queryString}`)
+  },
 
-  getCandidateById: (id: string): Promise<CandidateSummary> =>
-    request<CandidateSummary>(`/api/v1/candidates/${id}`),
+  getCandidateById: (id: string): Promise<CandidateDetail> =>
+    request<CandidateDetail>(`/api/v1/candidates/${id}`),
 }

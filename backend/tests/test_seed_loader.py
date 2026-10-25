@@ -1,5 +1,5 @@
 from backend.services.seed_loader import SeedLoader
-from backend.models import JobFilterParams
+from backend.models import JobFilterParams, CandidateFilterParams
 
 
 def test_seed_loader_initial_load():
@@ -61,6 +61,26 @@ def test_seed_loader_get_candidates():
     assert len(alex) == 1
     assert alex[0].id == "CAND-001"
 
+    # Search by candidate ID
+    by_id = loader.get_candidates(search="CAND-001")
+    assert len(by_id) == 1
+    assert by_id[0].full_name == "Alex Rivera"
+
+    # Search by skill keyword in search bar
+    by_skill_search = loader.get_candidates(search="Apache Kafka")
+    assert len(by_skill_search) >= 1
+    assert any(c.id == "CAND-001" for c in by_skill_search)
+
+    # Filter by comma-separated skills
+    multi_skill = loader.get_candidates(skill="Python, Go")
+    assert len(multi_skill) >= 1
+    assert any(c.id == "CAND-001" for c in multi_skill)
+
+    # Filter using CandidateFilterParams model
+    params_result = loader.get_candidates(CandidateFilterParams(search="Rivera", skill="Python"))
+    assert len(params_result) == 1
+    assert params_result[0].id == "CAND-001"
+
 
 def test_seed_loader_get_candidate_detail():
     loader = SeedLoader()
@@ -69,3 +89,7 @@ def test_seed_loader_get_candidate_detail():
     assert cand.full_name == "Alex Rivera"
     assert cand.experience_years == 8.5
     assert cand.external_identifiers.github is not None
+
+    # Test lowercase and whitespace lookup
+    assert loader.get_candidate("cand-001") is not None
+    assert loader.get_candidate("  CAND-001  ") is not None

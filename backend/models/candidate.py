@@ -53,3 +53,14 @@ class CandidateDetail(CandidateSummary):
         default_factory=list,
         description="Sample resume claim statements for verification",
     )
+
+
+class CandidateFilterParams(BaseModel):
+    search: Optional[str] = Field(
+        default=None,
+        description="Search query matching candidate ID, name, email, headline, location, or skills",
+    )
+    skill: Optional[str] = Field(
+        default=None,
+        description="Skill filter matching candidate top skills (supports comma-separated values)",
+    )

@@ -9,6 +9,7 @@ from backend.models import (
     JobFilterParams,
     CandidateSummary,
     CandidateDetail,
+    CandidateFilterParams,
 )
 
 logger = logging.getLogger("mosaic.services.seed_loader")
@@ -101,9 +102,15 @@ class SeedLoader:
         return filtered
 
     def get_job(self, job_id: str) -> Optional[Job]:
-        """Retrieves a single job by its ID."""
+        """Retrieves a single job by its ID, supporting case-insensitive lookup and whitespace trimming."""
         self.ensure_loaded()
-        return self._jobs.get(job_id)
+        clean_id = job_id.strip()
+        if clean_id in self._jobs:
+            return self._jobs[clean_id]
+        clean_upper = clean_id.upper()
+        if clean_upper in self._jobs:
+            return self._jobs[clean_upper]
+        return None
 
     def add_job(self, job: Job) -> Job:
         """Stores a newly created or custom job into the in-memory registry."""
@@ -113,6 +120,7 @@ class SeedLoader:
 
     def get_candidates(
         self,
+        params: Optional[CandidateFilterParams] = None,
         search: Optional[str] = None,
         skill: Optional[str] = None,
     ) -> List[CandidateSummary]:
@@ -132,29 +140,41 @@ class SeedLoader:
             for c in self._candidates.values()
         ]
 
-        if search:
-            q = search.lower().strip()
+        query_str = params.search if params and params.search else search
+        skill_str = params.skill if params and params.skill else skill
+
+        if query_str and query_str.strip():
+            q = query_str.lower().strip()
             summaries = [
                 c for c in summaries
-                if q in c.full_name.lower()
+                if q in c.id.lower()
+                or q in c.full_name.lower()
                 or q in c.email.lower()
                 or q in c.headline.lower()
                 or q in c.location.lower()
+                or any(q in s.lower() for s in c.top_skills)
             ]
 
-        if skill:
-            s = skill.lower().strip()
-            summaries = [
-                c for c in summaries
-                if any(s in skill_item.lower() for skill_item in c.top_skills)
-            ]
+        if skill_str and skill_str.strip():
+            skills = [s.strip().lower() for s in skill_str.split(",") if s.strip()]
+            for target_skill in skills:
+                summaries = [
+                    c for c in summaries
+                    if any(target_skill in skill_item.lower() for skill_item in c.top_skills)
+                ]
 
         return summaries
 
     def get_candidate(self, candidate_id: str) -> Optional[CandidateDetail]:
-        """Retrieves full candidate detail by ID."""
+        """Retrieves full candidate detail by ID, supporting case-insensitive lookup and whitespace trimming."""
         self.ensure_loaded()
-        return self._candidates.get(candidate_id)
+        clean_id = candidate_id.strip()
+        if clean_id in self._candidates:
+            return self._candidates[clean_id]
+        clean_upper = clean_id.upper()
+        if clean_upper in self._candidates:
+            return self._candidates[clean_upper]
+        return None
 
     def stats(self) -> Dict[str, int]:
         """Returns statistical counts for monitoring and health endpoints."""
