@@ -10,7 +10,8 @@ from pypdf import PdfWriter
 
 from backend.main import app
 from backend.models import ClaimSection
-from backend.routers.ingest import get_ingestion_store
+from backend.routers.ingest import get_ingestion_store, get_context_builder
+from backend.services.context_builder import ContextBuilder
 from backend.routers import candidates as candidate_routes
 from backend.services.claim_extractor import extract_claims
 from backend.services.deduplicator import ResumeIngestionStore
@@ -46,11 +47,18 @@ def store():
 
 
 @pytest.fixture
-def api_store(store, monkeypatch):
+async def api_store(store, monkeypatch):
+    async def no_signals(*args, **kwargs):
+        return []
+    service = ContextBuilder(store, fetchers={name: no_signals for name in ("github", "leetcode", "linkedin")})
+    store.context_builder = service
     app.dependency_overrides[get_ingestion_store] = lambda: store
+    app.dependency_overrides[get_context_builder] = lambda: service
     monkeypatch.setattr(candidate_routes, "seed_loader", store.repository)
     yield store
+    await service.shutdown()
     app.dependency_overrides.pop(get_ingestion_store, None)
+    app.dependency_overrides.pop(get_context_builder, None)
 
 
 def test_parse_documents_and_encoding():
@@ -122,7 +130,8 @@ def test_claims_have_sections_triggers_stable_ids_and_no_verification():
     assert len(extract_claims("\n".join(f"- Built Python service number {i}" for i in range(30)), "CAND-001")) == 20
 
 
-def test_email_dedup_and_updates_preserve_missing_metadata(store):
+@pytest.mark.asyncio
+async def test_email_dedup_and_updates_preserve_missing_metadata(store):
     identity = extract_identity(TEXT)
     parsed = ParsedResume(raw_text=TEXT, source="txt")
     first, updated, revision = store.upsert(identity, parsed, "resume.txt", TEXT.encode())
@@ -130,11 +139,15 @@ def test_email_dedup_and_updates_preserve_missing_metadata(store):
     second, updated, newer = store.upsert(ExtractedIdentity(email="MORGAN.TEST@example.com"), parsed, "new.txt", TEXT.encode())
     assert second.id == first.id and updated and newer != revision
     assert second.full_name == first.full_name and second.location == first.location
-    store.prepare_context_build(first.id, revision)
+    async def no_signals(*args, **kwargs):
+        return []
+    service = ContextBuilder(store, fetchers={source: no_signals for source in ("github", "leetcode", "linkedin")})
+    assert service.reserve(first.id, revision) is None
     assert store.pending_builds[first.id].stage == "queued"  # Stale upload cannot publish.
-    store.prepare_context_build(first.id, newer)
-    assert store.pending_builds[first.id].stage == "awaiting_enrichment"
-    assert store.pending_builds[first.id].status == "building"
+    service.launch(first.id, service.reserve(first.id, newer))
+    await service.drain()
+    assert store.pending_builds[first.id].stage == "ready"
+    assert store.pending_builds[first.id].status == "ready"
     assert len(store.pending_builds[first.id].claims) == 4
     assert len(store.repository.get_candidate(first.id).claims_preview) == 4
 
@@ -161,8 +174,10 @@ async def test_upload_creates_and_updates_candidate_and_stages_context(api_store
         result = response.json()
         assert result["candidate_id"] == "CAND-007" and result["status"] == "building"
         assert result["parse_source"] == "txt" and result["enrichment_pending"]
+        await api_store.context_builder.drain()
         pending = api_store.pending_builds[result["candidate_id"]]
-        assert pending.stage == "awaiting_enrichment" and pending.original_bytes == TEXT.encode()
+        assert pending.stage == "ready" and pending.original_bytes == TEXT.encode()
+        assert api_store.context_builder.registry.get(result["candidate_id"]).status == "ready"
         assert pending.parsed_resume.source == "txt"
         detail = await client.get(f"/api/v1/candidates/{result['candidate_id']}")
         assert detail.status_code == 200

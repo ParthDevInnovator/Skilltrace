@@ -17,6 +17,6 @@ export function Header({ onOpenCustomJDModal }: { onOpenCustomJDModal: () => voi
   }, [setActiveView])
   return <header className="workspace-header">
     <div className="header-job"><span className="breadcrumb">Workspace / {activeView === 'candidate-detail' ? 'Candidate Profile' : activeView}</span><JobSelector onOpenCustomJDModal={onOpenCustomJDModal} /></div>
-    <div className="header-search"><label className="sr-only" htmlFor="candidate-search">Search candidates</label><input id="candidate-search" ref={searchRef} value={searchQuery} onChange={e => { setSearchQuery(e.target.value); if (activeView === 'jobs' || activeView === 'candidate-detail') setActiveView('candidates') }} placeholder="Search candidates or skills" /><kbd>Ctrl/K</kbd></div>
+    <div className="header-search"><label className="sr-only" htmlFor="candidate-search">Search candidates</label><input id="candidate-search" ref={searchRef} value={searchQuery} onChange={e => { setSearchQuery(e.target.value); if (activeView === 'jobs' || activeView === 'candidate-detail' || activeView === 'evidence') setActiveView('candidates') }} placeholder="Search candidates or skills" /><kbd>Ctrl/K</kbd></div>
   </header>
 }

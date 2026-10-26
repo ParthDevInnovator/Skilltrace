@@ -5,11 +5,12 @@ import { Header } from '@/components/layout/Header'
 import { DashboardOverview } from '@/components/dashboard/DashboardOverview'
 import { CandidateProfileShell } from '@/components/profile/CandidateProfileShell'
 import { JobsView } from '@/components/dashboard/JobsView'
+import { EvidenceExplorer } from '@/components/evidence/EvidenceExplorer'
 import { CandidateGrid } from '@/components/dashboard/CandidateGrid'
 import { CustomJDModal } from '@/components/dashboard/CustomJDModal'
 
 function WorkspaceContent() {
-  const { activeView } = useJob()
+  const { activeView, selectedCandidateId } = useJob()
   const [isCustomJDModalOpen, setIsCustomJDModalOpen] = useState(false)
 
   return (
@@ -20,8 +21,8 @@ function WorkspaceContent() {
         <Header onOpenCustomJDModal={() => setIsCustomJDModalOpen(true)} />
         <main id="main-content" tabIndex={-1} className="workspace-main flex-1">
           {activeView === 'candidate-detail' ? (
-            <CandidateProfileShell />
-          ) : activeView === 'jobs' ? (<JobsView onCreate={() => setIsCustomJDModalOpen(true)} />) : activeView === 'candidates' ? (<section className="page-stack"><h1>Candidates</h1><p>Browse seeded profiles. Evidence and role fit are not assessed yet.</p><CandidateGrid /></section>) : (
+            <CandidateProfileShell key={selectedCandidateId} />
+          ) : activeView === 'evidence' ? (<EvidenceExplorer />) : activeView === 'jobs' ? (<JobsView onCreate={() => setIsCustomJDModalOpen(true)} />) : activeView === 'candidates' ? (<section className="page-stack"><h1>Candidates</h1><p>Browse candidate profiles and evidence. Role fit is not assessed yet.</p><CandidateGrid /></section>) : (
             <DashboardOverview onOpenCustomJDModal={() => setIsCustomJDModalOpen(true)} />
           )}
         </main>

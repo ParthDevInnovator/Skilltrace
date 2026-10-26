@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.config import settings
-from backend.routers import candidates, health, jobs, ingest
+from backend.routers import candidates, health, jobs, ingest, admin
 
 # Setup logging
 logging.basicConfig(
@@ -13,6 +13,7 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 from backend.services.seed_loader import seed_loader
+from backend.services.context_builder import context_builder
 
 logger = logging.getLogger("mosaic.api")
 
@@ -24,8 +25,16 @@ async def lifespan(app: FastAPI):
     logger.info(f"Environment: {settings.ENVIRONMENT} | Debug: {settings.DEBUG}")
     # Preload seed data into memory
     seed_loader.load_all()
-    yield
-    logger.info("Shutting down Mosaic Backend Service...")
+    service = context_builder
+    app.state.context_builder = service
+    service.start_all(wait_for_requests=True)
+    try:
+        yield
+    finally:
+        await service.shutdown()
+        if getattr(app.state, "context_builder", None) is service:
+            del app.state.context_builder
+        logger.info("Shutting down Mosaic Backend Service...")
 
 
 app = FastAPI(
@@ -45,6 +54,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def release_context_startup(request: Request, call_next):
+    # A received HTTP request proves that the server accepts traffic. Workers
+    # are queued at startup, but cannot finish before readiness is established.
+    service = getattr(request.app.state, "context_builder", None)
+    if service is not None:
+        service.release_startup()
+    return await call_next(request)
 
 
 # Global Exception Handler
@@ -69,6 +88,7 @@ app.include_router(candidates.router, prefix="/candidates")
 app.include_router(jobs.router, prefix=f"{settings.API_V1_PREFIX}/jobs")
 app.include_router(jobs.router, prefix="/jobs")
 app.include_router(ingest.router, prefix=f"{settings.API_V1_PREFIX}/ingest")
+app.include_router(admin.router)
 
 
 @app.get("/", tags=["Root"])

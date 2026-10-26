@@ -89,12 +89,12 @@ The five phases below distinguish implemented UI from working intelligence servi
 | Phase | Scope aligned with current UI | Current status |
 |:---|:---|:---|
 | 1 | Skilltrace light workspace, sidebar/header, overview, active requisition, custom JD, candidate pool and profile tabs | Implemented with distinct views, responsive shell, accessible controls and verified seeded-data workflows |
-| 2 | Resume ingestion, external signals, evidence audit trails and unified candidate context | Planned; seeded claims, skills, links and evidence badges already have UI surfaces |
+| 2 | Resume ingestion, external signals, evidence audit trails and unified candidate context | Implemented: upload/parsing, cached adapters, deterministic scoring, background contexts, APIs and evidence workspace; externally retrieved claims remain separately assessed |
 | 3 | JD extraction, role-specific matching, requirement coverage and deterministic ranking | Planned; current match previews do not change with the active job |
 | 4 | Candidate assistant, interview briefs/questions, digest export and knowledge graph | Planned; brief/export controls are currently inactive |
 | 5 | Persistence, authentication, permissions, privacy and production delivery | Planned; custom jobs currently exist only in browser memory |
 
-See [PHASE_1_TASKS.md](PHASE_1_TASKS.md) for implemented tasks and the remaining foundation backlog.
+See [PHASE_1_TASKS.md](PHASE_1_TASKS.md) and [PHASE_2_TASKS.md](PHASE_2_TASKS.md) for verified implementation outcomes.
 
 ### Phase 1: Core Recruiter Workspace & Foundation
 
@@ -139,6 +139,8 @@ See [PHASE_1_TASKS.md](PHASE_1_TASKS.md) for implemented tasks and the remaining
 
 ### Phase 2: Candidate Ingestion & Evidence Scoring Engine
 
+**Status:** Complete against Phase 2 task scope on 2026-10-26. Verification: 196 backend tests, 27 frontend tests, 18 desktop/mobile browser checks, build and lint pass. External-service tests use controlled adapters; LinkedIn data remains synthetic. Candidate parsing uses rule-based identity/claim extraction with explicit correction fields, not general semantic understanding of arbitrary resumes.
+
 **Objective:** Ingest unstructured resumes, fetch verified external signals, calculate deterministic evidence scores, and assemble unified candidate contexts.
 
 #### Functional Requirements Included
@@ -175,21 +177,25 @@ $$\text{Evidence Score} = \sum (\text{Base Signal Weight} \times \text{Recency M
 | LinkedIn headline / about mention | 1 |
 | Negative previous interview feedback | 0 |
 
-| Evidence Recency | Multiplier |
+| Evidence Recency (relative to an explicit reference date) | Multiplier |
 |:---|:---:|
-| $< 6$ months | 1.0 |
-| $6 – 18$ months | 0.7 |
-| $18 – 36$ months | 0.4 |
-| $> 36$ months | 0.2 |
-| Undated / unknown | 0.7 |
+| Less than 6 calendar months | 1.0 |
+| 6 to less than 18 calendar months | 0.7 |
+| 18 to less than 36 calendar months | 0.4 |
+| 36 calendar months or more | 0.2 |
+| Undated / unknown / future-dated | 0.7 |
+
+Exact cutoff dates belong to the older bucket. Month-end cutoffs clamp to the last existing day of the target month.
 
 | Cumulative Raw Score | Evidence Label | Visual Indicator |
 |:---|:---|:---:|
-| `0` | No public evidence | Gray |
-| `1 – 2` | Limited | Yellow |
-| `3 – 5` | Some | Blue |
-| `6 – 9` | Good | Indigo |
-| `10+` | Strong | Emerald |
+| Exactly 0 | No public evidence | Gray |
+| Greater than 0 through 2 inclusive | Limited | Yellow |
+| Greater than 2 through 5 inclusive | Some | Blue |
+| Greater than 5 through 9 inclusive | Good | Indigo |
+| Greater than 9 | Strong | Emerald |
+
+These continuous ranges include fractional scores without gaps. The scoring service recomputes recency at the explicit reference date and sums decimal products without changing input records or claim verification states. Context/API integration and evidence UI are implemented; synthetic data remains visibly labeled.
 
 #### Technical Components
 * **Backend:**
@@ -350,7 +356,7 @@ $$\text{Evidence Score} = \sum (\text{Base Signal Weight} \times \text{Recency M
 
 ## 5. API Endpoint Matrix by Phase
 
-Phase 1 routes are implemented. Phase 2-5 routes below are planned contracts, not existing endpoints.
+Phase 1 and Phase 2 routes are implemented. Phase 3-5 routes below are planned contracts, not existing endpoints. Phase 2 GET routes support both /api/v1/candidates and /candidates prefixes.
 
 | Phase | Method | Endpoint | Description |
 |:---:|:---|:---|:---|
@@ -359,9 +365,10 @@ Phase 1 routes are implemented. Phase 2-5 routes below are planned contracts, no
 | **Phase 1** | `GET` | `/api/v1/jobs/{job_id}` | Implemented job detail; `/jobs/{job_id}` alias |
 | **Phase 1** | `GET` | `/api/v1/candidates` | Implemented seeded summaries with search/skill filters; `/candidates` alias |
 | **Phase 1** | `GET` | `/api/v1/candidates/{candidate_id}` | Implemented seeded candidate details; unprefixed alias |
+| **Phase 2** | `POST` | `/api/v1/ingest/resume` | Upload PDF/DOCX/TXT, resolve identity and queue context build |
 | **Phase 2** | `GET` | `/candidates/resolve` | Resolve candidate ID by name/email |
 | **Phase 2** | `GET` | `/candidates/{id}/context` | Retrieve assembled CandidateContext JSON |
-| **Phase 2** | `GET` | `/candidates/{id}/resume` | Retrieve original resume document |
+| **Phase 2** | `GET` | `/candidates/{id}/resume` | Retrieve extracted resume text with source/character count; 204 when empty |
 | **Phase 2** | `POST` | `/seed/rebuild` | Invalidate caches and re-seed sample data |
 | **Phase 3** | `POST` | `/jd/extract` | Extract structured requirements from raw JD text/file |
 | **Phase 3** | `POST` | `/jd/rank` | Rank candidates against specified job description |

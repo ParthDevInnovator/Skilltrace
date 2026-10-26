@@ -4,6 +4,7 @@ import type {
   CandidateSummary,
   CandidateDetail,
   CandidateFilterParams,
+  CandidateContext, BuildInProgress, ResumePayload,
 } from '@/types'
 
 const API_BASE = '' // Uses Vite proxy in development
@@ -24,7 +25,7 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE}${endpoint}`
   const response = await fetch(url, {
     headers: {
-      'Content-Type': 'application/json',
+      ...(options?.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
       ...options?.headers,
     },
     ...options,
@@ -35,6 +36,7 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     throw new Error(`API error ${response.status} on ${endpoint}: ${errorBody}`)
   }
 
+  if (response.status === 204) return null as T
   return response.json() as Promise<T>
 }
 
@@ -60,6 +62,18 @@ export const api = {
     return request<CandidateSummary[]>(`/api/v1/candidates${queryString}`)
   },
 
+  getCandidateContext: (id: string): Promise<CandidateContext | BuildInProgress> =>
+    request(`/api/v1/candidates/${encodeURIComponent(id)}/context`),
+  getCandidateResume: (id: string): Promise<ResumePayload | null> =>
+    request(`/api/v1/candidates/${encodeURIComponent(id)}/resume`),
+  resolveCandidates: (params: { name?: string; email?: string }): Promise<CandidateSummary[]> => {
+    const query = new URLSearchParams()
+    if (params.name) query.set('name', params.name)
+    if (params.email) query.set('email', params.email)
+    return request(`/api/v1/candidates/resolve?${query}`)
+  },
+  uploadResume: (data: FormData): Promise<{ candidate_id: string; status: 'building' }> =>
+    request('/api/v1/ingest/resume', { method: 'POST', body: data }),
   getCandidateById: (id: string): Promise<CandidateDetail> =>
     request<CandidateDetail>(`/api/v1/candidates/${id}`),
 }
