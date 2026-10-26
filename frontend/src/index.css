@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* ==========================================================================
    Skilltrace / Mosaic — Recruiter Intelligence Design System
    Source: Stitch MCP Project "Skilltrace Candidate Intelligence Platform"
@@ -32,14 +36,14 @@
   --text-primary: #181c23;
   --text-secondary: #484552;
   --text-tertiary: #65646f;
-  --text-muted: #797584;
+  --text-muted: #656170;
   --text-on-surface: #181c23;
   --text-on-surface-variant: #484552;
 
   /* Hairline Borders */
   --border-subtle: #ebedf9;
   --border-default: #e5e7eb;
-  --border-outline: #797584;
+  --border-outline: #656170;
   --border-variant: #c9c4d4;
   --border-focused: #6554c0;
 
@@ -60,7 +64,7 @@
   --evidence-needs-val-bg: #fdf2f2;
   --evidence-needs-val-border: #f5c4c4;
 
-  --evidence-none-text: #727b89;
+  --evidence-none-text: #5d6572;
   --evidence-none-bg: #f1f3f5;
   --evidence-none-border: #d7dbe0;
 
@@ -139,7 +143,7 @@ html, body {
 
 #root {
   min-height: 100vh;
-  display: flex;
+  width: 100%;
 }
 
 /* --------------------------------------------------------------------------
@@ -327,3 +331,87 @@ a:hover {
     scroll-behavior: auto !important;
   }
 }
+
+/* Phase 1 workspace and accessible, adaptive controls. */
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: .6; }
+.workspace-content { margin-left: 240px; min-width: 0; }
+.workspace-sidebar { position: fixed; inset: 0 auto 0 0; width: 240px; background: white; border-right: 1px solid var(--border-default); z-index: 40; display: flex; flex-direction: column; }
+.brand { min-height: 64px; display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--border-default); }
+.brand small, .demo-identity small { display: block; color: var(--text-secondary); font-size: 11px; }
+.brand-mark { background: var(--color-primary-container); color: white; padding: 8px; border-radius: 8px; font-weight: 700; }
+.workspace-nav { display: flex; flex-direction: column; padding: 14px 10px; gap: 6px; }
+.workspace-nav button { text-align: left; padding: 10px 14px; border-radius: 6px; font-weight: 600; }
+.workspace-nav button[aria-current] { color: var(--color-primary); background: var(--color-primary-subtle); }
+.future-feature { padding: 10px 14px; color: var(--text-secondary); font-size: 12px; }
+.future-feature small { display: block; }
+.demo-identity { margin-top: auto; padding: 18px; border-top: 1px solid var(--border-default); }
+.workspace-header { position: sticky; top: 0; z-index: 30; display: flex; justify-content: space-between; align-items: center; gap: 18px; min-height: 72px; padding: 12px 24px; border-bottom: 1px solid var(--border-default); background: white; }
+.header-job { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.breadcrumb { font-size: 11px; color: var(--text-secondary); text-transform: capitalize; }
+.header-search { position: relative; width: 300px; flex-shrink: 0; }
+.header-search input { width: 100%; padding-right: 76px; }
+.header-search kbd { position: absolute; right: 8px; top: 10px; font-size: 10px; color: var(--text-secondary); }
+.workspace-main { padding: 28px 24px 48px; width: 100%; max-width: 1648px; margin: 0 auto; min-width: 0; }
+.page-stack { display: flex; flex-direction: column; gap: 20px; }
+.page-title { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+h1 { font-size: 25px; font-weight: 700; } h2 { font-size: 18px; font-weight: 650; } h3 { font-size: 16px; font-weight: 600; }
+p, small { overflow-wrap: anywhere; }
+.page-title p, .panel p, .page-stack > p { color: var(--text-secondary); }
+.panel { border: 1px solid var(--border-default); padding: 20px; border-radius: 12px; background: white; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.panel small { color: var(--text-secondary); }
+.metrics-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.metric-value { font-size: 28px; }
+.primary-button, .secondary-button { padding: 9px 14px; border-radius: 7px; font-size: 12px; font-weight: 600; }
+.primary-button { background: var(--color-primary-container); color: white; }
+.primary-button:hover { background: var(--color-primary-hover); }
+.secondary-button { background: var(--color-primary-subtle); color: var(--color-primary); }
+.secondary-button[aria-pressed=true] { outline: 2px solid var(--color-primary); }
+.skill-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.preview-label { font-size: 12px; color: var(--text-secondary); }
+.jobs-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.jobs-grid ul { list-style: disc; padding-left: 18px; }
+.pre-wrap { white-space: pre-wrap; }
+input:not([type=file]), textarea { padding: 9px 11px; border: 1px solid var(--border-default); border-radius: 6px; background: white; color: var(--text-primary); min-width: 0; }
+textarea { width: 100%; resize: vertical; }
+label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 5px; }
+.job-selector { position: relative; min-width: 0; }
+.job-trigger { display: flex; align-items: center; gap: 8px; max-width: 300px; background: var(--bg-surface-low); border: 1px solid var(--border-default); padding: 8px 12px; border-radius: 6px; font-size: 12px; text-align: left; }
+.job-popover { position: absolute; top: calc(100% + 8px); left: 0; width: min(360px, calc(100vw - 40px)); max-height: 70vh; overflow-y: auto; background: white; border: 1px solid var(--border-default); box-shadow: var(--shadow-lg); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.job-options { max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; }
+.job-options button { display: flex; flex-direction: column; text-align: left; gap: 4px; padding: 10px; border-radius: 6px; }
+.job-options button:hover, .job-options button[aria-pressed=true] { background: var(--color-primary-subtle); }
+.job-options small { font-size: 11px; color: var(--text-secondary); }
+.notice { padding: 12px; border-radius: 6px; }
+.notice button { text-decoration: underline; font-weight: 600; margin-left: 8px; }
+.error { background: #fdf2f2; color: #a32d2d; border: 1px solid #f5c4c4; }
+.modal-backdrop { position: fixed; inset: 0; background: #181c2366; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.jd-dialog { width: 100%; max-width: 720px; max-height: calc(100dvh - 32px); overflow-y: auto; background: white; border-radius: 12px; box-shadow: var(--shadow-lg); padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+.modal-actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.modal-actions button:not(.primary-button) { padding: 8px; border-radius: 5px; color: var(--color-primary); background: var(--bg-surface-low); }
+.modal-actions button[aria-pressed=true] { outline: 2px solid var(--color-primary); }
+.form-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; }
+.form-grid input { width: 100%; }
+.drop-zone { border: 2px dashed var(--border-variant); padding: 18px; background: var(--bg-canvas); display: flex; flex-direction: column; gap: 10px; border-radius: 8px; }
+.skip-link { position: fixed; top: -100px; left: 12px; z-index: 200; padding: 10px; background: white; }
+.skip-link:focus { top: 10px; }
+@media (max-width: 1200px) { .breadcrumb { display: none; } .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .header-search { width: 240px; } }
+@media (max-width: 767px) {
+  .workspace-sidebar { position: relative; width: 100%; border-right: 0; border-bottom: 1px solid var(--border-default); }
+  .brand { min-height: 56px; } .brand small { display: inline; margin-left: 8px; }
+  .workspace-nav { flex-direction: row; flex-wrap: wrap; padding: 8px 12px; gap: 4px; }
+  .workspace-nav button { padding: 8px 12px; }
+  .future-feature { padding: 8px; font-size: 10px; } .future-feature small { display: inline; }
+  .demo-identity { display: none; }
+  .workspace-content { margin-left: 0; }
+  .workspace-header { position: relative; flex-direction: column; align-items: stretch; padding: 12px 16px; gap: 10px; }
+  .header-search, .job-trigger { width: 100%; max-width: 100%; } .header-job { display: block; }
+  .workspace-main { padding: 20px 16px 36px; }
+  .page-title { align-items: flex-start; flex-wrap: wrap; }
+  .jobs-grid, .form-grid { grid-template-columns: 1fr; }
+  .jd-dialog { padding: 18px; }
+  h1 { font-size: 22px; }
+  .workspace-main .flex.gap-8 { gap: 12px; overflow-x: auto; }
+  .workspace-main .flex.items-center.justify-between { flex-wrap: wrap; gap: 10px; }
+}
+@media (max-width: 380px) { .metrics-grid { grid-template-columns: 1fr; } }

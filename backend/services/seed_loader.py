@@ -84,7 +84,8 @@ class SeedLoader:
             q = params.search.lower().strip()
             filtered = [
                 j for j in filtered
-                if q in j.title.lower()
+                if q in j.id.lower()
+                or q in j.title.lower()
                 or q in j.department.lower()
                 or q in j.location.lower()
                 or q in j.description_raw.lower()

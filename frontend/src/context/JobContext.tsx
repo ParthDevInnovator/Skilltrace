@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import type { Job } from '@/types'
 import { api } from '@/services/api'
 
@@ -19,6 +19,7 @@ interface JobContextType {
   openCandidateDetail: (candidateId: string) => void
   backToDashboard: () => void
   isLoadingJobs: boolean
+  retryJobs: () => void
   jobError: string | null
 }
 
@@ -35,28 +36,23 @@ export function JobProvider({ children }: { children: ReactNode }) {
   const [isLoadingJobs, setIsLoadingJobs] = useState<boolean>(true)
   const [jobError, setJobError] = useState<string | null>(null)
 
+  const [reloadKey, setReloadKey] = useState(0)
+  const retryJobs = useCallback(() => { setIsLoadingJobs(true); setJobError(null); setReloadKey(k => k + 1) }, [])
   useEffect(() => {
-    async function loadJobs() {
-      try {
-        setIsLoadingJobs(true)
-        const fetchedJobs = await api.getJobs()
-        setJobs(fetchedJobs)
-        if (fetchedJobs.length > 0) {
-          setSelectedJob((prev) => prev || fetchedJobs[0])
-        }
-      } catch (err) {
-        console.error('Failed to load seeded jobs:', err)
-        setJobError('Failed to load jobs from server.')
-      } finally {
-        setIsLoadingJobs(false)
-      }
-    }
-    loadJobs()
-  }, [])
+    let cancelled = false
+    api.getJobs().then(fetchedJobs => {
+      if (cancelled) return
+      setJobs(previous => [...previous.filter(job => job.id.startsWith('CUSTOM-')), ...fetchedJobs])
+      setSelectedJob(previous => previous || fetchedJobs[0] || null)
+    }).catch(() => {
+      if (!cancelled) setJobError('Failed to load jobs from server.')
+    }).finally(() => { if (!cancelled) setIsLoadingJobs(false) })
+    return () => { cancelled = true }
+  }, [reloadKey])
 
   const createCustomJob = (title: string, description: string, department = 'Custom Requisition', location = 'Remote') => {
     const newJob: Job = {
-      id: `CUSTOM-${Date.now().toString().slice(-4)}`,
+      id: `CUSTOM-${crypto.randomUUID()}`,
       title,
       department,
       location,
@@ -99,6 +95,7 @@ export function JobProvider({ children }: { children: ReactNode }) {
         backToDashboard,
         isLoadingJobs,
         jobError,
+        retryJobs,
       }}
     >
       {children}
@@ -106,6 +103,7 @@ export function JobProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// oxlint-disable-next-line react/only-export-components -- Provider and its hook share one context module.
 export function useJob() {
   const ctx = useContext(JobContext)
   if (!ctx) {

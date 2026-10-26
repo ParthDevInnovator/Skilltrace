@@ -1,10 +1,12 @@
 # Product Requirements Document (PRD)
-## Mosaic — Beyond the Resume
+## Skilltrace - Trace Skills to Evidence
 
-**Version:** 1.1  
-**Status:** Phased Implementation Specification  
-**Product Category:** AI-Powered Candidate Intelligence & Evidence-Based Recruitment  
-**Primary Users:** Recruiters, Talent Acquisition Teams, Hiring Managers  
+Skilltrace is the current frontend brand; backend modules and configuration retain the Mosaic name.
+
+**Version:** 1.2
+**Status:** Implementation-aligned roadmap (reviewed 2026-10-26)
+**Product Category:** AI-Powered Candidate Intelligence & Evidence-Based Recruitment
+**Primary Users:** Recruiters, Talent Acquisition Teams, Hiring Managers
 
 ---
 
@@ -72,7 +74,7 @@ graph TD
     end
 ```
 
-* **Frontend:** React 19, TypeScript, Vite, Vanilla/Modern CSS with accessible design tokens.
+* **Frontend:** React 19, TypeScript, Vite, CSS design tokens and Tailwind utilities compiled through PostCSS at build time.
 * **Backend:** Python, FastAPI, Pydantic v2.
 * **AI Providers:** Google Gemini (Primary), Groq (High-Speed Fallback), Ollama (Local Development).
 * **Graph Database:** Neo4j Aura + Cognee framework (asynchronous seeding).
@@ -82,73 +84,56 @@ graph TD
 
 ## 4. Phase-Wise Implementation Roadmap
 
-The product lifecycle is divided into five sequential phases, progressing from the foundation UI to full production hardening:
+The five phases below distinguish implemented UI from working intelligence services. A visible badge, tab, or button does not establish backend completion.
 
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│ Phase 1: Core Recruiter Workspace & Foundation                         │
-│ ➔ Dashboard, Job Selection, Candidate Cards, Layout & Theme           │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-┌───────────────────────────────────▼────────────────────────────────────┐
-│ Phase 2: Candidate Ingestion & Evidence Scoring Engine                 │
-│ ➔ Resume Parsing, External Signals, Deterministic Scoring, Context Obj │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-┌───────────────────────────────────▼────────────────────────────────────┐
-│ Phase 3: JD Matching, Requirement Extraction & Candidate Ranking      │
-│ ➔ Requirement Decomposition, Match Narrative, Dual-Axis Ranking Model │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-┌───────────────────────────────────▼────────────────────────────────────┐
-│ Phase 4: Conversational AI Intelligence & Knowledge Graph              │
-│ ➔ Agentic Chat Assistant, Executive Briefs, Gap Questions, Neo4j Graph │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-┌───────────────────────────────────▼────────────────────────────────────┐
-│ Phase 5: Production Readiness, Security & Compliance                   │
-│ ➔ Persistent DB, Auth/RBAC, Privacy Controls, Evaluation Benchmarks    │
-└────────────────────────────────────────────────────────────────────────┘
-```
+| Phase | Scope aligned with current UI | Current status |
+|:---|:---|:---|
+| 1 | Skilltrace light workspace, sidebar/header, overview, active requisition, custom JD, candidate pool and profile tabs | Implemented with distinct views, responsive shell, accessible controls and verified seeded-data workflows |
+| 2 | Resume ingestion, external signals, evidence audit trails and unified candidate context | Planned; seeded claims, skills, links and evidence badges already have UI surfaces |
+| 3 | JD extraction, role-specific matching, requirement coverage and deterministic ranking | Planned; current match previews do not change with the active job |
+| 4 | Candidate assistant, interview briefs/questions, digest export and knowledge graph | Planned; brief/export controls are currently inactive |
+| 5 | Persistence, authentication, permissions, privacy and production delivery | Planned; custom jobs currently exist only in browser memory |
 
----
+See [PHASE_1_TASKS.md](PHASE_1_TASKS.md) for implemented tasks and the remaining foundation backlog.
 
 ### Phase 1: Core Recruiter Workspace & Foundation
 
-**Objective:** Establish the recruiter-facing user interface shell, navigation, job selection, and static/seeded candidate browsing.
+**Objective:** Deliver the Skilltrace light-mode recruiter workspace with seeded API data and preserved active-requisition context.
 
 #### Functional Requirements Included
 * **FR-01 (Part 1): Recruiter Dashboard:**
-  * Searchable job openings by ID, title, department, and location.
-  * Job description input area (paste text or upload file).
-  * Candidate cards grid with responsive layouts.
-  * Preserved job selection state across view navigation.
+  * Fixed 240px sidebar, 56px header, breadcrumbs and recruiter identity placeholder.
+  * Overview metrics, active requisition metadata and requirement preview chips.
+  * Candidate search, skill filters, reset controls, result count and responsive card grid.
+  * Candidate detail tabs: Evidence & Claims, Reported Skills, and Background Summary. Content is seeded; tab names do not imply completed verification.
 * **FR-12 (Part 1): Job Search & Retrieval:**
-  * Search existing company job listings.
-* **FR-14: Theme & User Interface:**
-  * Dark and light theme toggle with persistent user preference.
-  * Clean typographic hierarchy (Inter/Roboto), accessible contrast ratios, and reduced-motion support.
+  * Search the job dropdown by ID, title, department and location; select an active job.
+  * Custom JD modal with title, department, sample-fill, word/character counts and minimum 50-character validation.
+  * Create custom jobs in React state and retain selection during profile navigation. Refresh persistence is future work.
+  * Upload tab supports TXT/MD/PDF/DOCX extraction, drag/drop, file-size/format validation and readable error states. Scanned PDFs need pasted text.
+* **FR-14: User Interface:**
+  * Light-only purple/neutral design with Inter, JetBrains Mono, Material Symbols, status badges, focus-visible and reduced-motion CSS.
+  * Dark mode and persistent theme preferences are outside the current UI baseline.
 
 #### Technical Components
 * **Frontend:**
-  * `components/dashboard/JobSelector.tsx`: Dropdown and search bar for job listings.
-  * `components/dashboard/CandidateGrid.tsx`: Responsive card container.
-  * `components/cards/CandidateCard.tsx`: Basic card layout (name, title, key skills, match placeholder).
-  * `context/ThemeContext.tsx` & `context/JobContext.tsx`: Client-side state managers.
-  * `index.css`: Design token definitions (colors, shadows, responsive layout primitives).
-* **Backend:**
-  * FastAPI application scaffolding with CORS middleware.
-  * Seed loader for mock jobs and candidates (`data/jobs/`, `data/candidates/`).
-  * Endpoints:
-    * `GET /health`: Service health and active configuration.
-    * `GET /jobs`: Retrieve all available job listings.
-    * `GET /jobs/{job_id}`: Retrieve detailed job description.
+  * `App.tsx`, `components/layout/Sidebar.tsx`, `components/layout/Header.tsx`: Workspace shell and view state.
+  * `components/dashboard/DashboardOverview.tsx`: Metrics, active requisition and candidate pool.
+  * `components/dashboard/JobSelector.tsx`, `CustomJDModal.tsx`: Job switching and custom JD entry.
+  * `components/dashboard/CandidateGrid.tsx`, `components/cards/CandidateCard.tsx`: API-backed filtering, cards and loading/error/empty states.
+  * `components/profile/CandidateProfileShell.tsx`: API-backed profile and seeded tabs.
+  * `context/JobContext.tsx`: Jobs, selection, custom JD, search, skill and candidate navigation state. No ThemeContext exists.
+  * `services/api.ts`, `types/`, `index.css`, `frontend/index.html`: Typed API client, schemas, tokens and build-time utility styling.
+* **Backend:** FastAPI, Pydantic models, synchronous file-backed seed loader cached in memory, five seed jobs and six candidates.
+* **Implemented API:** `GET /health`, `GET /api/v1/jobs`, `GET /api/v1/jobs/{job_id}`, `GET /api/v1/candidates`, `GET /api/v1/candidates/{candidate_id}`. Unprefixed aliases also exist.
 
-#### Acceptance Criteria & Definition of Done
-1. Recruiter can launch the application and switch between light and dark modes smoothly.
-2. Recruiter can select from sample jobs or input custom JD text.
-3. Candidate cards display seeded candidates with basic metadata.
-4. Navigation between dashboard and candidate details retains selected job context.
+#### Delivered Behavior & Acceptance Criteria
+1. Distinct Overview, Jobs and Candidates views work. Evidence Explorer is explicitly reserved for Phase 2.
+2. Job loading/errors/retry and clear selection are visible. Job-ID search is implemented in the dropdown and backend.
+3. The sidebar/header adapt to narrow screens. Candidate and profile layouts and the scrollable JD dialog are browser-tested.
+4. Dialog labels, focus trap/restoration, Escape, dropdown arrow keys and Ctrl/Cmd+K search are implemented. Contrast was corrected and automated accessibility scans pass for the checked screens.
+5. Static activity counts are removed. Match/verification states are unassessed or seeded previews; no default 60% fit or fabricated years of experience are shown.
+6. Sample/custom job selection, candidate search/filter/reset, profile tabs and return navigation retain job context. Verification includes backend tests, frontend interactions and live desktop/mobile browser workflows; see PHASE_1_TASKS.md.
 
 ---
 
@@ -220,7 +205,10 @@ $$\text{Evidence Score} = \sum (\text{Base Signal Weight} \times \text{Recency M
 * **Frontend:**
   * `components/evidence/EvidenceBar.tsx`: Tiered color-coded evidence score bar.
   * `components/evidence/EvidenceCard.tsx`: Expandable drawer showing sources, timestamps, and observations.
-  * `components/profile/ResumeViewer.tsx`: Side-by-side original resume viewer.
+  * Extend existing Evidence & Claims / Reported Skills tabs with source observations, timestamps, verification status and audit trails; replace the explicit unverified preview labels only when evidence exists.
+  * Implement the Evidence Explorer destination currently marked as Phase 2.
+  * `components/profile/ResumeViewer.tsx`: Original resume viewer connected to the existing Resume Reference action.
+  * Reuse the implemented JD document parsing where appropriate, while keeping candidate resume ingestion and structured extraction separate.
 
 #### Acceptance Criteria & Definition of Done
 1. Uploaded/seeded resumes produce structured candidate models without hallucinations.
@@ -263,6 +251,8 @@ $$\text{Evidence Score} = \sum (\text{Base Signal Weight} \times \text{Recency M
   * `components/matching/LiveJDMatchingView.tsx`: Visual matrix of requirements vs. candidate coverage.
   * `components/profile/JDMatchTab.tsx`: Detailed alignment tab on the candidate profile.
   * `components/dashboard/RequirementFilter.tsx`: Filter candidate cards by specific requirement badges.
+  * Connect active job changes to ranking and card match previews; replace Role fit pending only after computing a real score. Current skill filtering is not requirement matching.
+  * Replace custom JD newline previews with extracted requirements while preserving the current requisition summary.
 
 #### Acceptance Criteria & Definition of Done
 1. System extracts discrete requirements from arbitrary JD inputs.
@@ -305,6 +295,7 @@ $$\text{Evidence Score} = \sum (\text{Base Signal Weight} \times \text{Recency M
   * `components/agent/ChatDrawer.tsx`: Slide-over conversational assistant drawer.
   * `components/profile/BriefQuestionsTab.tsx`: Formatted printable/exportable brief and questions.
   * `components/graph/GraphVisualization.tsx`: Interactive node-link visualization.
+  * Enable interview brief generation and add digest export controls to grounded deliverables and working downloads.
 
 #### Acceptance Criteria & Definition of Done
 1. Recruiter can ask natural language questions ("Does Alex have real production experience with Kubernetes?") and receive answers citing specific repos/interview notes.
@@ -345,7 +336,9 @@ $$\text{Evidence Score} = \sum (\text{Base Signal Weight} \times \text{Recency M
     * LLM prompt injection and hallucination boundaries.
 * **Frontend:**
   * Authentication provider wrapper and protected route guards.
-  * User profile management and tenant switcher.
+  * User profile management and tenant switcher; replace the static recruiter identity and wire profile/notification controls.
+  * Persist custom jobs through a backend write API and database; current frontend creation never calls the backend.
+  * Build-time Tailwind is already implemented; harden deployment and verify production asset/font delivery.
 
 #### Acceptance Criteria & Definition of Done
 1. Zero sensitive candidate data or API keys exposed in client bundles or public endpoints.
@@ -357,12 +350,15 @@ $$\text{Evidence Score} = \sum (\text{Base Signal Weight} \times \text{Recency M
 
 ## 5. API Endpoint Matrix by Phase
 
+Phase 1 routes are implemented. Phase 2-5 routes below are planned contracts, not existing endpoints.
+
 | Phase | Method | Endpoint | Description |
 |:---:|:---|:---|:---|
 | **Phase 1** | `GET` | `/health` | Service health status and active configuration |
-| **Phase 1** | `GET` | `/jobs` | Retrieve all active job openings |
-| **Phase 1** | `GET` | `/jobs/{job_id}` | Retrieve specific job description and metadata |
-| **Phase 2** | `GET` | `/candidates` | List candidate summaries |
+| **Phase 1** | `GET` | `/api/v1/jobs` | Implemented job listing; `/jobs` alias |
+| **Phase 1** | `GET` | `/api/v1/jobs/{job_id}` | Implemented job detail; `/jobs/{job_id}` alias |
+| **Phase 1** | `GET` | `/api/v1/candidates` | Implemented seeded summaries with search/skill filters; `/candidates` alias |
+| **Phase 1** | `GET` | `/api/v1/candidates/{candidate_id}` | Implemented seeded candidate details; unprefixed alias |
 | **Phase 2** | `GET` | `/candidates/resolve` | Resolve candidate ID by name/email |
 | **Phase 2** | `GET` | `/candidates/{id}/context` | Retrieve assembled CandidateContext JSON |
 | **Phase 2** | `GET` | `/candidates/{id}/resume` | Retrieve original resume document |

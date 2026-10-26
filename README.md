@@ -6,7 +6,7 @@ AI-powered candidate intelligence platform that consolidates fragmented candidat
 
 ## Architecture Overview
 
-- **Frontend:** React 19, TypeScript, Vite, Vanilla/Modern CSS with accessible design tokens.
+- **Frontend:** React 19, TypeScript, Vite, CSS design tokens and build-time Tailwind utilities.
 - **Backend:** Python 3.12, FastAPI, Pydantic v2, Uvicorn.
 - **Data & Ingestion:** Disk-backed mock seed stores $\to$ External Signal Fetchers (GitHub, LinkedIn, LeetCode) $\to$ Deterministic Evidence Scoring Engine.
 
@@ -15,7 +15,7 @@ AI-powered candidate intelligence platform that consolidates fragmented candidat
 ## Quick Start
 
 ### 1. Prerequisites
-- **Node.js:** v18+ (tested on v24)
+- **Node.js:** v22.13+ (v24 recommended)
 - **Python:** 3.11+ (tested on 3.12)
 
 ### 2. Initial Setup
@@ -86,4 +86,29 @@ npm run dev
 ├── .env.example            # Environment template
 ├── dev.ps1                 # PowerShell startup script
 └── package.json            # Root workspace scripts & tooling
+```
+
+## Phase 1 workspace
+
+The Skilltrace frontend includes Overview, Jobs and Candidates screens, searchable job selection, session-only custom requisitions, candidate filters and seeded profile tabs. Custom JD uploads accept TXT, MD, PDF and DOCX up to 5 MB. Scanned PDFs without embedded text require pasted input.
+
+Role fit and evidence are explicitly unassessed. Evidence Explorer, resume viewing, interview briefs, digest export and authenticated accounts belong to later phases. See [PHASE_1_TASKS.md](PHASE_1_TASKS.md) and [PRD.md](PRD.md).
+
+## Verification
+
+From `frontend/`:
+
+```powershell
+npm test
+npm run lint
+npm run build
+npm run test:e2e
+```
+
+The browser suite uses installed Microsoft Edge at desktop and mobile widths and automatically starts Vite and FastAPI. Install backend requirements and frontend dependencies first. Close conflicting servers on ports 5173/8000 or ensure running instances use this checkout. Browser tests include real PDF/DOCX fixtures and Axe accessibility scans. Reports/screenshots are written to ignored `frontend/test-results/`.
+
+For a host environment that sets an unrelated `DEBUG` value, run backend tests with a process-local override:
+
+```powershell
+.\.venv\Scripts\python.exe -c "import os,pytest; os.environ['DEBUG']='false'; raise SystemExit(pytest.main(['backend/tests','-q','-p','no:cacheprovider']))"
 ```

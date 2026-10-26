@@ -15,22 +15,7 @@ export function CandidateCard({ candidate }: CandidateCardProps) {
     .slice(0, 2)
     .toUpperCase()
 
-  const evidenceLabel = candidate.match_preview?.evidence_label || 'No public evidence'
-  const fitScore = candidate.match_preview?.fit_score ?? 60
-
-  const getEvidenceBadgeClass = (label: string) => {
-    switch (label) {
-      case 'Strong':
-        return 'badge-evidence-strong'
-      case 'Good':
-        return 'badge-evidence-good'
-      case 'Some':
-      case 'Limited':
-        return 'badge-evidence-limited'
-      default:
-        return 'badge-evidence-none'
-    }
-  }
+  const evidenceLabel = 'Unassessed'
 
   return (
     <div className="bg-white border border-[#e5e7eb] rounded-xl p-5 shadow-sm hover:border-[#6554c0] hover:shadow-md transition-all flex flex-col justify-between gap-4">
@@ -51,9 +36,9 @@ export function CandidateCard({ candidate }: CandidateCardProps) {
 
           <div className="flex flex-col items-end gap-1 flex-shrink-0">
             <span className="text-xs font-bold text-[#4d3aa6] bg-[#f1eefc] px-2 py-0.5 rounded font-mono">
-              {fitScore.toFixed(0)}% Match
+              Role fit pending
             </span>
-            <span className={`badge-status ${getEvidenceBadgeClass(evidenceLabel)}`}>
+            <span className="badge-status badge-evidence-none">
               <span className="w-1.5 h-1.5 rounded-full bg-current opacity-75"></span>
               <span>{evidenceLabel}</span>
             </span>
@@ -61,8 +46,8 @@ export function CandidateCard({ candidate }: CandidateCardProps) {
         </div>
 
         {/* Location & ID meta */}
-        <div className="flex items-center gap-2 text-xs text-[#797584]">
-          <span className="material-symbols-outlined text-[15px] text-[#797584]">
+        <div className="flex items-center gap-2 text-xs text-[#656170]">
+          <span aria-hidden="true" className="material-symbols-outlined text-[15px] text-[#656170]">
             location_on
           </span>
           <span className="truncate">{candidate.location}</span>
@@ -78,7 +63,7 @@ export function CandidateCard({ candidate }: CandidateCardProps) {
             </span>
           ))}
           {candidate.top_skills.length > 4 && (
-            <span className="skill-tag text-[#797584]">
+            <span className="skill-tag text-[#656170]">
               +{candidate.top_skills.length - 4} more
             </span>
           )}
@@ -87,11 +72,11 @@ export function CandidateCard({ candidate }: CandidateCardProps) {
 
       {/* Footer Action */}
       <div className="border-t border-[#ebedf9] pt-3 flex items-center justify-between">
-        <span className="text-[11px] text-[#797584] flex items-center gap-1">
-          <span className="material-symbols-outlined text-[14px] text-[#247a52]">
-            verified
+        <span className="text-[11px] text-[#656170] flex items-center gap-1">
+          <span aria-hidden="true" className="material-symbols-outlined text-[14px] text-[#247a52]">
+            person_outline
           </span>
-          <span>Seeded Profile</span>
+          <span>Seeded Profile - Preview</span>
         </span>
         <button
           type="button"
@@ -99,7 +84,7 @@ export function CandidateCard({ candidate }: CandidateCardProps) {
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold bg-[#f1f3fe] text-[#4d3aa6] hover:bg-[#6554c0] hover:text-white transition-colors"
         >
           <span>View Profile</span>
-          <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+          <span aria-hidden="true" className="material-symbols-outlined text-[14px]">arrow_forward</span>
         </button>
       </div>
     </div>

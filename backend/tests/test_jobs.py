@@ -107,3 +107,12 @@ async def test_get_jobs_prd_prefix():
         detail = await client.get("/jobs/JOB-001")
         assert detail.status_code == 200
         assert detail.json()["id"] == "JOB-001"
+
+
+@pytest.mark.asyncio
+async def test_search_job_id_case_insensitive():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/api/v1/jobs", params={"search": " job-002 "})
+        assert response.status_code == 200
+        assert [job["id"] for job in response.json()] == ["JOB-002"]

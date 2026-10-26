@@ -54,13 +54,14 @@ export function CandidateGrid() {
       <div className="bg-white border border-[#e5e7eb] rounded-xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Skill filter pills */}
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-xs font-semibold text-[#797584] mr-1">Filter by Skill:</span>
+          <span className="text-xs font-semibold text-[#656170] mr-1">Filter by Skill:</span>
           {POPULAR_SKILLS.map((skill) => {
             const isActive =
               skill === 'All' ? !selectedSkill || selectedSkill === 'All' : selectedSkill === skill
             return (
               <button
                 key={skill}
+                aria-pressed={isActive}
                 type="button"
                 onClick={() => setSelectedSkill(skill === 'All' ? '' : skill)}
                 className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
@@ -77,7 +78,7 @@ export function CandidateGrid() {
 
         {/* Results Count & Reset */}
         <div className="flex items-center gap-3 text-xs text-[#65646f] self-end md:self-auto">
-          <span>
+          <span role="status" aria-live="polite">
             Showing <strong className="text-[#181c23]">{candidates.length}</strong> candidates
           </span>
           {(searchQuery || selectedSkill) && (
@@ -89,7 +90,7 @@ export function CandidateGrid() {
               }}
               className="text-[#6554c0] font-medium hover:underline flex items-center gap-1"
             >
-              <span className="material-symbols-outlined text-[14px]">refresh</span>
+              <span aria-hidden="true" className="material-symbols-outlined text-[14px]">refresh</span>
               <span>Reset Filters</span>
             </button>
           )}
@@ -122,8 +123,8 @@ export function CandidateGrid() {
 
       {/* Error state */}
       {!isLoading && error && (
-        <div className="bg-[#fdf2f2] border border-[#f5c4c4] text-[#b54747] p-6 rounded-xl text-center flex flex-col items-center gap-2">
-          <span className="material-symbols-outlined text-[32px]">error</span>
+        <div role="alert" className="bg-[#fdf2f2] border border-[#f5c4c4] text-[#b54747] p-6 rounded-xl text-center flex flex-col items-center gap-2">
+          <span aria-hidden="true" className="material-symbols-outlined text-[32px]">error</span>
           <p className="text-sm font-semibold">{error}</p>
         </div>
       )}
@@ -132,7 +133,7 @@ export function CandidateGrid() {
       {!isLoading && !error && candidates.length === 0 && (
         <div className="bg-white border border-[#e5e7eb] rounded-xl p-12 text-center flex flex-col items-center justify-center gap-3">
           <div className="w-12 h-12 rounded-full bg-[#f1eefc] text-[#6554c0] flex items-center justify-center">
-            <span className="material-symbols-outlined text-[24px]">person_search</span>
+            <span aria-hidden="true" className="material-symbols-outlined text-[24px]">person_search</span>
           </div>
           <h3 className="text-base font-semibold text-[#181c23]">No Candidates Found</h3>
           <p className="text-xs text-[#65646f] max-w-sm">
