@@ -27,5 +27,6 @@
   "match_preview": {
     "fit_score": 87.0,
     "evidence_label": "Good"
-  }
+  },
+  "resume_text_stub": "SYNTHETIC DEMO RESUME - not an original candidate document\nElena Rostova\nelena.rostova@example.com\nSenior Cloud Infrastructure & Reliability Architect\nDenver, CO\nSummary\nCloud architect and SRE veteran with extensive experience managing multi-region Kubernetes clusters and automated GitOps pipelines.\nSkills\nAWS, Terraform, Kubernetes, Prometheus, Go\nExperience\n- Migrated 120+ microservices to multi-tenant EKS clusters with zero production customer outages.\n- Automated complete multi-region cloud infrastructure using modular Terraform and Atlantis PR automation.\n- Reduced P99 latency by 35% through custom Envoy proxy configurations and eBPF network tracing.\nProfiles\nhttps://github.com/erostova-infra\nhttps://linkedin.com/in/elena-rostova-sre"
 }

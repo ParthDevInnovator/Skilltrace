@@ -1,0 +1,58 @@
+{
+  "candidate_id": "CAND-002",
+  "provenance": "synthetic — controlled test fixture",
+  "reference_date": "2026-10-26",
+  "evidence_records": [
+    {
+      "id": "EVIDENCE-09f5b57e-c22a-54bf-8b8c-2940c1ae1afd",
+      "candidate_id": "CAND-002",
+      "skill": "React",
+      "source_type": "github",
+      "source_url": "https://example.test/fixtures/CAND-002/observations/1",
+      "observation": "Synthetic github observation 1 for React; not a live profile result.",
+      "base_weight": 3.0,
+      "recency_multiplier": 1.0,
+      "computed_weight": 3.0,
+      "observation_date": "2026-08-26",
+      "reference_date": "2026-10-26",
+      "provenance": "synthetic — controlled test fixture"
+    },
+    {
+      "id": "EVIDENCE-fb04d1a2-ca6c-51ed-97bc-4d61dad06e49",
+      "candidate_id": "CAND-002",
+      "skill": "TypeScript",
+      "source_type": "github",
+      "source_url": "https://example.test/fixtures/CAND-002/observations/2",
+      "observation": "Synthetic github observation 2 for TypeScript; not a live profile result.",
+      "base_weight": 3.0,
+      "recency_multiplier": 0.7,
+      "computed_weight": 2.1,
+      "observation_date": "2026-01-26",
+      "reference_date": "2026-10-26",
+      "provenance": "synthetic — controlled test fixture"
+    },
+    {
+      "id": "EVIDENCE-c7640ea2-d902-5d0d-85d1-29ea809c3b2a",
+      "candidate_id": "CAND-002",
+      "skill": "Python",
+      "source_type": "github",
+      "source_url": "https://example.test/fixtures/CAND-002/observations/3",
+      "observation": "Synthetic github observation 3 for Python; not a live profile result.",
+      "base_weight": 2.0,
+      "recency_multiplier": 0.4,
+      "computed_weight": 0.8,
+      "observation_date": "2024-10-26",
+      "reference_date": "2026-10-26",
+      "provenance": "synthetic — controlled test fixture"
+    }
+  ],
+  "expected": {
+    "computed_weights": [
+      3.0,
+      2.1,
+      0.8
+    ],
+    "evidence_score": 5.9,
+    "evidence_label": "Good"
+  }
+}

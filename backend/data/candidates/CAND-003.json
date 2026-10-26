@@ -27,5 +27,6 @@
   "match_preview": {
     "fit_score": 96.0,
     "evidence_label": "Strong"
-  }
+  },
+  "resume_text_stub": "SYNTHETIC DEMO RESUME - not an original candidate document\nPriya Sharma\npriya.sharma@example.com\nDesign Systems Lead & UI Architect\nSeattle, WA\nSummary\nFrontend architect focused on scalable design tokens, WCAG AAA accessibility, micro-animations, and high-performance component libraries.\nSkills\nDesign Systems, React, TypeScript, CSS Architecture, Accessibility (a11y)\nExperience\n- Created enterprise-wide design system used across 14 product squads with zero visual regressions.\n- Engineered dark/light theme switching engine with CSS custom properties and instant zero-repaint switching.\n- Conducted company-wide accessibility refactor achieving 100% WCAG AA compliance across all public surfaces.\nProfiles\nhttps://github.com/priyasharma-ui\nhttps://linkedin.com/in/priya-sharma-ui"
 }

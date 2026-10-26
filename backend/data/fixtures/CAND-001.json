@@ -1,0 +1,73 @@
+{
+  "candidate_id": "CAND-001",
+  "provenance": "synthetic — controlled test fixture",
+  "reference_date": "2026-10-26",
+  "evidence_records": [
+    {
+      "id": "EVIDENCE-5d987d32-b12b-531a-86ac-769b0e0204fb",
+      "candidate_id": "CAND-001",
+      "skill": "Python",
+      "source_type": "github",
+      "source_url": "https://example.test/fixtures/CAND-001/observations/1",
+      "observation": "Synthetic github observation 1 for Python; not a live profile result.",
+      "base_weight": 3.0,
+      "recency_multiplier": 1.0,
+      "computed_weight": 3.0,
+      "observation_date": "2026-08-26",
+      "reference_date": "2026-10-26",
+      "provenance": "synthetic — controlled test fixture"
+    },
+    {
+      "id": "EVIDENCE-d42126ec-bbcc-5c48-b671-c3ee95869ef3",
+      "candidate_id": "CAND-001",
+      "skill": "Go",
+      "source_type": "github",
+      "source_url": "https://example.test/fixtures/CAND-001/observations/2",
+      "observation": "Synthetic github observation 2 for Go; not a live profile result.",
+      "base_weight": 3.0,
+      "recency_multiplier": 1.0,
+      "computed_weight": 3.0,
+      "observation_date": "2026-08-26",
+      "reference_date": "2026-10-26",
+      "provenance": "synthetic — controlled test fixture"
+    },
+    {
+      "id": "EVIDENCE-e17ca783-7a94-5d49-8d83-2df75e7935a6",
+      "candidate_id": "CAND-001",
+      "skill": "Distributed Systems",
+      "source_type": "github",
+      "source_url": "https://example.test/fixtures/CAND-001/observations/3",
+      "observation": "Synthetic github observation 3 for Distributed Systems; not a live profile result.",
+      "base_weight": 2.0,
+      "recency_multiplier": 1.0,
+      "computed_weight": 2.0,
+      "observation_date": "2026-08-26",
+      "reference_date": "2026-10-26",
+      "provenance": "synthetic — controlled test fixture"
+    },
+    {
+      "id": "EVIDENCE-5debec9c-cabe-5b49-a575-80578a1c700b",
+      "candidate_id": "CAND-001",
+      "skill": "Kubernetes",
+      "source_type": "github",
+      "source_url": "https://example.test/fixtures/CAND-001/observations/4",
+      "observation": "Synthetic github observation 4 for Kubernetes; not a live profile result.",
+      "base_weight": 3.0,
+      "recency_multiplier": 0.7,
+      "computed_weight": 2.1,
+      "observation_date": "2026-01-26",
+      "reference_date": "2026-10-26",
+      "provenance": "synthetic — controlled test fixture"
+    }
+  ],
+  "expected": {
+    "computed_weights": [
+      3.0,
+      3.0,
+      2.0,
+      2.1
+    ],
+    "evidence_score": 10.1,
+    "evidence_label": "Strong"
+  }
+}

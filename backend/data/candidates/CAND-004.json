@@ -27,5 +27,6 @@
   "match_preview": {
     "fit_score": 91.5,
     "evidence_label": "Good"
-  }
+  },
+  "resume_text_stub": "SYNTHETIC DEMO RESUME - not an original candidate document\nMarcus Chen\nmarcus.chen@example.com\nSenior AI / ML Retrieval Engineer\nSan Francisco, CA\nSummary\nAI engineer specializing in grounding conversational LLMs, hybrid dense/sparse vector retrieval, and deterministic evaluation benchmarks.\nSkills\nPython, LLMs, Vector Databases, Neo4j, RAG Architecture\nExperience\n- Built hybrid RAG search combining BM25 and vector embeddings, boosting retrieval recall by 34%.\n- Deployed Cognee and Neo4j knowledge graph pipeline reducing LLM hallucination rate on domain queries to <2%.\n- Authored open-source benchmark suite for evaluating LLM agent multi-step tool calls.\nProfiles\nhttps://github.com/marcuschen-ai\nhttps://linkedin.com/in/marcus-chen-ml\nhttps://leetcode.com/marcuschen"
 }

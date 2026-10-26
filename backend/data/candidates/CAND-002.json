@@ -27,5 +27,6 @@
   "match_preview": {
     "fit_score": 88.5,
     "evidence_label": "Good"
-  }
+  },
+  "resume_text_stub": "SYNTHETIC DEMO RESUME - not an original candidate document\nJordan Lee\njordan.lee@example.com\nLead Full-Stack Engineer\nNew York, NY\nSummary\nFull-stack engineer with 6+ years shipping high-performance web products, scalable API backends, and modular UI architectures.\nSkills\nReact, TypeScript, Python, FastAPI, PostgreSQL\nExperience\n- Spearheaded redesign of web app using React 18 and Vite, improving initial page load time by 42%.\n- Built and deployed REST and WebSocket APIs serving 2M daily active users with FastAPI.\n- Integrated automated end-to-end testing pipelines achieving 88% overall code coverage.\nProfiles\nhttps://github.com/jordanlee-dev\nhttps://linkedin.com/in/jordanlee-fullstack\nhttps://leetcode.com/jordanlee"
 }

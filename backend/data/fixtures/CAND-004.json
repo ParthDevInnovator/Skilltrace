@@ -1,0 +1,28 @@
+{
+  "candidate_id": "CAND-004",
+  "provenance": "synthetic — controlled test fixture",
+  "reference_date": "2026-10-26",
+  "evidence_records": [
+    {
+      "id": "EVIDENCE-72c99e2d-5b71-5dfd-91b0-3f8c34da2fca",
+      "candidate_id": "CAND-004",
+      "skill": "Python",
+      "source_type": "leetcode",
+      "source_url": "https://example.test/fixtures/CAND-004/observations/1",
+      "observation": "Synthetic leetcode observation 1 for Python; not a live profile result.",
+      "base_weight": 1.0,
+      "recency_multiplier": 0.7,
+      "computed_weight": 0.7,
+      "observation_date": null,
+      "reference_date": "2026-10-26",
+      "provenance": "synthetic — controlled test fixture"
+    }
+  ],
+  "expected": {
+    "computed_weights": [
+      0.7
+    ],
+    "evidence_score": 0.7,
+    "evidence_label": "Limited"
+  }
+}

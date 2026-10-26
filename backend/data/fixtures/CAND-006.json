@@ -1,0 +1,43 @@
+{
+  "candidate_id": "CAND-006",
+  "provenance": "synthetic — controlled test fixture",
+  "reference_date": "2026-10-26",
+  "evidence_records": [
+    {
+      "id": "EVIDENCE-585728a4-1181-5f65-9071-9c1f406dfc98",
+      "candidate_id": "CAND-006",
+      "skill": "Python",
+      "source_type": "github",
+      "source_url": "https://example.test/fixtures/CAND-006/observations/1",
+      "observation": "Synthetic github observation 1 for Python; not a live profile result.",
+      "base_weight": 3.0,
+      "recency_multiplier": 0.2,
+      "computed_weight": 0.6,
+      "observation_date": "2022-10-26",
+      "reference_date": "2026-10-26",
+      "provenance": "synthetic — controlled test fixture"
+    },
+    {
+      "id": "EVIDENCE-df60f6f6-f456-5dfb-835f-c21885db70e8",
+      "candidate_id": "CAND-006",
+      "skill": "SQL",
+      "source_type": "leetcode",
+      "source_url": "https://example.test/fixtures/CAND-006/observations/2",
+      "observation": "Synthetic leetcode observation 2 for SQL; not a live profile result.",
+      "base_weight": 1.0,
+      "recency_multiplier": 0.7,
+      "computed_weight": 0.7,
+      "observation_date": null,
+      "reference_date": "2026-10-26",
+      "provenance": "synthetic — controlled test fixture"
+    }
+  ],
+  "expected": {
+    "computed_weights": [
+      0.6,
+      0.7
+    ],
+    "evidence_score": 1.3,
+    "evidence_label": "Limited"
+  }
+}
