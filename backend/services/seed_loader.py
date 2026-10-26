@@ -1,6 +1,7 @@
 import json
 import logging
 from pathlib import Path
+from threading import RLock
 from typing import Dict, List, Optional
 
 from backend.config import settings
@@ -23,6 +24,7 @@ class SeedLoader:
         self._jobs: Dict[str, Job] = {}
         self._candidates: Dict[str, CandidateDetail] = {}
         self._is_loaded: bool = False
+        self.candidate_lock = RLock()
 
     def load_all(self, force_reload: bool = False) -> None:
         """Loads all seed jobs and candidates from disk into memory."""
@@ -138,7 +140,7 @@ class SeedLoader:
                 resume_path=c.resume_path,
                 match_preview=c.match_preview,
             )
-            for c in self._candidates.values()
+            for c in self.all_candidate_details()
         ]
 
         query_str = params.search if params and params.search else search
@@ -184,6 +186,16 @@ class SeedLoader:
             "total_jobs": len(self._jobs),
             "total_candidates": len(self._candidates),
         }
+
+    def all_candidate_details(self) -> List[CandidateDetail]:
+        self.ensure_loaded()
+        with self.candidate_lock:
+            return list(self._candidates.values())
+
+    def save_candidate(self, candidate: CandidateDetail) -> None:
+        self.ensure_loaded()
+        with self.candidate_lock:
+            self._candidates[candidate.id] = candidate
 
     def reload(self) -> None:
         """Forces cache rebuild from disk."""

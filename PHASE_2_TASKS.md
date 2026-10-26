@@ -2,7 +2,7 @@
 
 **Created:** 2026-10-26
 **Revised:** 2026-10-26
-**Status:** In progress - Milestone 1 complete (Tasks 1.1-1.6); Milestone 2 onward remains planned.
+**Status:** In progress - Milestones 1 and 2 complete (Tasks 1.1-2.6); Milestone 3 onward remains planned.
 **Objective:** Ingest unstructured resumes via an upload endpoint, extract candidate identity and claims, fetch and cache external signals (GitHub / LeetCode / LinkedIn stub), calculate deterministic evidence scores using the weighted formula from the PRD, and assemble a unified CandidateContext object. The finished pipeline powers real evidence badges, source-linked audit trails, and the Evidence Explorer view.
 
 All Phase 1 tasks are complete and verified. Phase 2 builds on the existing FastAPI backend, seeded candidate models, and React 19 frontend shell. See [PRD.md](PRD.md) §Phase 2 for functional requirements, signal weights, and the scoring formula.
@@ -57,39 +57,51 @@ All Phase 1 tasks are complete and verified. Phase 2 builds on the existing Fast
 
 ## Milestone 2: Backend — Resume Upload, Identity Extraction & Deduplication
 
-- [ ] **Task 2.1: Resume upload endpoint** — `backend/routers/ingest.py` (new file)
+- [x] **Task 2.1: Resume upload endpoint** — `backend/routers/ingest.py` (new file)
   - Accept a multipart file upload at `POST /api/v1/ingest/resume`.
   - Supported formats: PDF, DOCX, TXT. Reject any other format with a 422 response describing the accepted types.
   - Reject files larger than 5 MB with a 413 response.
   - Reject empty files or PDFs that yield fewer than 50 characters of text (scanned) with a descriptive 422 response.
   - On success, run identity extraction and deduplication synchronously, then enqueue a background context build task and return the resolved or newly created candidate ID along with the build status "building."
+  - Completion: Implemented `POST /api/v1/ingest/resume` with multipart upload, bounded reads, 5 MB limit, PDF/DOCX/TXT validation, scanned-PDF rejection and 202 responses. Optional name/email/headline/location form fields correct extraction; missing name/email for a new candidate returns 422. Background local preparation retains a revisioned context input with status building and stage awaiting_enrichment; actual signals/scored context construction remains Milestones 3-5.
 
-- [ ] **Task 2.2: Resume parser service** — `backend/services/resume_parser.py`
+
+- [x] **Task 2.2: Resume parser service** — `backend/services/resume_parser.py`
   - Accept a file path, raw bytes, or the seed stub text.
   - Extract raw text from PDF, DOCX, and TXT. Detect encoding for plain text files.
   - Return the extracted text, the source label (pdf / docx / txt / stub / empty), and the character count.
   - Never raise an exception on a parse failure. Return source "empty" with an empty string and log a warning.
+  - Completion: Implemented ParsedResume and fail-soft PDF/DOCX/TXT extraction from paths or bytes, explicit stub fallback for missing seed files, encoding detection, DOCX table text and scanned-PDF detection. Corrupt documents return source empty and a warning. Parsing has text/page/expanded-document bounds and runs outside the request event loop.
 
-- [ ] **Task 2.3: Identity extraction service** — `backend/services/identity_extractor.py`
+
+- [x] **Task 2.3: Identity extraction service** — `backend/services/identity_extractor.py`
   - From raw resume text, extract full name, email address, location, professional headline, and declared years of experience using rule-based patterns.
   - Extract GitHub, LinkedIn, and LeetCode profile URLs if present in the text.
   - Return all fields as nullable; partial extraction is valid.
+  - Completion: Implemented nullable, rule-based identity hints for name/email/location/headline/declared experience and platform profile URLs. Explicit labels are preferred; profile links are normalized and repository links/spoofed hosts are not treated as identities. No LLM or network calls.
 
-- [ ] **Task 2.4: Deduplication service** — `backend/services/deduplicator.py`
+
+- [x] **Task 2.4: Deduplication service** — `backend/services/deduplicator.py`
   - Before creating a candidate record, check whether a candidate with the same email address already exists in the in-memory store.
   - If an exact email match exists, return the existing candidate ID and set a flag indicating the upload updated an existing record rather than creating a new one.
   - If no match is found, assign a new sequential candidate ID and create a new record.
   - Log the decision (new / duplicate) for every upload.
+  - Completion: Implemented email normalization and atomic lookup/ID allocation/write under a repository lock. New candidates get sequential IDs; duplicate emails reuse IDs and preserve metadata absent from the upload. Uploaded documents clear stale match/claim previews and synthetic fallback text. New revisions supersede stale background preparation. Storage is process-local and not persistent.
 
-- [ ] **Task 2.5: Claim extractor service** — `backend/services/claim_extractor.py`
+
+- [x] **Task 2.5: Claim extractor service** — `backend/services/claim_extractor.py`
   - Identify resume bullet lines that contain action verbs from a configurable list (Designed, Built, Led, Engineered, Implemented, Deployed, Optimized, Architected, Reduced, Increased, and others) and known skill keywords.
   - Assign each claim to a section based on the nearest preceding heading.
   - Deduplicate claims by normalized text. Return at most 20 claims per resume.
   - Tag each claim with the skill most strongly associated with the line, if identifiable.
+  - Completion: Implemented configurable action verbs/skill keywords, bullet and numbered-item extraction, heading-based section tags, normalized-text deduplication, longest matching skill heuristic and a 20-claim cap. Claims use stable IDs and remain unverified.
 
-- [ ] **Task 2.6: Unit tests** — `backend/tests/test_resume_pipeline.py`
+
+- [x] **Task 2.6: Unit tests** — `backend/tests/test_resume_pipeline.py`
   - Cover: PDF stub fallback, DOCX parse, TXT parse, scanned PDF detection, empty and missing path, oversized file rejection, format rejection, identity field extraction for name / email / GitHub URL, duplicate email detection returning existing ID, new candidate creation, claim extraction for at least three action verb patterns, section tagging, deduplication of identical claim text.
   - All tests use synthetic fixtures and no network access.
+  - Completion: Added 16 offline pipeline scenarios covering real synthetic PDF/DOCX/TXT input, encodings, missing/stub/corrupt/scanned files, upload errors, correction fields, candidate API visibility, case-insensitive email updates, concurrency, stale revisions, claims/sections/configuration/cap and unverified states. All 95 backend tests pass (2026-10-26).
+
 
 ---
 
