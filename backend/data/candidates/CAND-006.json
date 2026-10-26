@@ -27,5 +27,6 @@
   "match_preview": {
     "fit_score": 62.0,
     "evidence_label": "No public evidence"
-  }
+  },
+  "resume_text_stub": "SYNTHETIC DEMO RESUME - not an original candidate document\nDavid Kim\ndavid.kim@example.com\nSoftware Engineer (Backend Focus)\nChicago, IL\nSummary\nJunior to mid-level backend developer with strong foundations in computer science, Python scripting, and REST APIs. Private enterprise experience.\nSkills\nPython, SQL, FastAPI, Docker, Git\nExperience\n- Built internal reporting microservice with FastAPI and PostgreSQL processing nightly ETL jobs.\n- Wrote comprehensive Pytest test suites achieving 80% branch coverage on core billing modules.\n- Assisted senior engineers in refactoring legacy stored procedures into Python services.\nProfiles\nhttps://linkedin.com/in/david-kim-eng"
 }

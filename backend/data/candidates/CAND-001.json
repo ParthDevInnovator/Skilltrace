@@ -27,5 +27,6 @@
   "match_preview": {
     "fit_score": 94.0,
     "evidence_label": "Strong"
-  }
+  },
+  "resume_text_stub": "SYNTHETIC DEMO RESUME - not an original candidate document\nAlex Rivera\nalex.rivera@example.com\nSenior Staff Distributed Systems Architect\nSan Francisco, CA\nSummary\nDistributed systems engineer with 8+ years building event-driven streaming pipelines and fault-tolerant microservices handling 50k+ req/sec.\nSkills\nPython, Go, Distributed Systems, Kubernetes, Apache Kafka\nExperience\n- Designed and implemented high-throughput Kafka streaming pipeline handling 50,000 req/sec with <15ms latency.\n- Led migration of monolithic payment services to containerized Kubernetes microservices in Python & Go.\n- Engineered distributed cache invalidation protocol reducing database read load by 68%.\nProfiles\nhttps://github.com/alexrivera-eng\nhttps://linkedin.com/in/alex-rivera-systems\nhttps://leetcode.com/alexrivera"
 }

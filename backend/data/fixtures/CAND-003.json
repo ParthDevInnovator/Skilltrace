@@ -1,0 +1,43 @@
+{
+  "candidate_id": "CAND-003",
+  "provenance": "synthetic — controlled test fixture",
+  "reference_date": "2026-10-26",
+  "evidence_records": [
+    {
+      "id": "EVIDENCE-27814d16-fff3-5a23-9484-5f591efd4c05",
+      "candidate_id": "CAND-003",
+      "skill": "Design Systems",
+      "source_type": "github",
+      "source_url": "https://example.test/fixtures/CAND-003/observations/1",
+      "observation": "Synthetic github observation 1 for Design Systems; not a live profile result.",
+      "base_weight": 3.0,
+      "recency_multiplier": 0.7,
+      "computed_weight": 2.1,
+      "observation_date": "2026-01-26",
+      "reference_date": "2026-10-26",
+      "provenance": "synthetic — controlled test fixture"
+    },
+    {
+      "id": "EVIDENCE-b191c05f-8546-5450-b73b-e41b16b4d9b8",
+      "candidate_id": "CAND-003",
+      "skill": "React",
+      "source_type": "github",
+      "source_url": "https://example.test/fixtures/CAND-003/observations/2",
+      "observation": "Synthetic github observation 2 for React; not a live profile result.",
+      "base_weight": 2.0,
+      "recency_multiplier": 0.4,
+      "computed_weight": 0.8,
+      "observation_date": "2024-10-26",
+      "reference_date": "2026-10-26",
+      "provenance": "synthetic — controlled test fixture"
+    }
+  ],
+  "expected": {
+    "computed_weights": [
+      2.1,
+      0.8
+    ],
+    "evidence_score": 2.9,
+    "evidence_label": "Some"
+  }
+}

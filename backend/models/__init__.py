@@ -7,6 +7,11 @@ from backend.models.candidate import (
     MatchPreview,
     EvidenceLabel,
 )
+from backend.models.context import (
+    ResumeClaim, ClaimSection, ClaimVerificationState,
+    EvidenceRecord, EvidenceSourceType, EvidenceProvenance,
+    CandidateContext, ResumeParseSource, ApplicationHistory, InterviewFeedback,
+)
 
 __all__ = [
     "Job",
@@ -18,4 +23,14 @@ __all__ = [
     "CandidateFilterParams",
     "MatchPreview",
     "EvidenceLabel",
+    "ResumeClaim",
+    "ClaimSection",
+    "ClaimVerificationState",
+    "EvidenceRecord",
+    "EvidenceSourceType",
+    "EvidenceProvenance",
+    "CandidateContext",
+    "ResumeParseSource",
+    "ApplicationHistory",
+    "InterviewFeedback",
 ]

@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.config import settings
-from backend.routers import candidates, health, jobs
+from backend.routers import candidates, health, jobs, ingest
 
 # Setup logging
 logging.basicConfig(
@@ -68,6 +68,7 @@ app.include_router(candidates.router, prefix=f"{settings.API_V1_PREFIX}/candidat
 app.include_router(candidates.router, prefix="/candidates")
 app.include_router(jobs.router, prefix=f"{settings.API_V1_PREFIX}/jobs")
 app.include_router(jobs.router, prefix="/jobs")
+app.include_router(ingest.router, prefix=f"{settings.API_V1_PREFIX}/ingest")
 
 
 @app.get("/", tags=["Root"])

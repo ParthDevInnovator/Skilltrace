@@ -112,3 +112,17 @@ For a host environment that sets an unrelated `DEBUG` value, run backend tests w
 ```powershell
 .\.venv\Scripts\python.exe -c "import os,pytest; os.environ['DEBUG']='false'; raise SystemExit(pytest.main(['backend/tests','-q','-p','no:cacheprovider']))"
 ```
+
+## Phase 2 resume ingestion (Milestone 2)
+
+`POST /api/v1/ingest/resume` accepts a multipart `file` in PDF, DOCX or TXT format, up to 5 MB. Optional `full_name`, `email`, `headline` and `location` form fields override extracted hints. A new candidate requires a name and valid email; missing fields produce 422 so the caller can correct them. Headline/location fall back to the explicit string `Not provided` when unknown. Scanned PDFs with fewer than 50 readable characters are rejected; OCR is not included.
+
+```powershell
+curl.exe -X POST http://localhost:8000/api/v1/ingest/resume -F "file=@resume.pdf" -F "full_name=Morgan Test" -F "email=morgan.test@example.com"
+```
+
+A successful response is HTTP 202 with `candidate_id`, `status: building`, `updated_existing`, `parse_source`, `context_revision` and `enrichment_pending: true`. Candidate records immediately appear in the existing candidate APIs. Background local preparation extracts unverified claims and stages resume inputs for the future signal/context worker. The queued input remains `building` / `awaiting_enrichment`; external fetchers, evidence scoring and context status endpoints are later milestones, and no evidence score is fabricated here.
+
+Email matching trims whitespace and ignores case. Duplicate uploads update the existing candidate, preserve metadata not present in the new input and clear stale match/claim previews. Concurrent ingestion uses process-local locking and revision checks. Candidate records, original bytes and prepared context inputs exist in memory only: restarting the process or rebuilding seeds does not provide persistence. Run a single backend worker for this prototype.
+
+The parser reads DOCX paragraphs/tables, detects TXT encodings, labels missing-file seed fallbacks as `stub` and reports parse failures without raising. Documents are bounded to 100,000 extracted characters, 200 PDF pages and 20 MB of expanded DOCX content.

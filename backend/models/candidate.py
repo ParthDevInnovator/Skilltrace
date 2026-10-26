@@ -43,6 +43,10 @@ class ExternalIdentifiers(BaseModel):
 
 
 class CandidateDetail(CandidateSummary):
+    resume_text_stub: Optional[str] = Field(
+        default=None,
+        description="Synthetic seed resume fallback; parsed responses must label its source as stub",
+    )
     summary: Optional[str] = Field(default=None, description="Professional background summary")
     experience_years: Optional[float] = Field(default=None, ge=0, description="Total years of professional experience")
     external_identifiers: Optional[ExternalIdentifiers] = Field(

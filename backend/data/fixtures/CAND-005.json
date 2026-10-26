@@ -1,0 +1,11 @@
+{
+  "candidate_id": "CAND-005",
+  "provenance": "synthetic — controlled test fixture",
+  "reference_date": "2026-10-26",
+  "evidence_records": [],
+  "expected": {
+    "computed_weights": [],
+    "evidence_score": 0.0,
+    "evidence_label": "No public evidence"
+  }
+}
