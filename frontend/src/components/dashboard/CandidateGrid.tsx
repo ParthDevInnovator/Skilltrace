@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import type { CandidateSummary } from '@/types'
 import { api } from '@/services/api'
 import { useJob } from '@/context/JobContext'
+import { ResumeUpload } from './ResumeUpload'
 import { CandidateCard } from '@/components/cards/CandidateCard'
 
 const POPULAR_SKILLS = ['All', 'Python', 'React', 'TypeScript', 'FastAPI', 'Kubernetes', 'Distributed Systems']
@@ -50,6 +51,7 @@ export function CandidateGrid() {
 
   return (
     <div className="flex flex-col gap-5">
+      <ResumeUpload />
       {/* Search & Filter Bar */}
       <div className="bg-white border border-[#e5e7eb] rounded-xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Skill filter pills */}

@@ -1,8 +1,7 @@
-"""Process-local, atomic email deduplication and ingestion staging.
+"""Process-local atomic candidate updates and revisioned resume inputs.
 
-Parsed documents and pending context inputs live in memory only. This module
-queues inputs for the later signal/context builder; it does not invent scores
-or mark extraction as completed evidence verification.
+The context builder consumes these inputs asynchronously. This store never
+calculates evidence scores or marks claims verified.
 """
 import logging
 from dataclasses import dataclass, field
@@ -80,36 +79,6 @@ class ResumeIngestionStore:
             logger.info("Resume ingestion candidate=%s decision=%s", candidate.id, "duplicate" if existing else "new")
             return candidate, existing is not None, revision
 
-    def prepare_context_build(self, candidate_id: str, revision: str) -> None:
-        """Background local preparation; external enrichment is a later task.
-
-        Leave status building and stage awaiting_enrichment until the real
-        context worker consumes this input. A newer upload wins over stale work.
-        """
-        with self.repository.candidate_lock:
-            pending = self.pending_builds.get(candidate_id)
-            if pending is None or pending.revision != revision:
-                return
-            text = pending.parsed_resume.raw_text
-        try:
-            from backend.services.claim_extractor import extract_claims
-            claims = extract_claims(text, candidate_id)
-            with self.repository.candidate_lock:
-                current = self.pending_builds.get(candidate_id)
-                if current is None or current.revision != revision:
-                    return
-                current.claims = claims
-                current.stage = "awaiting_enrichment"
-                candidate = self.repository.get_candidate(candidate_id)
-                if candidate:
-                    self.repository.save_candidate(candidate.model_copy(update={"claims_preview": [c.claim_text for c in claims]}))
-        except Exception:
-            with self.repository.candidate_lock:
-                current = self.pending_builds.get(candidate_id)
-                if current and current.revision == revision:
-                    current.status = "failed"
-                    current.error = "Local context preparation failed."
-            logger.exception("Context input preparation failed for candidate=%s", candidate_id)
 
 
 ingestion_store = ResumeIngestionStore(seed_loader)

@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import List
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field, SecretStr
 
 
 class Settings(BaseSettings):
@@ -24,6 +25,11 @@ class Settings(BaseSettings):
     # Project directories
     BASE_DIR: Path = Path(__file__).resolve().parent
     DATA_DIR: Path = BASE_DIR / "data"
+    SIGNAL_CACHE_DIR: Path = BASE_DIR / ".cache" / "signals"
+    SIGNAL_CACHE_TTL_SECONDS: int = Field(default=6 * 60 * 60, gt=0)
+    SIGNAL_HTTP_TIMEOUT_SECONDS: float = Field(default=8.0, gt=0, le=60)
+    GITHUB_TOKEN: SecretStr | None = None
+    ADMIN_KEY: SecretStr | None = None
 
     model_config = SettingsConfigDict(
         env_file=".env",

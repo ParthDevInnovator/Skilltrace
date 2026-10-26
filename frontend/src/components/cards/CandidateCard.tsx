@@ -1,3 +1,6 @@
+import { useCandidateContext } from '@/hooks/useCandidateContext'
+import { EvidenceBar } from '@/components/evidence/EvidenceBar'
+import { provenanceSummary } from '@/types/context'
 import type { CandidateSummary } from '@/types'
 import { useJob } from '@/context/JobContext'
 
@@ -15,7 +18,8 @@ export function CandidateCard({ candidate }: CandidateCardProps) {
     .slice(0, 2)
     .toUpperCase()
 
-  const evidenceLabel = 'Unassessed'
+  const { context } = useCandidateContext(candidate.id)
+  const evidenceLabel = context?.evidence_label ?? 'Unassessed'
 
   return (
     <div className="bg-white border border-[#e5e7eb] rounded-xl p-5 shadow-sm hover:border-[#6554c0] hover:shadow-md transition-all flex flex-col justify-between gap-4">
@@ -70,13 +74,14 @@ export function CandidateCard({ candidate }: CandidateCardProps) {
         </div>
       </div>
 
+      {context && <><EvidenceBar score={context.evidence_score} label={context.evidence_label} showLabel={false} /><p className="provenance-label">{provenanceSummary(context.evidence_records)}</p></>}
       {/* Footer Action */}
       <div className="border-t border-[#ebedf9] pt-3 flex items-center justify-between">
         <span className="text-[11px] text-[#656170] flex items-center gap-1">
           <span aria-hidden="true" className="material-symbols-outlined text-[14px] text-[#247a52]">
             person_outline
           </span>
-          <span>Seeded Profile - Preview</span>
+          <span>Candidate Profile</span>
         </span>
         <button
           type="button"
