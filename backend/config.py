@@ -30,6 +30,15 @@ class Settings(BaseSettings):
     SIGNAL_HTTP_TIMEOUT_SECONDS: float = Field(default=8.0, gt=0, le=60)
     GITHUB_TOKEN: SecretStr | None = None
     ADMIN_KEY: SecretStr | None = None
+    GEMINI_API_KEY: SecretStr | None = None
+    GROQ_API_KEY: SecretStr | None = None
+    gemini_model: str = "gemini-2.0-flash"
+    groq_model: str = "llama-3.3-70b-versatile"
+    LLM_TIMEOUT_SECONDS: float = Field(default=30, gt=0, le=120)
+    NEO4J_URI: str | None = None
+    NEO4J_USER: str | None = None
+    NEO4J_PASSWORD: SecretStr | None = None
+    GRAPH_SEEDING_ENABLED: bool = False
 
     model_config = SettingsConfigDict(
         env_file=".env",

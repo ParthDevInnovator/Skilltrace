@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 
 from backend.config import settings
 from backend.routers import candidates, health, jobs, ingest, admin, jd
+from backend.routers import agent, graph
 
 # Setup logging
 logging.basicConfig(
@@ -28,10 +29,15 @@ async def lifespan(app: FastAPI):
     service = context_builder
     app.state.context_builder = service
     service.start_all(wait_for_requests=True)
+    from backend.services.llm.router import get_provider_router
+    get_provider_router()
     try:
         yield
     finally:
         await service.shutdown()
+        from backend.services.graph.neo4j_client import get_graph_client
+        await get_graph_client().close()
+        get_graph_client.cache_clear()
         if getattr(app.state, "context_builder", None) is service:
             del app.state.context_builder
         logger.info("Shutting down Mosaic Backend Service...")
@@ -91,6 +97,9 @@ app.include_router(jobs.router, prefix=f"{settings.API_V1_PREFIX}/jobs")
 app.include_router(jobs.router, prefix="/jobs")
 app.include_router(ingest.router, prefix=f"{settings.API_V1_PREFIX}/ingest")
 app.include_router(admin.router)
+for feature in (agent.router, graph.router):
+    app.include_router(feature, prefix=settings.API_V1_PREFIX)
+    app.include_router(feature)
 
 
 @app.get("/", tags=["Root"])

@@ -1,4 +1,5 @@
 import type { ExtractedRequirement, RankedCandidate, SimilarJob, MatchResponse } from '@/types/matching'
+import type { ChatMessage, AgentResponse, CandidateBrief, InterviewQuestionSet, CandidateSubgraph, GraphNode, GenerationResult } from '@/types/agent'
 import type {
   Job,
   JobFilterParams,
@@ -42,6 +43,11 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  sendChatMessage: (payload: {message:string;history:ChatMessage[];job_id?:string}): Promise<AgentResponse> => request('/api/v1/agent/chat', {method:'POST',body:JSON.stringify(payload)}),
+  generateBrief: (id:string, params:{job_id?:string;reference_date?:string}): Promise<GenerationResult<CandidateBrief>> => generationRequest(id, 'brief', params),
+  generateInterviewQuestions: (id:string, params:{job_id:string;reference_date?:string}): Promise<GenerationResult<InterviewQuestionSet>> => generationRequest(id, 'interview-questions', params),
+  getCandidateGraph: (id:string): Promise<CandidateSubgraph | {status:'unavailable'}> => graphRequest(id, 'graph'),
+  getGraphEvidence: (id:string, skill:string): Promise<GraphNode[] | {status:'unavailable'}> => graphRequest(id, 'graph-evidence', {skill}),
   extractRequirements: (params: {job_id?:string; jd_text?:string}): Promise<ExtractedRequirement[]> => request('/api/v1/jd/extract', {method:'POST',body:JSON.stringify(params)}),
   rankCandidates: (params: {job_id:string; reference_date?:string}): Promise<RankedCandidate[]> => request('/api/v1/jd/rank', {method:'POST',body:JSON.stringify(params)}),
   getSimilarJobs: (job_id:string): Promise<SimilarJob[]> => request('/api/v1/jd/similar', {method:'POST',body:JSON.stringify({job_id})}),
@@ -89,3 +95,19 @@ export const api = {
   getCandidateById: (id: string): Promise<CandidateDetail> =>
     request<CandidateDetail>(`/api/v1/candidates/${id}`),
 }
+
+async function generationRequest<T>(id:string, action:string, params:object): Promise<GenerationResult<T>> {
+  const response = await fetch(`/api/v1/candidates/${encodeURIComponent(id)}/${action}`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(params)})
+  if (response.status === 202) return {status:'building'}
+  if (response.status === 503) { const body = await response.json(); return {status:'failed',error:body.detail || body.error || 'AI providers unavailable'} }
+  if (!response.ok) throw new Error('Could not generate this content. Please retry.')
+  return response.json()
+}
+async function graphRequest<T>(id:string, action:string, body?:object): Promise<T | {status:'unavailable'}> {
+  const response = await fetch(`/api/v1/candidates/${encodeURIComponent(id)}/${action}`, body ? {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)} : undefined)
+  if (response.status === 503) return {status:'unavailable'}
+  if (!response.ok) throw new Error('Could not load the graph. Please retry.')
+  return response.json()
+}
+
+export const { sendChatMessage, generateBrief, generateInterviewQuestions, getCandidateGraph, getGraphEvidence } = api
