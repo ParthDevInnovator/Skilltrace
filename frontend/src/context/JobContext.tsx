@@ -1,3 +1,4 @@
+import type { ExtractedRequirement } from '@/types/matching'
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import type { Job } from '@/types'
 import { api } from '@/services/api'
@@ -8,7 +9,7 @@ interface JobContextType {
   setSelectedJob: (job: Job | null) => void
   customJD: string
   setCustomJD: (jd: string) => void
-  createCustomJob: (title: string, description: string, department?: string, location?: string) => void
+  createCustomJob: (title: string, description: string, department?: string, location?: string, requirements?: ExtractedRequirement[], extractionFailed?: boolean) => Promise<void>
   searchQuery: string
   setSearchQuery: (q: string) => void
   selectedSkill: string
@@ -50,19 +51,11 @@ export function JobProvider({ children }: { children: ReactNode }) {
     return () => { cancelled = true }
   }, [reloadKey])
 
-  const createCustomJob = (title: string, description: string, department = 'Custom Requisition', location = 'Remote') => {
-    const newJob: Job = {
-      id: `CUSTOM-${crypto.randomUUID()}`,
-      title,
-      department,
-      location,
-      description_raw: description,
-      requirements_preview: description.split('\n').filter((l) => l.trim().length > 5).slice(0, 4),
-      created_at: new Date().toISOString(),
-    }
-    setJobs((prev) => [newJob, ...prev])
-    setSelectedJob(newJob)
-    setCustomJD(description)
+  const createCustomJob = async (title: string, description: string, department = 'Custom Requisition', location = 'Remote', requirements: ExtractedRequirement[] = [], extractionFailed = false) => {
+    const saved = await api.createJob({title,description_raw:description,department,location,requirements})
+    const newJob: Job = {...saved, requirements: extractionFailed ? [] : requirements.length ? requirements : saved.requirements, extraction_failed:extractionFailed,
+      requirements_preview: description.split('\n').filter(l => l.trim().length > 5).slice(0,4)}
+    setJobs(prev => [newJob,...prev]); setSelectedJob(newJob); setCustomJD(description)
   }
 
   const openCandidateDetail = (candidateId: string) => {

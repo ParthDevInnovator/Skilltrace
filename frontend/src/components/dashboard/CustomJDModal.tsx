@@ -1,3 +1,5 @@
+import { api } from '@/services/api'
+import type { ExtractedRequirement } from '@/types/matching'
 import { useEffect, useRef, useState } from 'react'
 import { useJob } from '@/context/JobContext'
 import { extractDocumentText } from '@/services/documentText'
@@ -47,13 +49,20 @@ export function CustomJDModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
     }
   }}>
     <div className="page-title"><h2 id="jd-heading">Add Custom Job Description</h2><button aria-label="Close job description dialog" onClick={onClose}>Close</button></div>
-    <p id="jd-help">Create a requisition for this session. Refreshing the page clears custom jobs.</p>
-    <form noValidate onSubmit={e => {
+    <p id="jd-help">Create a requisition for this server session. Restarting the server clears custom jobs.</p>
+    <form noValidate onSubmit={async e => {
       e.preventDefault()
       if (reading) return
       if (!title.trim()) { setError('Please provide a job title.'); dialog.current?.querySelector<HTMLInputElement>('#jd-title')?.focus(); return }
       if (text.trim().length < 50) { setError('Job description must be at least 50 characters long.'); dialog.current?.querySelector<HTMLTextAreaElement>('#jd-text')?.focus(); return }
-      createCustomJob(title.trim(), text.trim(), department.trim() || 'Custom Requisition', location.trim() || 'Remote'); onClose()
+      setReading(true)
+      let requirements: ExtractedRequirement[] = [], extractionFailed = false
+      try { requirements = await api.extractRequirements({jd_text:text.trim()}) } catch { extractionFailed = true }
+      try {
+        await createCustomJob(title.trim(), text.trim(), department.trim() || 'Custom Requisition', location.trim() || 'Remote', requirements, extractionFailed)
+        onClose()
+      } catch { setError('Could not save this requisition. Please retry.') }
+      finally { setReading(false) }
     }} className="page-stack">
       <div className="modal-actions"><button type="button" aria-pressed={tab === 'paste'} onClick={() => setTab('paste')}>Paste Text</button><button type="button" aria-pressed={tab === 'upload'} onClick={() => setTab('upload')}>Upload Document</button><button type="button" disabled={reading} onClick={() => { setTitle('Senior Platform Engineer'); setText('Build reliable distributed systems with Python, FastAPI, PostgreSQL and Kubernetes. Collaborate with product teams and maintain tested production services.'); setError(''); setFileName('') }}>Load Sample JD</button></div>
       <div className="form-grid"><div><label htmlFor="jd-title">Job Title *</label><input id="jd-title" value={title} onChange={e => setTitle(e.target.value)} required maxLength={200} /></div><div><label htmlFor="jd-department">Department</label><input id="jd-department" value={department} onChange={e => setDepartment(e.target.value)} maxLength={200} /></div><div><label htmlFor="jd-location">Location</label><input id="jd-location" value={location} onChange={e => setLocation(e.target.value)} maxLength={200} /></div></div>

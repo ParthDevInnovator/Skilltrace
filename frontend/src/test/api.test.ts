@@ -23,3 +23,19 @@ it('encodes resolve parameters and leaves multipart content type to the browser'
   expect(options.body).toBe(form)
   expect(options.headers).not.toHaveProperty('Content-Type')
 })
+
+it('handles match building and failed statuses separately without throwing', async () => {
+ const fetcher=vi.fn().mockResolvedValueOnce(new Response('{}',{status:202})).mockResolvedValueOnce(new Response(JSON.stringify({error:'Build failed'}),{status:503})).mockResolvedValueOnce(new Response('{}',{status:404}))
+ vi.stubGlobal('fetch',fetcher)
+ expect(await api.getCandidateJdMatch('C',{job_id:'J'})).toEqual({status:'building'})
+ expect(await api.getCandidateJdMatch('C',{job_id:'J'})).toEqual({status:'failed',error:'Build failed'})
+ await expect(api.getCandidateJdMatch('C',{job_id:'J'})).rejects.toThrow()
+})
+it('posts matching parameters and preserves explicit reference dates',async()=>{
+ const fetcher=vi.fn().mockImplementation(async()=>new Response('[]'));vi.stubGlobal('fetch',fetcher)
+ await api.extractRequirements({jd_text:'Synthetic description'})
+ await api.rankCandidates({job_id:'J',reference_date:'2026-10-26'})
+ await api.getSimilarJobs('J')
+ expect(fetcher.mock.calls.map(call=>call[0])).toEqual(['/api/v1/jd/extract','/api/v1/jd/rank','/api/v1/jd/similar'])
+ expect(JSON.parse(fetcher.mock.calls[1][1].body)).toEqual({job_id:'J',reference_date:'2026-10-26'})
+})

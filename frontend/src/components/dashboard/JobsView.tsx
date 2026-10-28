@@ -1,8 +1,21 @@
-import { useState } from 'react'
+import { api } from '@/services/api'
+import type { SimilarJob } from '@/types/matching'
+import { useEffect, useState } from 'react'
 import { useJob } from '@/context/JobContext'
 import { JobStatus } from '@/components/common/JobStatus'
 export function JobsView({ onCreate }: { onCreate: () => void }) {
   const { jobs, selectedJob, setSelectedJob, isLoadingJobs, jobError } = useJob()
+  const selectedJobId = selectedJob?.id
+  const [similar,setSimilar] = useState<SimilarJob[]>([])
+  const [similarStatus,setSimilarStatus] = useState('')
+  useEffect(()=>{
+    let cancelled=false
+    if(!selectedJobId) return
+    // oxlint-disable-next-line react/set-state-in-effect -- Reset the state for a new asynchronous request.
+    setSimilarStatus('Loading similar requisitions...'); setSimilar([])
+    api.getSimilarJobs(selectedJobId).then(rows=>{if(!cancelled){setSimilar(rows);setSimilarStatus(rows.length ? '' : 'No similar requisitions found.')}}).catch(()=>{if(!cancelled)setSimilarStatus('Could not load similar requisitions.')})
+    return ()=>{cancelled=true}
+  },[selectedJobId])
   const [query, setQuery] = useState('')
   const filtered = jobs.filter(job => [job.id, job.title, job.department, job.location].some(value => value.toLowerCase().includes(query.trim().toLowerCase())))
   return <section className="page-stack"><div className="page-title"><div><h1>Jobs</h1><p>Browse requisitions and choose the role for your workspace.</p></div><button className="primary-button" onClick={onCreate}>Create Job</button></div>
@@ -10,5 +23,6 @@ export function JobsView({ onCreate }: { onCreate: () => void }) {
     {selectedJob && <button className="secondary-button" onClick={() => setSelectedJob(null)}>Clear active job</button>}
     {!isLoadingJobs && !jobError && !filtered.length && <div className="panel">No jobs found. Try another search or create a job.</div>}
     <div className="jobs-grid">{filtered.map(job => <article key={job.id} className="panel"><span className="preview-label">{job.id.startsWith('CUSTOM-') ? 'Custom - this session only' : 'Seeded requisition'}</span><h2>{job.title}</h2><p>{job.department} - {job.location}</p><ul>{job.requirements_preview?.map((r, i) => <li key={i}>{r}</li>)}</ul><details><summary>Full job description</summary><p className="pre-wrap">{job.description_raw}</p></details><button className="secondary-button" aria-pressed={selectedJob?.id === job.id} onClick={() => setSelectedJob(job)}>{selectedJob?.id === job.id ? 'Active requisition' : 'Set as active job'}</button></article>)}</div>
+    {selectedJob && <section className="panel"><h2>Similar Requisitions</h2>{similarStatus && <p role="status">{similarStatus}</p>}{similar.map(row=><article key={row.job_id}><button onClick={()=>{const job=jobs.find(j=>j.id===row.job_id);if(job)setSelectedJob(job)}}>{row.title}</button><p>{row.shared_requirement_count} overlapping requirements</p><div className="skill-list">{row.overlapping_requirements.map(text=><span className="skill-tag" key={text}>{text}</span>)}</div></article>)}</section>}
   </section>
 }

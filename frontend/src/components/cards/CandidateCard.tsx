@@ -1,3 +1,4 @@
+import type { RankedCandidate } from '@/types/matching'
 import { useCandidateContext } from '@/hooks/useCandidateContext'
 import { EvidenceBar } from '@/components/evidence/EvidenceBar'
 import { provenanceSummary } from '@/types/context'
@@ -5,10 +6,11 @@ import type { CandidateSummary } from '@/types'
 import { useJob } from '@/context/JobContext'
 
 interface CandidateCardProps {
+  ranking?: RankedCandidate
   candidate: CandidateSummary
 }
 
-export function CandidateCard({ candidate }: CandidateCardProps) {
+export function CandidateCard({ candidate, ranking }: CandidateCardProps) {
   const { openCandidateDetail } = useJob()
 
   const initials = candidate.full_name
@@ -19,13 +21,13 @@ export function CandidateCard({ candidate }: CandidateCardProps) {
     .toUpperCase()
 
   const { context } = useCandidateContext(candidate.id)
-  const evidenceLabel = context?.evidence_label ?? 'Unassessed'
+  const evidenceLabel = context?.evidence_label ?? 'Evidence pending'
 
   return (
     <div className="bg-white border border-[#e5e7eb] rounded-xl p-5 shadow-sm hover:border-[#6554c0] hover:shadow-md transition-all flex flex-col justify-between gap-4">
       <div className="flex flex-col gap-3">
         {/* Top: Avatar, Name, and Fit Badge */}
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-11 h-11 rounded-lg bg-[#ebedf9] text-[#4d3aa6] flex items-center justify-center font-bold text-sm border border-[#c9c4d4] flex-shrink-0">
               {initials}
@@ -40,7 +42,7 @@ export function CandidateCard({ candidate }: CandidateCardProps) {
 
           <div className="flex flex-col items-end gap-1 flex-shrink-0">
             <span className="text-xs font-bold text-[#4d3aa6] bg-[#f1eefc] px-2 py-0.5 rounded font-mono">
-              Role fit pending
+              {ranking ? ranking.context_status === 'building' ? 'Context building' : ranking.context_status === 'failed' ? 'Context failed' : `Final ${Math.round(ranking.final_score*100)}%` : 'Unassessed'}
             </span>
             <span className="badge-status badge-evidence-none">
               <span className="w-1.5 h-1.5 rounded-full bg-current opacity-75"></span>
@@ -74,6 +76,7 @@ export function CandidateCard({ candidate }: CandidateCardProps) {
         </div>
       </div>
 
+      {ranking?.context_status === 'ready' && <p className="match-scores" data-testid="match-score">Resume Fit {Math.round(ranking.resume_fit*100)}% | Evidence {Math.round(ranking.evidence_strength*100)}% | Final {Math.round(ranking.final_score*100)}%</p>}
       {context && <><EvidenceBar score={context.evidence_score} label={context.evidence_label} showLabel={false} /><p className="provenance-label">{provenanceSummary(context.evidence_records)}</p></>}
       {/* Footer Action */}
       <div className="border-t border-[#ebedf9] pt-3 flex items-center justify-between">

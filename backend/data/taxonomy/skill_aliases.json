@@ -1,0 +1,52 @@
+{
+  "Python": [],
+  "Go": [
+    "golang"
+  ],
+  "JavaScript": [
+    "js"
+  ],
+  "TypeScript": [
+    "ts"
+  ],
+  "React": [
+    "React.js",
+    "ReactJS"
+  ],
+  "FastAPI": [],
+  "Kubernetes": [
+    "k8s"
+  ],
+  "Docker": [],
+  "Apache Kafka": [
+    "Kafka"
+  ],
+  "PostgreSQL": [
+    "Postgres"
+  ],
+  "SQL": [],
+  "AWS": [
+    "Amazon Web Services"
+  ],
+  "Terraform": [],
+  "Distributed Systems": [
+    "distributed system"
+  ],
+  "Machine Learning": [
+    "ML"
+  ],
+  "Neo4j": [],
+  "Redis": [],
+  "gRPC": [],
+  "REST": [
+    "REST API",
+    "RESTful"
+  ],
+  "Leadership": [
+    "mentoring",
+    "leadership"
+  ],
+  "Domain": [
+    "domain expertise"
+  ]
+}

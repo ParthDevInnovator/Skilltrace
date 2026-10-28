@@ -168,7 +168,7 @@ Uploads now schedule this full builder after responding 202. Candidate updates, 
 
 ## Phase 2 evidence workspace and API contracts
 
-The sidebar Evidence Explorer filters candidate evidence by tier, source and minimum raw score. Candidate cards update from Unassessed after their context is ready. Profiles show unverified/reported claims separately from source observations and skill evidence. Resume Reference opens extracted text with its parse source, synthetic-stub notice and copy feedback. Candidates also includes a resume-upload form with optional name/email/location corrections.
+The sidebar Evidence Explorer filters candidate evidence by tier, source and minimum raw score. Candidate cards show evidence tiers after their context is ready. Role fit remains Unassessed until ranking is triggered. Profiles show unverified/reported claims separately from source observations and skill evidence. Resume Reference opens extracted text with its parse source, synthetic-stub notice and copy feedback. Candidates also includes a resume-upload form with optional name/email/location corrections.
 
 | Method | Route | Result |
 |:---|:---|:---|
@@ -192,3 +192,57 @@ Synthetic fixture labels and observed source links remain visible throughout the
 Phase 2 Tasks 1.1-8.4 are complete: **196 backend tests, 27 frontend tests and 18 desktop/mobile browser checks pass**, along with production build and lint. See [PHASE_2_TASKS.md](PHASE_2_TASKS.md) for implementation notes and evidence.
 
 Browser checks use a dedicated controlled-adapter backend and fixed clock. Run the normal app with `npm run dev`; use `npm run test:e2e` from frontend for offline acceptance. Microsoft Edge must be installed. The test app is not a production deployment entry point. Live service availability remains separate from automated acceptance; LinkedIn is synthetic and candidate storage remains process-local.
+
+
+## Phase 3 requirement matching and ranking
+
+Phase 3 Tasks 1.1-7.5 implement deterministic extraction, per-requirement coverage,
+dual-axis ranking, requirement filters, JD Match profiles and similar requisitions.
+No LLM participates in extraction or scoring, and matching never changes claim
+verification states.
+
+| Method | Route | Result |
+|:---|:---|:---|
+| POST | `/api/v1/jd/extract` | Structured or rule-extracted requirements; accepts `job_id` or `jd_text` |
+| POST | `/api/v1/jd/rank` | Ordered candidates, score components, coverage counts and context status |
+| POST | `/api/v1/candidates/{id}/jd-match` | Full per-requirement match; 202 building, 503 failed, 404 unknown |
+| POST | `/api/v1/jd/similar` | At most five other jobs ordered by normalized requirement overlap |
+| POST | `/api/v1/jobs` | Creates a process-local custom requisition so custom jobs can also be ranked |
+
+The matching routes also have unprefixed `/jd/...` and `/candidates/...` aliases.
+`POST /jd/rank` and candidate `jd-match` accept `{ "job_id": "JOB-001",
+"reference_date": "2026-10-26" }`. The ISO reference date is optional; omitting it
+uses the **UTC request date**. Evidence recency is recomputed for that date. The
+pure ranker never reads the clock; HTTP handlers stamp stored results with their
+actual UTC build time. Results are stored by job, candidate and reference date,
+and cached matches are reused only for the current context revision. A context
+rebuild therefore cannot reuse an older ready result while building or failed.
+
+Structured requirements always bypass extraction, including the five seed jobs.
+A supplied job ID takes precedence over text; unknown IDs return 404. Text-only
+extraction requires at least 50 characters and returns up to ten deduplicated
+requirements, with stable ordinal IDs. When capping a long JD, the first five
+mandatory requirements take priority, followed by preferred requirements and
+then remaining mandatory requirements if slots remain. Skill matching uses the
+[configurable skill taxonomy](backend/data/taxonomy/README.md), with longest-alias
+matching to avoid interpreting React.js as a separate JavaScript claim.
+
+Resume Fit is the weighted average of coverage weights (matched 1, partial 0.5,
+insufficient 0.1, unassessed 0). Evidence Strength averages per-requirement evidence
+weights normalized by 9 and capped at 1. Mandatory requirements weigh 1; preferred
+requirements weigh 0.5. Final Score is `0.5 * Resume Fit + 0.5 * Evidence Strength`.
+Ready candidates sort by final score, evidence, resume fit and candidate ID.
+Building/failed contexts have zero scores, not-assessed coverage and appear last.
+A zero score for a ready context is distinct from an unavailable context.
+
+Select **Rank by fit** in the candidate pool to show scores. Requirement filters
+intersect; **Back to default order** restores the original API order. Switching
+jobs clears ranking. **JD Match** shows scores, typed coverage and expandable
+claim/evidence support. Building matches poll every three seconds, up to ten
+attempts, then offer manual retry. Custom requisitions retain extracted typed
+requirements; extraction failure shows a newline preview and a muted notice.
+Custom jobs and match results are process-local and do not survive a server restart.
+
+Phase 3 verification (2026-10-28): 253 backend tests, 37 frontend tests and 26 desktop/mobile browser checks pass, along with production build and lint.
+See [PHASE_3_TASKS.md](PHASE_3_TASKS.md) for browser, accessibility and determinism
+sign-off. Automated checks use controlled fixtures and no live signal services.

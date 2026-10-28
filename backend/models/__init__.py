@@ -34,3 +34,6 @@ __all__ = [
     "ApplicationHistory",
     "InterviewFeedback",
 ]
+
+from backend.models.matching import (ExtractedRequirement, CoverageState, RequirementCoverage, CandidateMatchResult, RankedCandidate, SimilarJob)
+__all__ += ["ExtractedRequirement", "CoverageState", "RequirementCoverage", "CandidateMatchResult", "RankedCandidate", "SimilarJob"]

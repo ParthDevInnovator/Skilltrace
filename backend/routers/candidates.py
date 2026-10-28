@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 from backend.routers.ingest import get_context_builder
+from backend.routers.jd import JobRequest, candidate_match
 from backend.services.context_builder import ContextBuilder
 from backend.services.resume_parser import parse_resume
 
@@ -112,3 +113,7 @@ async def get_candidate(candidate_id: str) -> CandidateDetail:
             detail=f"Candidate with ID '{candidate_id}' not found",
         )
     return candidate
+
+@router.post('/{candidate_id}/jd-match')
+async def jd_match(candidate_id: str, body: JobRequest, service=Depends(get_context_builder)):
+    return await candidate_match(candidate_id,body,service)

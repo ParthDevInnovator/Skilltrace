@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from backend.models import Job, JobFilterParams
 from backend.services.seed_loader import seed_loader
@@ -57,3 +57,14 @@ async def get_job(job_id: str) -> Job:
             detail=f"Job with ID '{job_id}' not found",
         )
     return job
+
+from backend.routers.ingest import get_context_builder
+from uuid import uuid4
+from backend.models import JobCreate
+from backend.services.requirement_extractor import extract_requirements
+@router.post('', response_model=Job, status_code=201)
+def create_job(body: JobCreate, service=Depends(get_context_builder)):
+    id = f'CUSTOM-{uuid4()}'
+    requirements = body.requirements or extract_requirements(body.description_raw,id)
+    job = Job(id=id,**body.model_dump(exclude={'requirements'}),requirements=[{'id':r.id,'requirement_text':r.requirement_text,'category':r.category,'is_mandatory':r.is_mandatory} for r in requirements],requirements_preview=[r.requirement_text for r in requirements[:4]])
+    return service.repository.add_job(job)

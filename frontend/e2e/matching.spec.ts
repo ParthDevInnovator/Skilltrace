@@ -1,0 +1,72 @@
+import AxeBuilder from '@axe-core/playwright'
+import { test, expect } from '@playwright/test'
+
+test('ranking badges, requirement filters, keyboard and responsive accessibility', async ({page}, info)=>{
+  await page.goto('/')
+  await expect(page.getByRole('button',{name:'View Profile'})).toHaveCount(6)
+  await page.getByRole('button',{name:'Rank by fit'}).click()
+  await expect(page.getByTestId('match-score').first()).toBeVisible()
+  const filters=page.getByLabel('Filter by requirement')
+  const chip=filters.getByRole('button').first()
+  await chip.focus();await page.keyboard.press('Enter');await expect(chip).toHaveAttribute('aria-pressed','true')
+  await filters.getByRole('button',{name:'Clear filters'}).click()
+  await expect(page.getByRole('button',{name:'View Profile'})).toHaveCount(6)
+  const scan=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze()
+  expect(scan.violations).toEqual([])
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+  await page.evaluate(()=>scrollTo(0,0))
+  await page.screenshot({path:`test-results/${info.project.name}-ranked-grid.png`,fullPage:true})
+  await page.getByRole('button',{name:'Back to default order'}).click()
+  await expect(page.getByTestId('match-score')).toHaveCount(0)
+  await expect(page.getByText('Unassessed',{exact:true})).toHaveCount(6)
+})
+
+test('JD Match scores, five coverage cards, support expansion and axe',async({page},info)=>{
+  await page.goto('/')
+  await page.getByRole('button',{name:'View Profile'}).first().click()
+  await page.getByRole('button',{name:'JD Match',exact:true}).click()
+  const panel=page.getByRole('region',{name:'JD Match',exact:true})
+  await expect(panel.locator('article')).toHaveCount(5)
+  await expect(panel.getByText(/Final Score/)).toBeVisible()
+  const summary=panel.locator('summary').first();await summary.focus();await page.keyboard.press('Enter')
+  await expect(panel.locator('details').first()).toHaveAttribute('open','')
+  const scan=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze()
+  expect(scan.violations).toEqual([])
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+  await page.evaluate(()=>scrollTo(0,0))
+  await page.screenshot({path:`test-results/${info.project.name}-jd-match.png`,fullPage:true})
+})
+
+test('custom job extraction, ranking and similar requisition selection',async({page})=>{
+  await page.goto('/')
+  await page.getByRole('button',{name:'Create Job',exact:true}).click()
+  await page.getByLabel('Job Title *').fill('Phase Three Engineer')
+  await page.getByLabel('Job Description Text *').fill('Must build Python services for customers.\nReact interfaces preferred.\nRequired Kubernetes deployment experience.\nSQL database design is essential.\nKafka experience is a plus.')
+  await page.getByRole('button',{name:'Set as Active Requisition'}).click()
+  await expect(page.getByRole('heading',{name:'Phase Three Engineer',exact:true})).toBeVisible()
+  await expect(page.locator('.requirement-chip.mandatory')).toHaveCount(3)
+  await expect(page.locator('.requirement-chip.preferred')).toHaveCount(2)
+  await page.getByRole('button',{name:'Rank by fit'}).click()
+  await expect(page.getByTestId('match-score').first()).toBeVisible()
+  await page.getByRole('button',{name:'Jobs',exact:true}).click()
+  await expect(page.getByRole('heading',{name:'Similar Requisitions'})).toBeVisible()
+  const similar=page.locator('section.panel').filter({has:page.getByRole('heading',{name:'Similar Requisitions'})})
+  await expect(similar.getByRole('button').first()).toBeVisible()
+  await similar.getByRole('button').first().click()
+  await expect(page.getByRole('button',{name:'Active requisition',exact:true})).toHaveCount(1)
+})
+
+test('offline API determinism, coverage and structured extraction acceptance',async({request})=>{
+  const root='http://127.0.0.1:8000/api/v1'
+  const body={job_id:'JOB-001',reference_date:'2026-10-26'}
+  const requirements=await (await request.post(root+'/jd/extract',{data:body})).json()
+  expect(requirements).toHaveLength(5)
+  const runs=[]
+  for(let i=0;i<3;i++)runs.push(await (await request.post(root+'/jd/rank',{data:body})).text())
+  expect(new Set(runs).size).toBe(1)
+  expect(JSON.parse(runs[0])).toHaveLength(6)
+  const match=await (await request.post(root+'/candidates/CAND-001/jd-match',{data:body})).json()
+  expect(match.coverage).toHaveLength(5)
+  const similar=await (await request.post(root+'/jd/similar',{data:body})).json()
+  expect(similar.length).toBeLessThanOrEqual(5)
+})
