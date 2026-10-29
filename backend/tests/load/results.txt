@@ -1,0 +1,5 @@
+Phase 5 authenticated load result — 2026-10-29 Asia/Calcutta
+Configuration: 50 concurrent users, 60 seconds, 1-second user think time after each candidates/rank cycle.
+GET /api/v1/candidates: 1,103 requests; p95 1,636.58 ms; error rate 0.00%.
+POST /api/v1/jd/rank: 1,103 requests; p95 1,776.84 ms; error rate 0.00%.
+Result: PASS — both endpoints remained below 2,000 ms p95 and below 1% errors.

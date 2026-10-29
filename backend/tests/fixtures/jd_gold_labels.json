@@ -1,0 +1,12 @@
+[
+ {"text":"Build Python and Go distributed services using Kafka and Kubernetes.","skills":["Python","Go","Apache Kafka","Kubernetes"]},
+ {"text":"Develop React and TypeScript applications with accessible HTML and CSS.","skills":["React","TypeScript","HTML","CSS"]},
+ {"text":"Operate AWS infrastructure using Terraform, Docker, and Kubernetes.","skills":["AWS","Terraform","Docker","Kubernetes"]},
+ {"text":"Design PostgreSQL schemas and Redis caching for Python APIs.","skills":["PostgreSQL","Redis","Python"]},
+ {"text":"Train machine learning models using Python, PyTorch, and NumPy.","skills":["Machine Learning","Python","PyTorch","NumPy"]},
+ {"text":"Create Java Spring Boot microservices with Kafka.","skills":["Java","Spring Boot","Apache Kafka"]},
+ {"text":"Build .NET services in C# backed by SQL Server.","skills":["C#",".NET","SQL Server"]},
+ {"text":"Implement Node.js and Express APIs with MongoDB.","skills":["Node.js","Express","MongoDB"]},
+ {"text":"Automate CI/CD through GitHub Actions and Docker.","skills":["CI/CD","GitHub Actions","Docker"]},
+ {"text":"Analyze data using SQL, Python, and Tableau.","skills":["SQL","Python","Tableau"]}
+]

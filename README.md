@@ -244,5 +244,38 @@ requirements; extraction failure shows a newline preview and a muted notice.
 Custom jobs and match results are process-local and do not survive a server restart.
 
 Phase 3 verification (2026-10-28): 253 backend tests, 37 frontend tests and 26 desktop/mobile browser checks pass, along with production build and lint.
+
+## Phase 4 grounded assistance and knowledge graph
+
+Phase 4 adds grounded recruiter chat, four-section executive briefs, gap-targeted
+interview questions, and candidate knowledge-graph exploration. Generated content is
+validated against candidate claim, evidence, and requirement IDs before citations are
+returned. Gemini is the primary text provider and Groq is the automatic fallback.
+
+Configure `GEMINI_API_KEY` and/or `GROQ_API_KEY` for AI features. Optional model names
+can be set with `GEMINI_MODEL` and `GROQ_MODEL`; `LLM_TIMEOUT_SECONDS` controls provider
+timeouts. Configure `NEO4J_URI`, `NEO4J_USER`, and `NEO4J_PASSWORD` to enable graph
+exploration. `GRAPH_SEEDING_ENABLED=true` schedules graph writes after contexts become
+ready. Graph features degrade gracefully when Neo4j is not configured, while context,
+scoring, ranking, and other candidate workflows remain available.
+
+Phase 4 verification commands are the same full backend, frontend, build, lint, and
+Playwright commands listed above. The final verified counts are recorded in
+`PHASE_4_TASKS.md`.
 See [PHASE_3_TASKS.md](PHASE_3_TASKS.md) for browser, accessibility and determinism
 sign-off. Automated checks use controlled fixtures and no live signal services.
+# Phase 5: Environment Variables
+
+Phase 5 adds `DATABASE_URL`, `DB_POOL_SIZE`, `DB_MAX_OVERFLOW`, `JWT_SECRET`, `JWT_ALGORITHM`, `JWT_EXPIRE_MINUTES`, `REFRESH_TOKEN_EXPIRE_DAYS`, `OAUTH_PROVIDER`, `OAUTH_CLIENT_ID`, `OAUTH_CLIENT_SECRET`, `OAUTH_REDIRECT_URI`, and `SIGNAL_CACHE_TTL_DAYS`. Copy `.env.example` to `.env`; replace `JWT_SECRET` with a long random secret in every non-development deployment. Never expose database, JWT, OAuth-client, AI-provider, or Neo4j secrets through a `VITE_` variable.
+
+Apply the schema with `alembic upgrade head` (or `make migrate`) and revert the latest revision with `alembic downgrade -1`. Seed demo data idempotently with `python -m backend.scripts.seed_db`.
+
+Roles are cumulative: recruiters list/rank candidates, run JD matches and generate briefs; hiring managers receive masked candidate PII and may inspect evidence, questions, chat, and graphs; HR administrators subsume both roles and can manage records, synthetic data, and audit logs. Authentication is required except for health, docs, root, registration, login, refresh, and configured OAuth entry points.
+
+For a GDPR erasure, an HR administrator sends `DELETE /api/v1/candidates/{candidate_id}`. A successful request returns 204 and atomically removes candidate chat, feedback, application history, evidence, claims, match results, candidate-scoped audit entries, and the candidate row. A failure returns 500 and rolls the transaction back; the independent deletion-event audit remains.
+
+Every response includes CSP (`default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:`), `X-Content-Type-Options: nosniff`, and `X-Frame-Options: DENY` headers.
+
+Run deterministic benchmarks with `pytest backend/tests/benchmarks/`. The ranking benchmark requires 100 identical results and p99 below 200 ms; extraction benchmarks report precision/recall against gold labels. Run the 50-user deployment load check with `python backend/tests/load/phase5_load.py --token <token> --duration 60`.
+
+Phase 5 verification on 2026-10-29: 355 backend tests, 65 frontend tests, and 5 desktop Playwright/axe acceptance scenarios passed. The measured 50-user load run completed 1,103 requests per endpoint with 1,636.58 ms candidate-list p95, 1,776.84 ms ranking p95, and 0% errors. The production bundle scan found none of the configured backend secret names or seeded candidate email values.

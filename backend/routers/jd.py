@@ -8,6 +8,8 @@ from backend.models.matching import ExtractedRequirement, RankedCandidate, Simil
 from backend.services.requirement_extractor import extract_requirements, requirements_for_job
 from backend.services.ranking_engine import rank_with_results, build_match, find_similar_jobs
 from backend.services.match_store import match_store
+from backend.core.dependencies import require_role
+from backend.core.roles import Role
 router = APIRouter(tags=['JD matching'])
 class ExtractRequest(BaseModel):
     job_id: str | None = None
@@ -22,13 +24,13 @@ def find_job(service, id):
     if job is None: raise HTTPException(404,'Job not found.')
     return job
 @router.post('/extract', response_model=list[ExtractedRequirement])
-def extract(body: ExtractRequest, service=Depends(get_context_builder)):
+def extract(body: ExtractRequest, service=Depends(get_context_builder), user=Depends(require_role(Role.recruiter, Role.hr_admin))):
     # Never re-extract an existing structured job, even if jd_text is supplied.
     if body.job_id is not None: return requirements_for_job(find_job(service,body.job_id))
     if not body.jd_text or len(body.jd_text.strip()) < 50: raise HTTPException(422,'Provide a job_id or at least 50 characters of jd_text.')
     return extract_requirements(body.jd_text,'CUSTOM')
 @router.post('/rank', response_model=list[RankedCandidate])
-def rank(body: JobRequest, service=Depends(get_context_builder)):
+def rank(body: JobRequest, service=Depends(get_context_builder), user=Depends(require_role(Role.recruiter, Role.hr_admin))):
     job = find_job(service,body.job_id)
     candidates = {c.id:c for c in service.repository.all_candidate_details()}
     entries = {id:service.registry.get(id) for id in candidates}
@@ -40,7 +42,7 @@ def rank(body: JobRequest, service=Depends(get_context_builder)):
             match_store.store_result(result,entry.revision)
     return rows
 @router.post('/similar', response_model=list[SimilarJob])
-def similar(body: JobRequest, service=Depends(get_context_builder)):
+def similar(body: JobRequest, service=Depends(get_context_builder), user=Depends(require_role(Role.recruiter, Role.hr_admin))):
     return find_similar_jobs(find_job(service,body.job_id),service.repository.get_jobs())
 async def candidate_match(candidate_id, body, service):
     candidate = service.repository.get_candidate(candidate_id)

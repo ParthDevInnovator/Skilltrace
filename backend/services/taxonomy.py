@@ -5,7 +5,14 @@ from pathlib import Path
 from types import MappingProxyType
 _raw = json.loads((Path(__file__).parents[1] / 'data/taxonomy/skill_aliases.json').read_text())
 ALIASES = MappingProxyType({alias.casefold(): canonical for canonical, aliases in _raw.items() for alias in [canonical, *aliases]})
-CATEGORIES = MappingProxyType({**dict.fromkeys(['Python','Go','FastAPI','Distributed Systems'], 'Backend'), **dict.fromkeys(['JavaScript','TypeScript','React'], 'Frontend'), **dict.fromkeys(['Kubernetes','Docker','AWS','Terraform'], 'Cloud'), **dict.fromkeys(['PostgreSQL','SQL','Neo4j','Redis'], 'Database'), **dict.fromkeys(['gRPC','REST','Apache Kafka'], 'API'), 'Leadership':'Leadership', 'Domain':'Domain', 'Machine Learning':'Domain'})
+CATEGORIES = MappingProxyType({
+    **dict.fromkeys(['Python','Go','FastAPI','Distributed Systems','Java','Spring Boot','C#','.NET','Node.js','Express'], 'Backend'),
+    **dict.fromkeys(['JavaScript','TypeScript','React','HTML','CSS'], 'Frontend'),
+    **dict.fromkeys(['Kubernetes','Docker','AWS','Terraform','CI/CD','GitHub Actions'], 'Cloud'),
+    **dict.fromkeys(['PostgreSQL','SQL','Neo4j','Redis','SQL Server','MongoDB'], 'Database'),
+    **dict.fromkeys(['gRPC','REST','Apache Kafka'], 'API'),
+    **dict.fromkeys(['Machine Learning','PyTorch','NumPy','Tableau'], 'Domain'),
+    'Leadership':'Leadership', 'Domain':'Domain'})
 
 
 def resolve_skill(text: str) -> str | None:

@@ -10,6 +10,8 @@ from backend.services.deduplicator import MissingIdentityError, ResumeIngestionS
 from backend.services.identity_extractor import ExtractedIdentity, extract_identity
 from backend.services.resume_parser import MAX_UPLOAD_BYTES, SUPPORTED_EXTENSIONS, parse_resume
 from backend.services.context_builder import ContextBuilder, context_builder
+from backend.core.dependencies import require_role
+from backend.core.roles import Role
 
 router = APIRouter(tags=["Resume ingestion"])
 
@@ -37,6 +39,7 @@ async def ingest_resume(
     file: Annotated[UploadFile, File()],
     store: Annotated[ResumeIngestionStore, Depends(get_ingestion_store)],
     builder: Annotated[ContextBuilder, Depends(get_context_builder)],
+    user=Depends(require_role(Role.recruiter, Role.hr_admin)),
     full_name: Annotated[str | None, Form(max_length=150)] = None,
     email: Annotated[str | None, Form(max_length=254)] = None,
     headline: Annotated[str | None, Form(max_length=500)] = None,

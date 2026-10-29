@@ -77,6 +77,7 @@ class ContextBuilder:
         self._concurrency = concurrency
         self._semaphore = asyncio.Semaphore(concurrency)
         self._tasks: set[asyncio.Task] = set()
+        self._graph_tasks: set[asyncio.Task] = set()
         self._task_keys: dict[asyncio.Task, tuple[str, str]] = {}
         self._startup_gate: asyncio.Event | None = None
         self._closing = False
@@ -157,6 +158,10 @@ class ContextBuilder:
 
     async def shutdown(self) -> None:
         self._closing = True
+        for task in self._graph_tasks:
+            task.cancel()
+        await asyncio.gather(*tuple(self._graph_tasks), return_exceptions=True)
+        self._graph_tasks.clear()
         tasks = tuple(self._tasks)
         for task in tasks:
             if not task.done():
@@ -259,6 +264,11 @@ class ContextBuilder:
                         current.stage = "ready"
                         current.error = None
                 logger.info("Context ready candidate=%s unavailable_sources=%s", candidate_id, unavailable)
+                from backend.config import settings
+                if settings.GRAPH_SEEDING_ENABLED:
+                    task = asyncio.create_task(self._seed_graph(candidate_id, context))
+                    self._graph_tasks.add(task)
+                    task.add_done_callback(self._graph_tasks.discard)
                 return context
         except asyncio.CancelledError:
             self._fail(candidate_id, revision, "Context build cancelled during shutdown.", unavailable)
@@ -267,6 +277,13 @@ class ContextBuilder:
             logger.error("Context build failed candidate=%s error_type=%s", candidate_id, type(error).__name__)
             self._fail(candidate_id, revision, "Candidate context build failed. Retry the build.", unavailable)
             return None
+
+    async def _seed_graph(self, candidate_id, context):
+        try:
+            from backend.services.graph.seeder import seed_candidate_graph
+            await seed_candidate_graph(candidate_id, context)
+        except Exception:
+            logger.warning('Graph background seeding failed candidate=%s', candidate_id)
 
     def _fail(self, candidate_id, revision, message, unavailable):
         with self.repository.candidate_lock:

@@ -46,6 +46,21 @@
     "mentoring",
     "leadership"
   ],
+  "HTML": [],
+  "CSS": [],
+  "PyTorch": [],
+  "NumPy": [],
+  "Java": [],
+  "Spring Boot": ["Spring"],
+  "C#": ["C Sharp"],
+  ".NET": ["dotnet"],
+  "SQL Server": ["MSSQL"],
+  "Node.js": ["NodeJS", "Node"],
+  "Express": ["Express.js"],
+  "MongoDB": ["Mongo"],
+  "CI/CD": ["continuous integration", "continuous delivery"],
+  "GitHub Actions": [],
+  "Tableau": [],
   "Domain": [
     "domain expertise"
   ]

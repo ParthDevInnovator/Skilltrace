@@ -9,13 +9,17 @@ from backend.services.resume_parser import parse_resume
 
 from backend.models import CandidateDetail, CandidateFilterParams, CandidateSummary
 from backend.services.seed_loader import seed_loader
+from backend.core.dependencies import require_role
+from backend.core.masking import mask_candidate
+from backend.core.roles import Role
+from backend.models.db import User
+from backend.core.synthetic import may_include_synthetic
 
 router = APIRouter(tags=["Candidates"])
 
 
 @router.get(
     "",
-    response_model=List[CandidateSummary],
     summary="List candidate summaries",
     description="Retrieve all seeded candidate summaries with optional search and skill filtering.",
 )
@@ -28,14 +32,22 @@ async def list_candidates(
         default=None,
         description="Filter candidates possessing specific skill(s) (supports comma-separated values)",
     ),
-) -> List[CandidateSummary]:
+    user: User = Depends(require_role(Role.recruiter, Role.hiring_manager, Role.hr_admin)),
+    include_synthetic: bool = Query(False),
+    response: Response = None,
+):
     """Retrieve seeded candidate summaries with optional filtering."""
     params = CandidateFilterParams(search=search, skill=skill)
-    return seed_loader.get_candidates(params=params)
+    role = Role.hr_admin if Role.hr_admin.value in user.roles else Role.hiring_manager if Role.hiring_manager.value in user.roles else Role.recruiter
+    candidates = seed_loader.get_candidates(params=params)
+    if may_include_synthetic(user.roles, include_synthetic) and response is not None:
+        response.headers["X-Synthetic-Data"] = "true"
+    return [mask_candidate(candidate, role) for candidate in candidates]
 
 
 @router.get("/resolve", response_model=List[CandidateSummary])
 async def resolve_candidates(name: str | None = None, email: str | None = None,
+                             user=Depends(require_role(Role.recruiter, Role.hiring_manager, Role.hr_admin)),
                              service: ContextBuilder = Depends(get_context_builder)):
     name = name.strip().casefold() if name else ""
     email = email.strip().casefold() if email else ""
@@ -54,7 +66,7 @@ def find_candidate(service, candidate_id):
 
 
 @router.get("/{candidate_id}/context")
-async def candidate_context(candidate_id: str, service: ContextBuilder = Depends(get_context_builder)):
+async def candidate_context(candidate_id: str, service: ContextBuilder = Depends(get_context_builder), user=Depends(require_role(Role.recruiter, Role.hr_admin))):
     candidate = find_candidate(service, candidate_id)
     entry = service.registry.get(candidate.id)
     if entry is None:
@@ -69,7 +81,7 @@ async def candidate_context(candidate_id: str, service: ContextBuilder = Depends
 
 
 @router.get("/{candidate_id}/resume")
-async def candidate_resume(candidate_id: str, service: ContextBuilder = Depends(get_context_builder)):
+async def candidate_resume(candidate_id: str, service: ContextBuilder = Depends(get_context_builder), user=Depends(require_role(Role.recruiter, Role.hiring_manager, Role.hr_admin))):
     candidate = find_candidate(service, candidate_id)
     with service.repository.candidate_lock:
         pending = service.store.pending_builds.get(candidate.id)
@@ -90,7 +102,6 @@ async def candidate_resume(candidate_id: str, service: ContextBuilder = Depends(
 
 @router.get(
     "/{candidate_id}",
-    response_model=CandidateDetail,
     summary="Get candidate details by ID",
     description="Retrieve full candidate details including experience, external identifiers, and claims.",
     responses={
@@ -104,7 +115,7 @@ async def candidate_resume(candidate_id: str, service: ContextBuilder = Depends(
         }
     },
 )
-async def get_candidate(candidate_id: str) -> CandidateDetail:
+async def get_candidate(candidate_id: str, user: User = Depends(require_role(Role.recruiter, Role.hiring_manager, Role.hr_admin))):
     """Retrieve a single candidate's complete profile by unique ID."""
     candidate = seed_loader.get_candidate(candidate_id)
     if not candidate:
@@ -112,8 +123,9 @@ async def get_candidate(candidate_id: str) -> CandidateDetail:
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Candidate with ID '{candidate_id}' not found",
         )
-    return candidate
+    role = Role.hr_admin if Role.hr_admin.value in user.roles else Role.hiring_manager if Role.hiring_manager.value in user.roles else Role.recruiter
+    return mask_candidate(candidate, role)
 
 @router.post('/{candidate_id}/jd-match')
-async def jd_match(candidate_id: str, body: JobRequest, service=Depends(get_context_builder)):
+async def jd_match(candidate_id: str, body: JobRequest, service=Depends(get_context_builder), user=Depends(require_role(Role.recruiter, Role.hr_admin))):
     return await candidate_match(candidate_id,body,service)
