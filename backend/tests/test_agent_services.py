@@ -52,9 +52,9 @@ async def test_tool_lookup_candidate(agent_service):
     assert len(matches_id) == 1
     assert matches_id[0].id == "CAND-002"
 
-    # Missing both name and email returns error dict
+    # Empty identity input is safe and never expands to every candidate.
     err = await lookup_candidate()
-    assert "error" in err
+    assert err == []
 
     # Unknown candidate returns empty list
     none_found = await lookup_candidate(name="NonExistentNameXYZ")
@@ -65,7 +65,7 @@ async def test_tool_lookup_candidate(agent_service):
 async def test_tool_get_candidate_context(agent_service):
     # Candidate not in repo
     res_unknown = await get_candidate_context("UNKNOWN-999")
-    assert "error" in res_unknown
+    assert isinstance(res_unknown, FailedStatus)
 
     # Building state
     agent_service.reserve("CAND-001")

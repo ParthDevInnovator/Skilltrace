@@ -31,3 +31,7 @@ dist-ssr/
 .idea/
 .DS_Store
 Thumbs.db
+.pytest-tmp-phase5/
+mosaic.db
+phase5-verification.db
+phase5-migration-check.db

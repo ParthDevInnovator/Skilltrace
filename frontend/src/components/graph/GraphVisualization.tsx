@@ -1,3 +1,4 @@
+/* oxlint-disable react/only-export-components, react/set-state-in-effect -- exported palette is shared by tests; candidate changes intentionally reset async view state. */
 import { useEffect, useMemo, useState } from 'react'
 import type { CandidateSubgraph, GraphNode } from '@/types'
 import { api } from '@/services/api'

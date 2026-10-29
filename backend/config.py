@@ -1,7 +1,7 @@
 from pathlib import Path
-from typing import List
+from typing import List, Literal
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, field_validator, model_validator
 
 
 class Settings(BaseSettings):
@@ -39,6 +39,36 @@ class Settings(BaseSettings):
     NEO4J_USER: str | None = None
     NEO4J_PASSWORD: SecretStr | None = None
     GRAPH_SEEDING_ENABLED: bool = False
+
+    # Phase 5 persistence, authentication, and retention.
+    DATABASE_URL: str = "sqlite+aiosqlite:///./mosaic.db"
+    DB_POOL_SIZE: int = Field(default=5, ge=1)
+    DB_MAX_OVERFLOW: int = Field(default=10, ge=0)
+    JWT_SECRET: SecretStr = SecretStr("development-only-change-me-at-least-32-bytes")
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRE_MINUTES: int = Field(default=60, gt=0)
+    REFRESH_TOKEN_EXPIRE_DAYS: int = Field(default=7, gt=0)
+    OAUTH_PROVIDER: Literal["google", "github", "clerk"] | None = None
+    OAUTH_CLIENT_ID: str | None = None
+    OAUTH_CLIENT_SECRET: SecretStr | None = None
+    OAUTH_REDIRECT_URI: str | None = None
+    SIGNAL_CACHE_TTL_DAYS: int = Field(default=90, gt=0)
+    AUTO_SEED_DB: bool = False
+    E2E_BOOTSTRAP_USERS: bool = False
+
+    @field_validator("DEBUG", mode="before")
+    @classmethod
+    def parse_debug_mode(cls, value):
+        if isinstance(value, str) and value.lower() in {"release", "production", "prod"}:
+            return False
+        return value
+
+    @model_validator(mode="after")
+    def production_secrets(self):
+        secret=self.JWT_SECRET.get_secret_value()
+        if self.ENVIRONMENT.lower() in {"production","prod"} and (secret.startswith("development-") or len(secret)<32):
+            raise ValueError("JWT_SECRET must be a deployment-specific value of at least 32 characters")
+        return self
 
     model_config = SettingsConfigDict(
         env_file=".env",

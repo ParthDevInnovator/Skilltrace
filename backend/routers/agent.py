@@ -11,6 +11,8 @@ from backend.services.agent.orchestrator import run_agent_turn
 from backend.services.agent.brief_generator import generate_brief
 from backend.services.agent.question_generator import generate_interview_questions
 from backend.services.llm import LLMProviderError
+from backend.core.dependencies import require_role
+from backend.core.roles import Role
 
 router = APIRouter(tags=['AI assistance'])
 
@@ -72,19 +74,19 @@ def context_status(service, candidate_id, job_id):
 
 
 @router.post('/agent/chat')
-async def chat(body: ChatRequest, service=Depends(get_context_builder)):
+async def chat(body: ChatRequest, service=Depends(get_context_builder), user=Depends(require_role(Role.recruiter, Role.hiring_manager, Role.hr_admin))):
     if body.job_id:
         find_job(service, body.job_id)
     return await invoke(service, run_agent_turn, body.history, body.message, body.job_id)
 
 
 @router.post('/candidates/{candidate_id}/brief')
-async def brief(candidate_id: str, body: BriefRequest, service=Depends(get_context_builder)):
+async def brief(candidate_id: str, body: BriefRequest, service=Depends(get_context_builder), user=Depends(require_role(Role.recruiter, Role.hr_admin))):
     status = context_status(service, candidate_id, body.job_id)
     return status if status is not None else await invoke(service, generate_brief, candidate_id, body.job_id, body.date())
 
 
 @router.post('/candidates/{candidate_id}/interview-questions')
-async def questions(candidate_id: str, body: QuestionsRequest, service=Depends(get_context_builder)):
+async def questions(candidate_id: str, body: QuestionsRequest, service=Depends(get_context_builder), user=Depends(require_role(Role.recruiter, Role.hiring_manager, Role.hr_admin))):
     status = context_status(service, candidate_id, body.job_id)
     return status if status is not None else await invoke(service, generate_interview_questions, candidate_id, body.job_id, body.date())

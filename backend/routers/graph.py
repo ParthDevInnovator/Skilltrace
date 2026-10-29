@@ -3,6 +3,8 @@ from pydantic import BaseModel, Field, field_validator
 from backend.routers.ingest import get_context_builder
 from backend.routers.candidates import find_candidate
 from backend.services.graph.neo4j_client import get_graph_client
+from backend.core.dependencies import require_role
+from backend.core.roles import Role
 
 router = APIRouter(tags=['Knowledge graph'])
 
@@ -19,7 +21,7 @@ class SkillRequest(BaseModel):
 
 
 @router.get('/candidates/{candidate_id}/graph')
-async def graph(candidate_id: str, service=Depends(get_context_builder)):
+async def graph(candidate_id: str, service=Depends(get_context_builder), user=Depends(require_role(Role.recruiter, Role.hiring_manager, Role.hr_admin))):
     find_candidate(service, candidate_id)
     result = await get_graph_client().get_candidate_subgraph(candidate_id, report_unavailable=True)
     if result is None:
@@ -28,7 +30,7 @@ async def graph(candidate_id: str, service=Depends(get_context_builder)):
 
 
 @router.post('/candidates/{candidate_id}/graph-evidence')
-async def evidence(candidate_id: str, body: SkillRequest, service=Depends(get_context_builder)):
+async def evidence(candidate_id: str, body: SkillRequest, service=Depends(get_context_builder), user=Depends(require_role(Role.recruiter, Role.hiring_manager, Role.hr_admin))):
     find_candidate(service, candidate_id)
     result = await get_graph_client().graph_evidence_for_skill(candidate_id, body.skill, report_unavailable=True)
     if result is None:

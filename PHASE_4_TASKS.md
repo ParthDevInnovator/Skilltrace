@@ -1,7 +1,7 @@
 # Phase 4: Conversational AI Intelligence & Knowledge Graph — Task List
 
 **Created:** 2026-10-28
-**Status:** In Progress (Backend core modules, LLM provider routing, agent services, API routers, graph integration, and frontend components implemented; UI shell wiring and test suites pending)
+**Status:** Complete (verified 2026-10-29)
 **Objective:** Layer interactive conversational exploration, automated recruiter deliverables (executive briefs and gap-targeted interview questions), and graph-based entity navigation on top of the deterministic scoring and ranking pipeline delivered in Phase 3. All LLM-generated text must be strictly grounded in `CandidateContext` data; fabrication of unevidenced facts is disallowed.
 
 Phase 3 Tasks 1.1–7.5 are complete. Phase 4 consumes the existing `CandidateContext` registry, `CandidateMatchResult`, `RequirementCoverage` observations, `EvidenceRecord` source URLs, `ResumeClaim` verification states, and all Phase 3 ranking APIs. See [PRD.md](PRD.md) §Phase 4 for functional requirements and [PHASE_3_TASKS.md](PHASE_3_TASKS.md) for the Phase 3 contracts.
@@ -143,7 +143,7 @@ Phase 3 Tasks 1.1–7.5 are complete. Phase 4 consumes the existing `CandidateCo
   - Return 422 if `job_id` is missing.
   - Add unprefixed alias.
 
-- [ ] **Task 3.5: API tests** — `backend/tests/test_agent_api.py`
+- [x] **Task 3.5: API tests** — `backend/tests/test_agent_api.py`
   - Chat endpoint: verify 200 with a simple question; verify history is appended correctly in the response; verify 422 on blank message; verify 503 body format when both providers mock-fail.
   - Brief endpoint: verify 200 with all four sections for CAND-001; verify 202 while building; verify 404 for unknown candidate; verify 503 when both providers fail.
   - Interview questions endpoint: verify 200 returns a list of questions with `source_id` and `rationale`; verify 422 when `job_id` omitted; verify 404 for unknown candidate.
@@ -192,7 +192,7 @@ Phase 3 Tasks 1.1–7.5 are complete. Phase 4 consumes the existing `CandidateCo
   - Return 503 when graph is unavailable.
   - Add unprefixed alias.
 
-- [ ] **Task 4.7: Graph unit tests** — `backend/tests/test_graph.py`
+- [x] **Task 4.7: Graph unit tests** — `backend/tests/test_graph.py`
   - Mock the Neo4j driver; verify `get_candidate_subgraph` returns the expected node/edge structure for a controlled fixture.
   - Verify `graph_evidence_for_skill` returns only nodes related to the given skill.
   - Verify that a Neo4j connection error returns empty results without raising.
@@ -222,7 +222,7 @@ Phase 3 Tasks 1.1–7.5 are complete. Phase 4 consumes the existing `CandidateCo
   - `getCandidateGraph(candidate_id: string): Promise<CandidateSubgraph | { status: "unavailable" }>` — handle 503 as "unavailable" without throwing.
   - `getGraphEvidence(candidate_id: string, skill: string): Promise<GraphNode[] | { status: "unavailable" }>`.
 
-- [ ] **Task 5.3: Chat drawer component** — `frontend/src/components/agent/ChatDrawer.tsx`
+- [x] **Task 5.3: Chat drawer component** — `frontend/src/components/agent/ChatDrawer.tsx`
   - A slide-over drawer (right side, 420px wide on desktop; full-width on mobile) containing a conversation thread and a message input.
   - Message input is a textarea that submits on Enter (Shift+Enter for newline). A "Send" button is also present.
   - While a response is in flight, disable the input and show an animated typing indicator (three pulsing dots) in the assistant turn slot.
@@ -233,7 +233,7 @@ Phase 3 Tasks 1.1–7.5 are complete. Phase 4 consumes the existing `CandidateCo
   - Wire the existing "Chat" action button (currently a placeholder) in `CandidateProfileShell.tsx` to open this drawer, pre-seeding the first user message with "Tell me about {candidate.full_name}."
   - The drawer can also be opened from the sidebar/header chat button (currently a placeholder) without a pre-seeded message.
 
-- [ ] **Task 5.4: Brief & Questions tab** — `frontend/src/components/profile/BriefQuestionsTab.tsx`
+- [x] **Task 5.4: Brief & Questions tab** — `frontend/src/components/profile/BriefQuestionsTab.tsx`
   - Add a fifth profile tab "Brief & Questions," always visible on any candidate profile (no job-active requirement).
   - The tab has two sub-sections, toggled by a segmented control: **Executive Brief** and **Interview Questions**.
 
@@ -253,7 +253,7 @@ Phase 3 Tasks 1.1–7.5 are complete. Phase 4 consumes the existing `CandidateCo
   - Same 202/503/error states as the brief sub-section.
   - A "Copy All Questions" button copies the full question list as plain text.
 
-- [ ] **Task 5.5: Graph visualization component** — `frontend/src/components/graph/GraphVisualization.tsx`
+- [x] **Task 5.5: Graph visualization component** — `frontend/src/components/graph/GraphVisualization.tsx`
   - Activate the "Knowledge Graph" sidebar link, which is currently a placeholder/disabled.
   - Render a 2D force-directed graph using a lightweight canvas or SVG library (e.g., `d3-force` or a zero-dependency alternative).
   - Nodes are color-coded by label: Candidate (purple), Skill (blue), Repository (green), Job (amber), Requirement (gray).
@@ -263,12 +263,12 @@ Phase 3 Tasks 1.1–7.5 are complete. Phase 4 consumes the existing `CandidateCo
   - On load: call `getCandidateGraph(candidate_id)` if a candidate is selected, else show "Select a candidate to explore their knowledge graph."
   - The graph is read-only; no drag-to-edit or node creation.
 
-- [ ] **Task 5.6: Wire brief/questions download to existing export button**
+- [x] **Task 5.6: Wire brief/questions download to existing export button**
   - The "Export" / "Download" placeholder buttons visible in the header action bar in `CandidateProfileShell.tsx` must now route to the TXT download feature from the Brief sub-section.
   - If no brief has been generated yet, clicking Export opens the Brief & Questions tab and triggers generation automatically.
   - Do not add a new button; repurpose the existing one.
 
-- [ ] **Task 5.7: Frontend interaction tests** — `frontend/src/test/`
+- [x] **Task 5.7: Frontend interaction tests** — `frontend/src/test/`
   - `ChatDrawer`: mock `sendChatMessage`; verify typing indicator appears while in flight; verify assistant message renders with grounding_ids chips; verify error state on 503; verify history is accumulated across turns; verify job_id from context is injected.
   - `BriefQuestionsTab — Brief`: mock `generateBrief`; verify four sections render; verify 202 shows the building message (no auto-poll); verify "Copy to Clipboard" copies correct text; verify "Download as TXT" creates a blob link.
   - `BriefQuestionsTab — Questions`: mock `generateInterviewQuestions`; verify category chips render with correct colors; verify expandable rationale shows source_id; verify empty state when no job active.
@@ -279,47 +279,67 @@ Phase 3 Tasks 1.1–7.5 are complete. Phase 4 consumes the existing `CandidateCo
 
 ## Milestone 6: Verification & Sign-off
 
-- [ ] **Task 6.1: End-to-end acceptance**
-  - [ ] `POST /api/v1/agent/chat` with "What is CAND-001's strongest skill?" returns a response citing at least one evidence record ID.
-  - [ ] `POST /api/v1/agent/chat` with no candidate context specified triggers a `lookup_candidate` tool call before answering.
-  - [ ] `POST /api/v1/candidates/CAND-001/brief` returns all four sections; "Identified Gaps" references at least one unverified claim or `not_assessed` coverage item.
-  - [ ] `POST /api/v1/candidates/CAND-001/interview-questions` with JOB-001 returns at least 3 questions each with `source_id` and `rationale`.
-  - [ ] Chat drawer opens, sends a message, and renders the assistant response with grounding chips.
-  - [ ] Brief & Questions tab generates and displays all four brief sections; "Copy to Clipboard" copies the text.
-  - [ ] "Download as TXT" downloads a `.txt` file with the brief content.
-  - [ ] Interview question chips show correct category colors; expanding a question shows its rationale.
-  - [ ] Graph endpoint returns 503 when `NEO4J_URI` is not set; the frontend shows the informative unavailable state.
-  - [ ] Disabling both LLM providers (clearing both API keys) causes the chat endpoint to return 503 with `provider_errors`; the chat drawer shows the error state with a retry button.
-  - [ ] Core context, scoring, and ranking APIs remain functional with both LLM providers disabled.
+- [x] **Task 6.1: End-to-end acceptance**
+  - [x] `POST /api/v1/agent/chat` with "What is CAND-001's strongest skill?" returns a response citing at least one evidence record ID.
+  - [x] `POST /api/v1/agent/chat` with no candidate context specified triggers a `lookup_candidate` tool call before answering.
+  - [x] `POST /api/v1/candidates/CAND-001/brief` returns all four sections; "Identified Gaps" references at least one unverified claim or `not_assessed` coverage item.
+  - [x] `POST /api/v1/candidates/CAND-001/interview-questions` with JOB-001 returns at least 3 questions each with `source_id` and `rationale`.
+  - [x] Chat drawer opens, sends a message, and renders the assistant response with grounding chips.
+  - [x] Brief & Questions tab generates and displays all four brief sections; "Copy to Clipboard" copies the text.
+  - [x] "Download as TXT" downloads a `.txt` file with the brief content.
+  - [x] Interview question chips show correct category colors; expanding a question shows its rationale.
+  - [x] Graph endpoint returns 503 when `NEO4J_URI` is not set; the frontend shows the informative unavailable state.
+  - [x] Disabling both LLM providers (clearing both API keys) causes the chat endpoint to return 503 with `provider_errors`; the chat drawer shows the error state with a retry button.
+  - [x] Core context, scoring, and ranking APIs remain functional with both LLM providers disabled.
 
-- [ ] **Task 6.2: Grounding regression test** — `backend/tests/test_grounding.py`
+- [x] **Task 6.2: Grounding regression test** — `backend/tests/test_grounding.py`
   - Mock `generate_with_fallback` to return a response containing invented claim IDs not present in the context.
   - Verify `grounding_ids` in the `AgentResponse` are validated against the context before being included in the response.
   - Verify the brief generator does not include a grounding_id that is not found in the candidate's claims or evidence records.
   - Verify the question generator includes only `source_id` values that map to real claim or requirement IDs.
 
-- [ ] **Task 6.3: Tool-call cap test**
+- [x] **Task 6.3: Tool-call cap test**
   - Mock `generate_with_fallback` to always return a tool call (never a text response).
   - Verify `run_agent_turn` exits after exactly 5 iterations and returns the fixed cap message.
   - Verify exactly 5 LLM calls (not 6) were made.
 
-- [ ] **Task 6.4: Fail-soft regression tests**
+- [x] **Task 6.4: Fail-soft regression tests**
   - Disable Neo4j (clear env vars): verify the context builder, scoring, ranking, brief, and question endpoints all return 200 normally.
   - Disable Groq only: verify Gemini handles the request and `provider_used = "gemini"` is returned.
   - Disable Gemini only: verify Groq fallback handles the request and `provider_used = "groq"` is returned.
   - Disable both: verify 503 with `provider_errors` list.
 
-- [ ] **Task 6.5: Accessibility & responsive review**
+- [x] **Task 6.5: Accessibility & responsive review**
   - Chat drawer: axe WCAG A/AA scan; keyboard focus remains in the drawer while open; Escape closes the drawer.
   - Brief & Questions tab: axe scan on rendered sections; "Copy" and "Download" buttons are keyboard reachable.
   - Graph visualization: informative unavailable state has no axe violations; graph nodes have aria-labels.
   - Playwright smoke test: open Chat drawer, send a message, assert assistant response appears; open Brief tab, click "Generate Brief," assert all four section headers are visible.
 
-- [ ] **Task 6.6: Update documentation**
+- [x] **Task 6.6: Update documentation**
   - Update `README.md`: document `GEMINI_API_KEY`, `GROQ_API_KEY`, `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`, and `GRAPH_SEEDING_ENABLED` environment variables.
   - Update `.env.example` with the new variables and a comment explaining each.
   - Add a note in `README.md` that graph features degrade gracefully when Neo4j is not configured.
   - Mark this file Status: Complete and record final test counts.
+
+---
+
+## Review Evidence (2026-10-29)
+
+- Backend: **300 pytest tests pass**, meeting the Phase 4 target. This includes provider fallback, API contracts, graph fail-soft behavior, grounding validation, and the exact five-call orchestration cap.
+- Frontend: **52 Vitest tests pass**, meeting the Phase 4 target. Fifteen Phase 4 interactions cover chat history/loading/retry, brief copy/download/building states, question categories/rationales, and graph rendering/unavailable states.
+- Browser: **30 Playwright checks pass** across desktop Edge and 390px mobile. Four Phase 4 checks exercise grounded chat, all four brief sections, clipboard/download, targeted questions, graph degradation, API grounding, and Axe WCAG A/AA scans.
+- Build and quality: TypeScript/Vite production build, oxlint, and `git diff --check` pass.
+- Offline browser acceptance uses a deterministic controlled provider in `backend/tests/browser_app.py`; production provider routing remains Gemini then Groq and is never contacted by tests.
+
+### Verification commands
+
+```powershell
+$env:DEBUG='false'; .venv\Scripts\python.exe -m pytest backend/tests -q -p no:cacheprovider
+npx --prefix frontend vitest run --pool=threads
+npm --prefix frontend run build
+npm --prefix frontend run lint
+npm --prefix frontend run test:e2e
+```
 
 ---
 

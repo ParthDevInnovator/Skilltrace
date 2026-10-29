@@ -1,6 +1,8 @@
+/* oxlint-disable react/only-export-components, react/set-state-in-effect, react-hooks/exhaustive-deps -- formatting helpers are reusable; exportRequest is an edge-triggered command consumed once. */
 import { useEffect, useRef, useState } from 'react'
 import type { CandidateBrief, InterviewQuestionSet } from '@/types'
 import { api } from '@/services/api'
+import { useAuth } from '@/context/AuthContext'
 
 const sections = [['strengths','Strengths'],['evidence_summary','Evidence Summary'],['application_history_notes','Application History Notes'],['identified_gaps','Identified Gaps']] as const
 export function formatBrief(brief: CandidateBrief) { return sections.map(([field,title])=>`${title}\n${brief[field]}`).join('\n\n') }
@@ -11,6 +13,7 @@ export function downloadBrief(brief: CandidateBrief) {
 }
 
 export function BriefQuestionsTab({candidateId,jobId,exportRequest=0}: {candidateId:string;jobId?:string;exportRequest?:number}) {
+  const {hasRole}=useAuth()
   const [view,setView] = useState<'brief'|'questions'>('brief')
   const [brief,setBrief] = useState<CandidateBrief|null>(null)
   const [questions,setQuestions] = useState<InterviewQuestionSet|null>(null)
@@ -49,7 +52,7 @@ export function BriefQuestionsTab({candidateId,jobId,exportRequest=0}: {candidat
     {notice && <div role={error?'alert':'status'} className="panel"><p>{notice}</p><button disabled={busy} onClick={()=>generate(view)}>Retry generation</button></div>}
     {copyStatus && <p role="status">{copyStatus}</p>}
     {view==='brief' ? <>
-      <div className="modal-actions"><button className="primary-button" disabled={busy} onClick={()=>generate('brief')}>{brief?'Regenerate':'Generate Brief'}</button>{brief && <><button onClick={()=>copy(formatBrief(brief))}>Copy to Clipboard</button><button onClick={()=>downloadBrief(brief)}>Download as TXT</button><span className="provider-badge">{brief.provider_used}</span></>}</div>
+      <div className="modal-actions">{hasRole('recruiter')&&<button className="primary-button" disabled={busy} onClick={()=>generate('brief')}>{brief?'Regenerate':'Generate Brief'}</button>}{brief && <><button onClick={()=>copy(formatBrief(brief))}>Copy to Clipboard</button><button onClick={()=>downloadBrief(brief)}>Download as TXT</button><span className="provider-badge">{brief.provider_used}</span></>}</div>
       {brief && <>{sections.map(([field,title])=><article className="panel" key={field}><h2>{title}</h2><p className="preserve-text">{brief[field]}</p></article>)}<details><summary>Sources cited</summary>{brief.grounding_ids.map(id=><p key={id}><code className="source-chip">{id}</code></p>)}</details></>}
     </> : !jobId ? <p>Select a job to generate targeted questions.</p> : <>
       <div className="modal-actions"><button className="primary-button" disabled={busy} onClick={()=>generate('questions')}>{questions?'Regenerate Questions':'Generate Questions'}</button>{questions && <button onClick={()=>copy(questions.questions.map((q,i)=>`${i+1}. ${q.question_text}\n${q.rationale} [${q.source_id}]`).join('\n\n'))}>Copy All Questions</button>}</div>

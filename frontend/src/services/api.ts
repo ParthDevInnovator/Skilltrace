@@ -28,6 +28,7 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, {
     headers: {
       ...(options?.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+      ...(sessionStorage.getItem('mosaic.access_token') ? { Authorization: `Bearer ${sessionStorage.getItem('mosaic.access_token')}` } : {}),
       ...options?.headers,
     },
     ...options,
@@ -53,7 +54,7 @@ export const api = {
   getSimilarJobs: (job_id:string): Promise<SimilarJob[]> => request('/api/v1/jd/similar', {method:'POST',body:JSON.stringify({job_id})}),
   createJob: (job: {title:string; description_raw:string; department:string; location:string; requirements?:unknown[]}): Promise<Job> => request('/api/v1/jobs',{method:'POST',body:JSON.stringify(job)}),
   getCandidateJdMatch: async (id:string, params:{job_id:string;reference_date?:string}): Promise<MatchResponse> => {
-    const response = await fetch(`/api/v1/candidates/${encodeURIComponent(id)}/jd-match`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(params)})
+    const response = await fetch(`/api/v1/candidates/${encodeURIComponent(id)}/jd-match`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${sessionStorage.getItem('mosaic.access_token')||''}`},body:JSON.stringify(params)})
     if (response.status === 202) return {status:'building'}
     if (response.status === 503) { const body = await response.json(); return {status:'failed',error:body.error || body.detail || 'Context build failed.'} }
     if (!response.ok) throw new Error('Could not load candidate match.')
@@ -77,7 +78,11 @@ export const api = {
     if (params?.search) query.set('search', params.search)
     if (params?.skill) query.set('skill', params.skill)
     const queryString = query.toString() ? `?${query.toString()}` : ''
-    return request<CandidateSummary[]>(`/api/v1/candidates${queryString}`)
+    return fetch(`/api/v1/candidates${queryString}`, {headers: sessionStorage.getItem('mosaic.access_token') ? {Authorization:`Bearer ${sessionStorage.getItem('mosaic.access_token')}`} : {}}).then(async response => {
+      if (!response.ok) throw new Error(`API error ${response.status} on candidates`)
+      if (response.headers.get('X-Synthetic-Data') === 'true') window.dispatchEvent(new CustomEvent('mosaic:synthetic-data'))
+      return response.json() as Promise<CandidateSummary[]>
+    })
   },
 
   getCandidateContext: (id: string): Promise<CandidateContext | BuildInProgress> =>
@@ -97,14 +102,14 @@ export const api = {
 }
 
 async function generationRequest<T>(id:string, action:string, params:object): Promise<GenerationResult<T>> {
-  const response = await fetch(`/api/v1/candidates/${encodeURIComponent(id)}/${action}`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(params)})
+  const response = await fetch(`/api/v1/candidates/${encodeURIComponent(id)}/${action}`, {method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${sessionStorage.getItem('mosaic.access_token')||''}`},body:JSON.stringify(params)})
   if (response.status === 202) return {status:'building'}
   if (response.status === 503) { const body = await response.json(); return {status:'failed',error:body.detail || body.error || 'AI providers unavailable'} }
   if (!response.ok) throw new Error('Could not generate this content. Please retry.')
   return response.json()
 }
 async function graphRequest<T>(id:string, action:string, body?:object): Promise<T | {status:'unavailable'}> {
-  const response = await fetch(`/api/v1/candidates/${encodeURIComponent(id)}/${action}`, body ? {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)} : undefined)
+  const response = await fetch(`/api/v1/candidates/${encodeURIComponent(id)}/${action}`, body ? {method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${sessionStorage.getItem('mosaic.access_token')||''}`},body:JSON.stringify(body)} : {headers:{Authorization:`Bearer ${sessionStorage.getItem('mosaic.access_token')||''}`}})
   if (response.status === 503) return {status:'unavailable'}
   if (!response.ok) throw new Error('Could not load the graph. Please retry.')
   return response.json()

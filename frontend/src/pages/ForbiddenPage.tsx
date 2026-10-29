@@ -1,0 +1,1 @@
+import {Link} from 'react-router-dom';export function ForbiddenPage(){return <main className="status-page"><h1>403 — Access denied</h1><p>Your role does not have permission to view this page.</p><Link to="/">Go back to home</Link></main>}

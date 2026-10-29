@@ -9,13 +9,17 @@ import { EvidenceCard } from '@/components/evidence/EvidenceCard'
 import { ContextFeedback } from '@/components/evidence/ContextFeedback'
 import { labelForScore, provenanceSummary } from '@/types/context'
 import { ResumeViewer } from './ResumeViewer'
+import { BriefQuestionsTab } from './BriefQuestionsTab'
+import { ChatDrawer } from '@/components/agent/ChatDrawer'
 
 export function CandidateProfileShell() {
   const { selectedCandidateId, selectedJob, backToDashboard } = useJob()
   const [candidate, setCandidate] = useState<CandidateDetail | null>(null)
   const [failed, setFailed] = useState(false)
   const [detailAttempt, setDetailAttempt] = useState(0)
-  const [tab, setTab] = useState<'claims' | 'skills' | 'background' | 'resume' | 'match'>('claims')
+  const [tab, setTab] = useState<'claims' | 'skills' | 'background' | 'resume' | 'match' | 'brief'>('claims')
+  const [chatOpen, setChatOpen] = useState(false)
+  const [exportRequest, setExportRequest] = useState(0)
   const { context, phase, retry } = useCandidateContext(selectedCandidateId, tab === 'claims' || tab === 'skills' || tab === 'match')
   useEffect(() => {
     if (!selectedCandidateId) return
@@ -28,11 +32,11 @@ export function CandidateProfileShell() {
   const records = context?.evidence_records ?? []
   const skills = [...new Map([...records.map(record => record.skill), ...candidate.top_skills].map(skill => [skill.toLowerCase(), skill])).values()]
   return <div className="page-stack"><div className="page-title"><button className="secondary-button" onClick={backToDashboard}>Back to Recruiter Overview</button>{selectedJob && <p><span>Active Job Context:</span> {selectedJob.title}</p>}</div>
-    <section className="panel"><div className="page-title"><div><span className="preview-label">{candidate.id}</span><h1>{candidate.full_name}</h1><p>{candidate.headline}</p><p>{candidate.location} - {candidate.email}</p><p>{candidate.experience_years == null ? 'Experience not provided' : `${candidate.experience_years} years reported experience`}</p></div><div className="modal-actions"><button className="secondary-button" onClick={() => setTab('resume')}>Resume Reference</button><button disabled title="Available in Phase 4">Interview Brief - Phase 4</button></div></div>
+    <section className="panel"><div className="page-title"><div><span className="preview-label">{candidate.id}</span><h1>{candidate.full_name}</h1><p>{candidate.headline}</p><p>{candidate.location} - {candidate.email}</p><p>{candidate.experience_years == null ? 'Experience not provided' : `${candidate.experience_years} years reported experience`}</p></div><div className="modal-actions"><button className="secondary-button" onClick={() => setTab('resume')}>Resume Reference</button><button onClick={() => setChatOpen(true)}>Chat</button><button onClick={() => { setTab('brief'); setExportRequest(value => value + 1) }}>Export Brief</button></div></div>
       <div className="skill-list">{Object.entries(candidate.external_identifiers ?? {}).filter(([, url]) => url).map(([platform, url]) => /^https?:\/\//i.test(url as string) && <a key={platform} href={url as string} target="_blank" rel="noreferrer">{platform} profile (not independently verified)</a>)}</div>
       <p className="provenance-label">{context ? provenanceSummary(records) : 'Unassessed - context pending'}</p>{context && <EvidenceBar score={context.evidence_score} label={context.evidence_label} />}
     </section>
-    <nav aria-label="Candidate profile sections" className="profile-tabs">{([['claims', 'Evidence & Claims'], ['skills', 'Reported Skills'], ['background', 'Background Summary']] as const).map(([value, label]) => <button key={value} aria-pressed={tab === value} onClick={() => setTab(value)}>{label}</button>)}{selectedJob && <button aria-pressed={tab==='match'} onClick={()=>setTab('match')}>JD Match</button>}</nav>
+    <nav aria-label="Candidate profile sections" className="profile-tabs">{([['claims', 'Evidence & Claims'], ['skills', 'Reported Skills'], ['background', 'Background Summary']] as const).map(([value, label]) => <button key={value} aria-pressed={tab === value} onClick={() => setTab(value)}>{label}</button>)}{selectedJob && <button aria-pressed={tab==='match'} onClick={()=>setTab('match')}>JD Match</button>}<button aria-pressed={tab==='brief'} onClick={()=>setTab('brief')}>Brief &amp; Questions</button></nav>
     {tab === 'claims' && <section className="page-stack"><h2>Reported Resume Claims</h2><ContextFeedback phase={phase} retry={retry} />{context && <>
       {!context.claims.length && <p>No claims matched the extraction rules. Inspect the resume for additional reported experience.</p>}
       {context.claims.map(claim => <article key={claim.id} className="panel"><div className="page-title"><strong>{claim.section}{claim.skill && ` - ${claim.skill}`}</strong><span className="claim-state">{claim.verification_state}</span></div><p>{claim.claim_text}</p><small>{claim.provenance}</small></article>)}
@@ -46,5 +50,7 @@ export function CandidateProfileShell() {
     {tab === 'background' && <section className="panel"><h2>Candidate Background Summary</h2><p>{candidate.summary || 'No background summary provided for this candidate record.'}</p></section>}
     {tab === 'match' && selectedJob && <JDMatchTab key={`${selectedCandidateId}-${selectedJob.id}`} candidateId={selectedCandidateId} jobId={selectedJob.id} context={context} />}
     {tab === 'resume' && <ResumeViewer key={selectedCandidateId} candidateId={selectedCandidateId} />}
+    {tab === 'brief' && <BriefQuestionsTab candidateId={selectedCandidateId} jobId={selectedJob?.id} exportRequest={exportRequest} />}
+    {chatOpen && <ChatDrawer onClose={() => setChatOpen(false)} initialMessage={`Tell me about ${candidate.full_name}.`} />}
   </div>
 }

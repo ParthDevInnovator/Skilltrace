@@ -14,8 +14,8 @@ interface JobContextType {
   setSearchQuery: (q: string) => void
   selectedSkill: string
   setSelectedSkill: (skill: string) => void
-  activeView: 'overview' | 'jobs' | 'candidates' | 'candidate-detail' | 'evidence'
-  setActiveView: (view: 'overview' | 'jobs' | 'candidates' | 'candidate-detail' | 'evidence') => void
+  activeView: 'overview' | 'jobs' | 'candidates' | 'candidate-detail' | 'evidence' | 'graph'
+  setActiveView: (view: 'overview' | 'jobs' | 'candidates' | 'candidate-detail' | 'evidence' | 'graph') => void
   selectedCandidateId: string | null
   openCandidateDetail: (candidateId: string) => void
   backToDashboard: () => void
@@ -32,7 +32,7 @@ export function JobProvider({ children }: { children: ReactNode }) {
   const [customJD, setCustomJD] = useState<string>('')
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [selectedSkill, setSelectedSkill] = useState<string>('')
-  const [activeView, setActiveView] = useState<'overview' | 'jobs' | 'candidates' | 'candidate-detail' | 'evidence'>('overview')
+  const [activeView, setActiveView] = useState<'overview' | 'jobs' | 'candidates' | 'candidate-detail' | 'evidence' | 'graph'>('overview')
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null)
   const [isLoadingJobs, setIsLoadingJobs] = useState<boolean>(true)
   const [jobError, setJobError] = useState<string | null>(null)

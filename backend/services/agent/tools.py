@@ -56,7 +56,7 @@ class GetEvidenceForSkill(GetCandidateContext):
 async def lookup_candidate(name=None, email=None):
     name, email = (name or '').strip().casefold(), (email or '').strip().casefold()
     if not name and not email:
-        return {'error': 'Provide a candidate name, ID, or email'}
+        return []
     return [CandidateSummary.model_validate(c.model_dump()) for c in service().repository.all_candidate_details()
             if (not name or name in c.full_name.casefold() or name == c.id.casefold())
             and (not email or email == str(c.email).casefold())][:5]
@@ -65,7 +65,7 @@ async def lookup_candidate(name=None, email=None):
 @safe
 async def get_candidate_context(candidate_id):
     if not service().repository.get_candidate(candidate_id):
-        return {'error': 'Candidate not found'}
+        return FailedStatus(error='Candidate not found')
     entry = service().registry.get(candidate_id)
     if entry is None or entry.status == 'building':
         return BuildingStatus()
