@@ -3,10 +3,10 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from '@/App'
 import { api } from '@/services/api'
-vi.mock('@/services/api', () => ({ api: { getJobs: vi.fn(), getCandidates: vi.fn(), getCandidateById: vi.fn(), getCandidateContext: vi.fn(), getCandidateResume: vi.fn() } }))
+vi.mock('@/services/api', () => ({ api: { getJobs: vi.fn(), getCandidates: vi.fn(), getCandidateById: vi.fn(), getCandidateContext: vi.fn(), getCandidateResume: vi.fn(), extractRequirements:vi.fn(), createJob:vi.fn(), getSimilarJobs:vi.fn() } }))
 const jobs = [{ id: 'JOB-001', title: 'Backend Engineer', department: 'Engineering', location: 'Remote', description_raw: 'Build services', requirements_preview: ['Python'], created_at: '2026-10-26' }, { id: 'JOB-002', title: 'Frontend Engineer', department: 'Product', location: 'London', description_raw: 'Build interfaces', requirements_preview: ['React'], created_at: '2026-10-26' }]
 const candidate = { id: 'CAND-001', full_name: 'Alex Chen', email: 'alex@example.com', headline: 'Backend Engineer', location: 'Remote', top_skills: ['Python'], claims_preview: ['Built reliable APIs'], summary: 'Experienced API developer' }
-beforeEach(() => { vi.resetAllMocks(); vi.mocked(api.getCandidateContext).mockResolvedValue({ candidate_id: candidate.id, status: 'building' }); vi.mocked(api.getJobs).mockResolvedValue(jobs); vi.mocked(api.getCandidates).mockResolvedValue([candidate]); vi.mocked(api.getCandidateById).mockResolvedValue(candidate) })
+beforeEach(() => { vi.resetAllMocks(); vi.mocked(api.extractRequirements).mockResolvedValue([]); vi.mocked(api.getSimilarJobs).mockResolvedValue([]); vi.mocked(api.createJob).mockImplementation(async job=>({...job,id:'CUSTOM-test',requirements:[]})); vi.mocked(api.getCandidateContext).mockResolvedValue({ candidate_id: candidate.id, status: 'building' }); vi.mocked(api.getJobs).mockResolvedValue(jobs); vi.mocked(api.getCandidates).mockResolvedValue([candidate]); vi.mocked(api.getCandidateById).mockResolvedValue(candidate) })
 describe('Phase 1 workspace', () => {
   it('filters jobs by ID, clears selection, and renders distinct pages', async () => {
     const user = userEvent.setup(); render(<App />)

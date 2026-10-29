@@ -1,3 +1,6 @@
+import { useRef } from 'react'
+import type { RankedCandidate } from '@/types/matching'
+import { RequirementFilter } from './RequirementFilter'
 import { useState, useEffect } from 'react'
 import type { CandidateSummary } from '@/types'
 import { api } from '@/services/api'
@@ -8,10 +11,30 @@ import { CandidateCard } from '@/components/cards/CandidateCard'
 const POPULAR_SKILLS = ['All', 'Python', 'React', 'TypeScript', 'FastAPI', 'Kubernetes', 'Distributed Systems']
 
 export function CandidateGrid() {
-  const { searchQuery, setSearchQuery, selectedSkill, setSelectedSkill } = useJob()
+  const { selectedJob, searchQuery, setSearchQuery, selectedSkill, setSelectedSkill } = useJob()
   const [candidates, setCandidates] = useState<CandidateSummary[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
+
+  const [ranked, setRanked] = useState<RankedCandidate[] | null>(null)
+  const [rankingLoading, setRankingLoading] = useState(false)
+  const [requirements, setRequirements] = useState<NonNullable<import('@/types').Job['requirements']>>([])
+  const [selectedRequirements, setSelectedRequirements] = useState<string[]>([])
+  const generation = useRef(0)
+  // oxlint-disable-next-line react/set-state-in-effect -- Invalidate ranking when its job input changes.
+  useEffect(() => { generation.current++; setRanked(null); setSelectedRequirements([]); setRankingLoading(false) }, [selectedJob?.id])
+  async function rank() {
+    if (!selectedJob) return
+    const current = ++generation.current
+    setRankingLoading(true); setError(null)
+    try {
+      const [rows, reqs] = await Promise.all([api.rankCandidates({job_id:selectedJob.id}), api.extractRequirements({job_id:selectedJob.id})])
+      if (current === generation.current) { setRanked(rows); setRequirements(reqs); setSelectedRequirements([]) }
+    } catch { if (current === generation.current) setError('Could not rank candidates. Please retry.') }
+    finally { if (current === generation.current) setRankingLoading(false) }
+  }
+  const visible = ranked ? ranked.filter(row => selectedRequirements.every(id => row.coverage.some(c => c.requirement_id===id && ['matched','partially_supported'].includes(c.coverage_state)))).flatMap(row => candidates.filter(c=>c.id===row.candidate_id)) : candidates
+  const loading = isLoading || rankingLoading
 
   useEffect(() => {
     let isMounted = true
@@ -81,7 +104,7 @@ export function CandidateGrid() {
         {/* Results Count & Reset */}
         <div className="flex items-center gap-3 text-xs text-[#65646f] self-end md:self-auto">
           <span role="status" aria-live="polite">
-            Showing <strong className="text-[#181c23]">{candidates.length}</strong> candidates
+            Showing <strong className="text-[#181c23]">{visible.length}</strong> candidates
           </span>
           {(searchQuery || selectedSkill) && (
             <button
@@ -99,8 +122,10 @@ export function CandidateGrid() {
         </div>
       </div>
 
+      {selectedJob && <div className="modal-actions"><button className="primary-button" disabled={rankingLoading} onClick={()=>void rank()}>Rank by fit</button>{ranked && <button onClick={()=>{ generation.current++; setRanked(null); setSelectedRequirements([]); setRankingLoading(false) }}>Back to default order</button>}</div>}
+      {selectedJob && ranked && <RequirementFilter requirements={requirements} selected={selectedRequirements} onChange={setSelectedRequirements} />}
       {/* Loading Skeleton */}
-      {isLoading && (
+      {loading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <div
@@ -124,7 +149,7 @@ export function CandidateGrid() {
       )}
 
       {/* Error state */}
-      {!isLoading && error && (
+      {!loading && error && (
         <div role="alert" className="bg-[#fdf2f2] border border-[#f5c4c4] text-[#b54747] p-6 rounded-xl text-center flex flex-col items-center gap-2">
           <span aria-hidden="true" className="material-symbols-outlined text-[32px]">error</span>
           <p className="text-sm font-semibold">{error}</p>
@@ -132,7 +157,7 @@ export function CandidateGrid() {
       )}
 
       {/* Empty State */}
-      {!isLoading && !error && candidates.length === 0 && (
+      {!loading && !error && visible.length === 0 && (
         <div className="bg-white border border-[#e5e7eb] rounded-xl p-12 text-center flex flex-col items-center justify-center gap-3">
           <div className="w-12 h-12 rounded-full bg-[#f1eefc] text-[#6554c0] flex items-center justify-center">
             <span aria-hidden="true" className="material-symbols-outlined text-[24px]">person_search</span>
@@ -157,10 +182,10 @@ export function CandidateGrid() {
       )}
 
       {/* Candidate Cards Grid */}
-      {!isLoading && !error && candidates.length > 0 && (
+      {!loading && !error && visible.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {candidates.map((cand) => (
-            <CandidateCard key={cand.id} candidate={cand} />
+          {visible.map((cand) => (
+            <CandidateCard key={cand.id} candidate={cand} ranking={ranked?.find(r=>r.candidate_id===cand.id)} />
           ))}
         </div>
       )}

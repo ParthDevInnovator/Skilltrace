@@ -1,3 +1,4 @@
+import { JDMatchTab } from './JDMatchTab'
 import { useEffect, useState } from 'react'
 import type { CandidateDetail } from '@/types'
 import { api } from '@/services/api'
@@ -14,8 +15,8 @@ export function CandidateProfileShell() {
   const [candidate, setCandidate] = useState<CandidateDetail | null>(null)
   const [failed, setFailed] = useState(false)
   const [detailAttempt, setDetailAttempt] = useState(0)
-  const [tab, setTab] = useState<'claims' | 'skills' | 'background' | 'resume'>('claims')
-  const { context, phase, retry } = useCandidateContext(selectedCandidateId, tab === 'claims' || tab === 'skills')
+  const [tab, setTab] = useState<'claims' | 'skills' | 'background' | 'resume' | 'match'>('claims')
+  const { context, phase, retry } = useCandidateContext(selectedCandidateId, tab === 'claims' || tab === 'skills' || tab === 'match')
   useEffect(() => {
     if (!selectedCandidateId) return
     let cancelled = false
@@ -31,7 +32,7 @@ export function CandidateProfileShell() {
       <div className="skill-list">{Object.entries(candidate.external_identifiers ?? {}).filter(([, url]) => url).map(([platform, url]) => /^https?:\/\//i.test(url as string) && <a key={platform} href={url as string} target="_blank" rel="noreferrer">{platform} profile (not independently verified)</a>)}</div>
       <p className="provenance-label">{context ? provenanceSummary(records) : 'Unassessed - context pending'}</p>{context && <EvidenceBar score={context.evidence_score} label={context.evidence_label} />}
     </section>
-    <nav aria-label="Candidate profile sections" className="profile-tabs">{([['claims', 'Evidence & Claims'], ['skills', 'Reported Skills'], ['background', 'Background Summary']] as const).map(([value, label]) => <button key={value} aria-pressed={tab === value} onClick={() => setTab(value)}>{label}</button>)}</nav>
+    <nav aria-label="Candidate profile sections" className="profile-tabs">{([['claims', 'Evidence & Claims'], ['skills', 'Reported Skills'], ['background', 'Background Summary']] as const).map(([value, label]) => <button key={value} aria-pressed={tab === value} onClick={() => setTab(value)}>{label}</button>)}{selectedJob && <button aria-pressed={tab==='match'} onClick={()=>setTab('match')}>JD Match</button>}</nav>
     {tab === 'claims' && <section className="page-stack"><h2>Reported Resume Claims</h2><ContextFeedback phase={phase} retry={retry} />{context && <>
       {!context.claims.length && <p>No claims matched the extraction rules. Inspect the resume for additional reported experience.</p>}
       {context.claims.map(claim => <article key={claim.id} className="panel"><div className="page-title"><strong>{claim.section}{claim.skill && ` - ${claim.skill}`}</strong><span className="claim-state">{claim.verification_state}</span></div><p>{claim.claim_text}</p><small>{claim.provenance}</small></article>)}
@@ -43,6 +44,7 @@ export function CandidateProfileShell() {
       return <div className="skill-evidence-row" key={skill}><strong>{skill}</strong><span>{supporting.length} observations ? {score.toFixed(1)} points</span><EvidenceBar score={score} label={labelForScore(score)} /></div>
     })}</section>}
     {tab === 'background' && <section className="panel"><h2>Candidate Background Summary</h2><p>{candidate.summary || 'No background summary provided for this candidate record.'}</p></section>}
+    {tab === 'match' && selectedJob && <JDMatchTab key={`${selectedCandidateId}-${selectedJob.id}`} candidateId={selectedCandidateId} jobId={selectedJob.id} context={context} />}
     {tab === 'resume' && <ResumeViewer key={selectedCandidateId} candidateId={selectedCandidateId} />}
   </div>
 }

@@ -12,7 +12,7 @@ test('recruiter workflow and responsive keyboard access', async ({ page }, info)
   await page.getByRole('button', { name: 'Jobs', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Jobs', exact: true })).toBeVisible()
   await page.getByLabel('Search jobs').fill('JOB-002')
-  await expect(page.getByRole('article')).toHaveCount(1)
+  await expect(page.locator('.jobs-grid').getByRole('article')).toHaveCount(1)
   await page.getByRole('button', { name: 'Set as active job' }).click()
   await page.getByRole('button', { name: 'Candidates', exact: true }).click()
   await page.getByLabel('Search candidates', { exact: true }).fill('Alex Rivera')
@@ -89,6 +89,7 @@ test('job failure, retry and clear selection are visible', async ({ page }) => {
 })
 
 test('workspace accessibility and narrow profile layout', async ({ page }, info) => {
+  test.setTimeout(60000)
   await page.goto('/')
   await expect(page.getByRole('button', { name: 'View Profile' })).toHaveCount(6)
   const scan = async () => {

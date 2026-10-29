@@ -431,3 +431,12 @@ Decimal scores (e.g., 0.7, 2.8, 5.4) are valid and fall into the range that cont
 - Accessibility: Axe WCAG A/AA scans pass on Explorer and expanded Evidence & Claims, as well as the existing workspace checks. Keyboard, reduced-motion and horizontal-overflow assertions pass. This is automated acceptance for the checked flows, not a universal accessibility certification.
 - Visual review: inspected desktop evidence profile and mobile Explorer screenshots; synthetic provenance is visible. Final screenshots/traces are in ignored `frontend/test-results/`.
 - Scope: all numbered Phase 2 tasks are complete. Live external service availability is not established by offline tests. LinkedIn remains explicitly synthetic; candidate storage is process-local; role-fit/ranking, AI briefs/chat, graph integration and production persistence/auth remain later phases.
+
+
+## Phase 3 follow-through (2026-10-28)
+
+The CandidateCard match preview (Unassessed to a real role-fit score) is completed
+in Phase 3 Tasks 6.5 and 6.9. Evidence readiness alone does not change role fit.
+Cards show the final percentage only after ranking for the active job; changing
+the active job or leaving ranked mode restores Unassessed. See
+[PHASE_3_TASKS.md](PHASE_3_TASKS.md) for matching, filtering and JD Match sign-off.

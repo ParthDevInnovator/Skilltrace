@@ -1,3 +1,4 @@
+import type { ExtractedRequirement, RankedCandidate, SimilarJob, MatchResponse } from '@/types/matching'
 import type {
   Job,
   JobFilterParams,
@@ -41,6 +42,17 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  extractRequirements: (params: {job_id?:string; jd_text?:string}): Promise<ExtractedRequirement[]> => request('/api/v1/jd/extract', {method:'POST',body:JSON.stringify(params)}),
+  rankCandidates: (params: {job_id:string; reference_date?:string}): Promise<RankedCandidate[]> => request('/api/v1/jd/rank', {method:'POST',body:JSON.stringify(params)}),
+  getSimilarJobs: (job_id:string): Promise<SimilarJob[]> => request('/api/v1/jd/similar', {method:'POST',body:JSON.stringify({job_id})}),
+  createJob: (job: {title:string; description_raw:string; department:string; location:string; requirements?:unknown[]}): Promise<Job> => request('/api/v1/jobs',{method:'POST',body:JSON.stringify(job)}),
+  getCandidateJdMatch: async (id:string, params:{job_id:string;reference_date?:string}): Promise<MatchResponse> => {
+    const response = await fetch(`/api/v1/candidates/${encodeURIComponent(id)}/jd-match`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(params)})
+    if (response.status === 202) return {status:'building'}
+    if (response.status === 503) { const body = await response.json(); return {status:'failed',error:body.error || body.detail || 'Context build failed.'} }
+    if (!response.ok) throw new Error('Could not load candidate match.')
+    return response.json()
+  },
   getHealth: (): Promise<HealthResponse> => request<HealthResponse>('/health'),
 
   getJobs: (params?: JobFilterParams): Promise<Job[]> => {

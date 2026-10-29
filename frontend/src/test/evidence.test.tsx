@@ -104,7 +104,7 @@ it('keeps cards unassessed while building, then shows computed evidence', async 
   expect(screen.getByText('Unassessed')).toBeVisible()
   await act(async () => { resolve(exampleContext) })
   expect(await screen.findByRole('meter')).toHaveAttribute('aria-valuenow', '0.7')
-  expect(screen.queryByText('Unassessed')).not.toBeInTheDocument()
+  expect(screen.getByText('Unassessed')).toBeVisible() // Evidence readiness does not assess role fit.
 })
 function ExplorerHarness() {
   const { selectedCandidateId } = useJob()

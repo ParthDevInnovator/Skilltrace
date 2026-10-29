@@ -454,3 +454,17 @@ select { padding: 9px 10px; border: 1px solid #e5e7eb; border-radius: 6px; backg
   .observation-preview { max-width: calc(100vw - 90px); }
 }
 @media (prefers-reduced-motion: reduce) { .evidence-animate, .evidence-card-body { animation: none; } }
+
+.requirement-chip, .coverage-state { display:inline-block; padding:.35rem .6rem; border-radius:.5rem; font-size:.8rem; overflow-wrap:anywhere; }
+.requirement-chip.mandatory { background:#ede9fe; color:#4c1d95; }
+.requirement-chip.preferred { background:#f3f4f6; color:#374151; border:1px dashed #6b7280; }
+.requirement-chip[aria-pressed="true"] { background:#4c1d95; color:white; }
+.coverage-state.matched { background:#dcfce7;color:#166534; }
+.coverage-state.partially_supported { background:#fef3c7;color:#92400e; }
+.coverage-state.insufficient_evidence { background:#ffedd5;color:#9a3412; }
+.coverage-state.not_assessed { background:#f3f4f6;color:#374151; }
+.match-scores { display:flex; flex-wrap:wrap; gap:.7rem; font-size:.8rem; }
+button:focus-visible, summary:focus-visible { outline:3px solid #6554c0;outline-offset:3px; }
+
+button.requirement-chip { border:1px solid #d1d5db; background:#f9fafb; color:#374151; }
+button.requirement-chip[aria-pressed="true"] { background:#4c1d95; color:white; border-color:#4c1d95; }
