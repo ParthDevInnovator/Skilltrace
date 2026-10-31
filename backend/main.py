@@ -26,7 +26,7 @@ logger = logging.getLogger("mosaic.api")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifecycle events for backend application."""
-    logger.info("Starting up Mosaic Backend Service...")
+    logger.info("Starting up Skitrace Backend Service...")
     logger.info(f"Environment: {settings.ENVIRONMENT} | Debug: {settings.DEBUG}")
     await create_all_tables()
     if settings.AUTO_SEED_DB:
@@ -63,12 +63,12 @@ async def lifespan(app: FastAPI):
         get_graph_client.cache_clear()
         if getattr(app.state, "context_builder", None) is service:
             del app.state.context_builder
-        logger.info("Shutting down Mosaic Backend Service...")
+        logger.info("Shutting down Skitrace Backend Service...")
 
 
 app = FastAPI(
     title=f"{settings.APP_NAME} API",
-    description="Mosaic — Beyond the Resume: AI-Powered Candidate Intelligence & Evidence-Based Recruitment Backend",
+    description="Skitrace — Beyond the Resume: AI-Powered Candidate Intelligence & Evidence-Based Recruitment Backend",
     version=settings.APP_VERSION,
     lifespan=lifespan,
     docs_url="/docs",

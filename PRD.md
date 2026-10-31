@@ -1,7 +1,7 @@
-# Product Requirements Document (PRD)
-## Skilltrace - Trace Skills to Evidence
+﻿# Product Requirements Document (PRD)
+## Skitrace - Trace Skills to Evidence
 
-Skilltrace is the current frontend brand; backend modules and configuration retain the Mosaic name.
+Skitrace is the product name across the frontend, backend modules, and configuration.
 
 **Version:** 1.2
 **Status:** Implementation-aligned roadmap (reviewed 2026-10-26)
@@ -12,11 +12,11 @@ Skilltrace is the current frontend brand; backend modules and configuration reta
 
 ## 1. Executive Summary
 
-Mosaic is an AI-powered candidate intelligence platform that consolidates fragmented candidate information into a unified, evidence-backed profile.
+Skitrace is an AI-powered candidate intelligence platform that consolidates fragmented candidate information into a unified, evidence-backed profile.
 
 Recruiters frequently evaluate candidates across disconnected sources: resumes, ATS records, past application history, interview feedback, GitHub repositories, coding platforms (LeetCode), and professional profiles. This fragmentation makes it difficult to assess real experience and alignment with job requirements.
 
-Mosaic creates a candidate context layer that connects these sources, evaluates available evidence against specific job requirements using deterministic scoring, and presents findings through an interactive recruiter workspace.
+Skitrace creates a candidate context layer that connects these sources, evaluates available evidence against specific job requirements using deterministic scoring, and presents findings through an interactive recruiter workspace.
 
 ### Core Capabilities
 * **Job Matching:** Compare candidates directly against job description requirements.
@@ -26,7 +26,7 @@ Mosaic creates a candidate context layer that connects these sources, evaluates 
 * **Recruiter Deliverables:** Generate evidence-backed executive briefs and gap-targeted interview questions.
 * **Agentic Exploration:** Query candidate depth via a conversational AI assistant and interactive knowledge graph.
 
-> **Foundational Principle:** Mosaic informs human hiring decisions through transparent, verifiable evidence. It never automates hiring or rejection decisions.
+> **Foundational Principle:** Skitrace informs human hiring decisions through transparent, verifiable evidence. It never automates hiring or rejection decisions.
 
 ---
 
@@ -34,7 +34,7 @@ Mosaic creates a candidate context layer that connects these sources, evaluates 
 
 **Beyond the Resume: turn fragmented candidate signals into actionable, evidence-backed hiring context.**
 
-Mosaic answers five core questions during candidate evaluation:
+Skitrace answers five core questions during candidate evaluation:
 1. **What does the candidate claim?** (Extracted from resume and submitted projects)
 2. **What available evidence supports that claim?** (GitHub repositories, LeetCode activity, interview notes)
 3. **How does that evidence relate to the target role?** (Requirement coverage against the JD)
@@ -88,7 +88,7 @@ The five phases below distinguish implemented UI from working intelligence servi
 
 | Phase | Scope aligned with current UI | Current status |
 |:---|:---|:---|
-| 1 | Skilltrace light workspace, sidebar/header, overview, active requisition, custom JD, candidate pool and profile tabs | Implemented with distinct views, responsive shell, accessible controls and verified seeded-data workflows |
+| 1 | Skitrace light workspace, sidebar/header, overview, active requisition, custom JD, candidate pool and profile tabs | Implemented with distinct views, responsive shell, accessible controls and verified seeded-data workflows |
 | 2 | Resume ingestion, external signals, evidence audit trails and unified candidate context | Implemented: upload/parsing, cached adapters, deterministic scoring, background contexts, APIs and evidence workspace; externally retrieved claims remain separately assessed |
 | 3 | JD extraction, role-specific matching, requirement coverage and deterministic ranking | Planned; current match previews do not change with the active job |
 | 4 | Candidate assistant, interview briefs/questions, digest export and knowledge graph | Planned; brief/export controls are currently inactive |
@@ -98,7 +98,7 @@ See [PHASE_1_TASKS.md](PHASE_1_TASKS.md) and [PHASE_2_TASKS.md](PHASE_2_TASKS.md
 
 ### Phase 1: Core Recruiter Workspace & Foundation
 
-**Objective:** Deliver the Skilltrace light-mode recruiter workspace with seeded API data and preserved active-requisition context.
+**Objective:** Deliver the Skitrace light-mode recruiter workspace with seeded API data and preserved active-requisition context.
 
 #### Functional Requirements Included
 * **FR-01 (Part 1): Recruiter Dashboard:**

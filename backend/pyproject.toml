@@ -1,7 +1,7 @@
 [project]
-name = "mosaic-backend"
+name = "skitrace-backend"
 version = "0.1.0"
-description = "Mosaic - Candidate Intelligence & Evidence-Based Recruitment Backend"
+description = "Skitrace - Candidate Intelligence & Evidence-Based Recruitment Backend"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

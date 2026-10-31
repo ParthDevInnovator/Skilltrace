@@ -1,5 +1,5 @@
-# Product Requirements Document (PRD)
-## Mosaic — Beyond the Resume
+﻿# Product Requirements Document (PRD)
+## Skitrace — Beyond the Resume
 
 **Version:** 1.0  
 **Status:** Proposed  
@@ -10,11 +10,11 @@
 
 ## 1. Executive Summary
 
-Mosaic is an AI-powered candidate intelligence platform that consolidates fragmented candidate information into a unified, evidence-backed profile.
+Skitrace is an AI-powered candidate intelligence platform that consolidates fragmented candidate information into a unified, evidence-backed profile.
 
 Recruiters often evaluate candidates using resumes, ATS records, previous applications, interview feedback, professional profiles, GitHub repositories, coding profiles, and project portfolios. These sources are disconnected, making it difficult to understand a candidate's actual experience and alignment with a particular job.
 
-Mosaic addresses this problem by creating a candidate context layer that connects these sources, evaluates available evidence against job requirements, and presents the findings through an interactive recruiter workspace.
+Skitrace addresses this problem by creating a candidate context layer that connects these sources, evaluates available evidence against job requirements, and presents the findings through an interactive recruiter workspace.
 
 The platform enables recruiters to:
 
@@ -26,7 +26,7 @@ The platform enables recruiters to:
 - Prepare targeted interview questions.
 - Explore candidate information through a conversational AI agent and knowledge graph.
 
-**Product principle:** Mosaic informs hiring decisions through transparent evidence. It does not automatically decide whether a candidate should be hired.
+**Product principle:** Skitrace informs hiring decisions through transparent evidence. It does not automatically decide whether a candidate should be hired.
 
 ## 2. Problem Statement
 
@@ -43,7 +43,7 @@ Recruiters face several challenges during candidate screening:
 
 ### 2.2 Product opportunity
 
-Mosaic consolidates these signals into a unified candidate context and makes the evidence behind each finding accessible.
+Skitrace consolidates these signals into a unified candidate context and makes the evidence behind each finding accessible.
 
 The objective is to reduce manual information gathering and help recruiters conduct more informed, consistent candidate evaluations.
 
@@ -51,7 +51,7 @@ The objective is to reduce manual information gathering and help recruiters cond
 
 **Beyond the Resume: turn fragmented candidate information into actionable, evidence-backed hiring context.**
 
-Mosaic will function as an intelligence layer above recruitment data sources. It will combine internal candidate history, external professional signals, and role-specific requirements into a unified interface.
+Skitrace will function as an intelligence layer above recruitment data sources. It will combine internal candidate history, external professional signals, and role-specific requirements into a unified interface.
 
 The product should answer five questions:
 
@@ -130,9 +130,9 @@ These exclusions preserve the reference product's evidence-first design philosop
 
 ### 6.1 Recruiter workflow
 
-1. The recruiter opens Mosaic.
+1. The recruiter opens Skitrace.
 2. The recruiter selects an existing job or uploads/pastes a new job description.
-3. Mosaic extracts job requirements and relevant skills.
+3. Skitrace extracts job requirements and relevant skills.
 4. The system evaluates available candidates against the requirements.
 5. Candidate cards appear with ranking, requirement coverage, and evidence indicators.
 6. The recruiter opens a candidate profile.
@@ -510,7 +510,7 @@ The system shall cache successfully retrieved external signals to reduce repeate
 
 The interface shall support light and dark themes.
 
-The visual direction should follow the supplied Mosaic reference:
+The visual direction should follow the supplied Skitrace reference:
 - Recruiter-first dashboard.
 - Candidate cards with evidence indicators.
 - Original resume displayed alongside candidate context.
@@ -706,7 +706,7 @@ Initial product success should be measured using the following metrics.
 - Recruiter return usage.
 
 ### Efficiency
-- Time required to review a candidate before and after Mosaic.
+- Time required to review a candidate before and after Skitrace.
 - Manual source checks reduced per candidate.
 - Time required to prepare interview questions.
 - Percentage of successful candidate context requests.
@@ -831,7 +831,7 @@ The following decisions remain open and should be confirmed during implementatio
 
 ## 17. Product Principles
 
-Mosaic shall follow these principles throughout development:
+Skitrace shall follow these principles throughout development:
 
 - Evidence over assumptions.
 - Context over isolated fields.
@@ -863,6 +863,6 @@ Production readiness additionally requires persistent storage, authentication, a
 
 **Final product definition**
 
-Mosaic is an evidence-backed candidate intelligence platform that connects resumes, professional signals, hiring history, and job requirements to help recruiters understand candidates more efficiently and make better-informed hiring decisions.
+Skitrace is an evidence-backed candidate intelligence platform that connects resumes, professional signals, hiring history, and job requirements to help recruiters understand candidates more efficiently and make better-informed hiring decisions.
 
 **Core workflow:** Job requirements → Candidate matching → Evidence exploration → Candidate context → Interview preparation → Human hiring decision.

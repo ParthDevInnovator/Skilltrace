@@ -12,7 +12,7 @@ async def test_health_check_root():
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "ok"
-        assert data["app_name"] == "Mosaic"
+        assert data["app_name"] == "Skitrace"
         assert "version" in data
         assert "environment" in data
 
@@ -36,4 +36,4 @@ async def test_root_welcome():
         response = await client.get("/")
         assert response.status_code == 200
         data = response.json()
-        assert "Mosaic" in data["message"]
+        assert "Skitrace" in data["message"]

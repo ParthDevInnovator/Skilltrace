@@ -5,7 +5,7 @@ from pydantic import Field, SecretStr, field_validator, model_validator
 
 
 class Settings(BaseSettings):
-    APP_NAME: str = "Mosaic"
+    APP_NAME: str = "Skitrace"
     APP_VERSION: str = "1.0.0"
     ENVIRONMENT: str = "development"
     DEBUG: bool = True

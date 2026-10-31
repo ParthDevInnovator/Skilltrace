@@ -1,8 +1,8 @@
-# Phase 1: Skilltrace Recruiter Workspace - Task List
+﻿# Phase 1: Skitrace Recruiter Workspace - Task List
 
 **Reviewed:** 2026-10-26
 **Status:** Complete - implemented and verified on 2026-10-26.
-**Objective:** Align the light-only Skilltrace workspace with seeded job/candidate APIs and preserve active-requisition context.
+**Objective:** Align the light-only Skitrace workspace with seeded job/candidate APIs and preserve active-requisition context.
 
 All Phase 1 tasks below are implemented and verified. Later-phase work remains in the follow-on table. See [PRD.md](PRD.md) for the five-phase roadmap.
 
@@ -26,7 +26,7 @@ All Phase 1 tasks below are implemented and verified. Later-phase work remains i
 ## Milestone 3: Current Design & Workspace Shell
 
 - [x] **Task 4.1: Light design system** - Purple/neutral tokens, white surfaces, evidence badge styles, Inter/JetBrains Mono, Material Symbols, focus-visible and reduced-motion rules in `index.css` and `index.html`.
-- [x] **Task 4.2: Skilltrace shell** - `App.tsx`, `Sidebar.tsx` and `Header.tsx` implement a fixed 240px sidebar, 56px header, breadcrumbs, job selector, global search and static recruiter identity.
+- [x] **Task 4.2: Skitrace shell** - `App.tsx`, `Sidebar.tsx` and `Header.tsx` implement a fixed 240px sidebar, 56px header, breadcrumbs, job selector, global search and static recruiter identity.
 - [x] **Task 4.3: Recruiter overview** - `DashboardOverview.tsx` contains metric cards, Create Job, active requisition details, requirement chips and Candidate Pool.
 - [x] **Task 4.4: Distinct navigation views** - Jobs and Candidates have distinct screens. Evidence Explorer is labeled Phase 2 and does not masquerade as working navigation.
 - [x] **Task 4.5: Adaptive shell** - Desktop sidebar adapts to mobile navigation; header, cards, profile and scrollable modal fit narrow viewports.

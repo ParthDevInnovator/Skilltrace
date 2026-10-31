@@ -1,4 +1,4 @@
-# Phase 2: Candidate Ingestion & Evidence Scoring Engine — Task List
+﻿# Phase 2: Candidate Ingestion & Evidence Scoring Engine — Task List
 
 **Created:** 2026-10-26
 **Revised:** 2026-10-26
