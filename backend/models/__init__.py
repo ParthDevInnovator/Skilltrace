@@ -1,4 +1,4 @@
-"""Pydantic data models for Mosaic."""
+"""Pydantic data models for Skitrace."""
 from backend.models.job import Job, JobRequirement, JobFilterParams, JobCreate
 from backend.models.candidate import (
     CandidateSummary,

@@ -1,1 +1,1 @@
-"""Mosaic Backend Package."""
+"""Skitrace Backend Package."""

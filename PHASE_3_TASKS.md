@@ -1,4 +1,4 @@
-# Phase 3: JD Matching, Requirement Extraction & Candidate Ranking — Task List
+﻿# Phase 3: JD Matching, Requirement Extraction & Candidate Ranking — Task List
 
 **Created:** 2026-10-26
 **Status:** Complete - Tasks 1.1 through 7.5 implemented and verified on 2026-10-28. Final totals: 253 backend tests, 37 frontend tests, 26 browser checks.

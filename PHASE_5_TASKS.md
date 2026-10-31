@@ -1,4 +1,4 @@
-# Phase 5: Production Readiness, Security & Compliance — Task List
+﻿# Phase 5: Production Readiness, Security & Compliance — Task List
 
 **Created:** 2026-10-29
 **Status:** Complete — verified 2026-10-29 (355 backend, 65 frontend, 5 Playwright/axe acceptance tests)

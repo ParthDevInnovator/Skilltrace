@@ -1,4 +1,4 @@
-# Mosaic — Beyond the Resume
+﻿# Skitrace — Beyond the Resume
 
 AI-powered candidate intelligence platform that consolidates fragmented candidate information into a unified, evidence-backed profile.
 
@@ -90,7 +90,7 @@ npm run dev
 
 ## Phase 1 workspace
 
-The Skilltrace frontend includes Overview, Jobs and Candidates screens, searchable job selection, session-only custom requisitions, candidate filters and seeded profile tabs. Custom JD uploads accept TXT, MD, PDF and DOCX up to 5 MB. Scanned PDFs without embedded text require pasted input.
+The Skitrace frontend includes Overview, Jobs and Candidates screens, searchable job selection, session-only custom requisitions, candidate filters and seeded profile tabs. Custom JD uploads accept TXT, MD, PDF and DOCX up to 5 MB. Scanned PDFs without embedded text require pasted input.
 
 Role fit remains unassessed; Phase 2 computes separate evidence strength with visible provenance. Evidence Explorer and resume text viewing are implemented in Phase 2. Interview briefs, digest export and authenticated accounts remain later phases. See [PHASE_1_TASKS.md](PHASE_1_TASKS.md) and [PRD.md](PRD.md).
 

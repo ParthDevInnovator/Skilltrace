@@ -1,4 +1,4 @@
-# Phase 4: Conversational AI Intelligence & Knowledge Graph — Task List
+﻿# Phase 4: Conversational AI Intelligence & Knowledge Graph — Task List
 
 **Created:** 2026-10-28
 **Status:** Complete (verified 2026-10-29)
