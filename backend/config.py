@@ -54,7 +54,11 @@ class Settings(BaseSettings):
     OAUTH_REDIRECT_URI: str | None = None
     SIGNAL_CACHE_TTL_DAYS: int = Field(default=90, gt=0)
     AUTO_SEED_DB: bool = False
+    LOAD_DEMO_DATA: bool = False
     E2E_BOOTSTRAP_USERS: bool = False
+    CLERK_PUBLISHABLE_KEY: str | None = None
+    CLERK_SECRET_KEY: SecretStr | None = None
+    CLERK_AUTHORIZED_PARTIES: List[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
     @field_validator("DEBUG", mode="before")
     @classmethod
@@ -71,7 +75,7 @@ class Settings(BaseSettings):
         return self
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(".env", ".env.local"),
         env_file_encoding="utf-8",
         extra="ignore",
     )

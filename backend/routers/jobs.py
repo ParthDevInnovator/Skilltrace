@@ -17,7 +17,7 @@ router = APIRouter(tags=["Jobs"])
     "",
     response_model=List[Job],
     summary="List available jobs",
-    description="Retrieve all seeded jobs with optional filtering by search keyword, department, or location.",
+    description="Retrieve all jobs with optional filtering by search keyword, department, or location.",
 )
 async def list_jobs(
     search: Optional[str] = Query(
@@ -35,7 +35,7 @@ async def list_jobs(
     user=Depends(require_role(Role.recruiter, Role.hiring_manager, Role.hr_admin)),
     db: AsyncSession = Depends(get_db),
 ) -> List[Job]:
-    """Retrieve filtered list of jobs."""
+    """Retrieve the filtered list of persisted jobs."""
     params = JobFilterParams(search=search, department=department, location=location)
     jobs=seed_loader.get_jobs(params=params)
     custom=(await db.scalars(select(DBJob).where(DBJob.is_custom.is_(True)).order_by(DBJob.created_at.desc()))).all()

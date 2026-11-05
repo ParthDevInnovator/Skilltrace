@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.config import settings
-from backend.routers import candidates, health, jobs, ingest, admin, jd, auth
+from backend.routers import candidates, health, jobs, ingest, admin, jd
 from backend.routers import agent, graph
 from backend.core.database import AsyncSessionLocal, create_all_tables
 from backend.core.retention import purge_expired_evidence
@@ -112,7 +112,6 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 # Mount routers
-app.include_router(auth.router, prefix=settings.API_V1_PREFIX)
 app.include_router(jd.router, prefix="/api/v1/jd")
 app.include_router(jd.router, prefix="/jd")
 app.include_router(health.router)
