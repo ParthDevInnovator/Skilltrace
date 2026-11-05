@@ -21,7 +21,7 @@ router = APIRouter(tags=["Candidates"])
 @router.get(
     "",
     summary="List candidate summaries",
-    description="Retrieve all seeded candidate summaries with optional search and skill filtering.",
+    description="Retrieve all candidate summaries with optional search and skill filtering.",
 )
 async def list_candidates(
     search: Optional[str] = Query(
@@ -36,7 +36,7 @@ async def list_candidates(
     include_synthetic: bool = Query(False),
     response: Response = None,
 ):
-    """Retrieve seeded candidate summaries with optional filtering."""
+    """Retrieve candidate summaries with optional filtering."""
     params = CandidateFilterParams(search=search, skill=skill)
     role = Role.hr_admin if Role.hr_admin.value in user.roles else Role.hiring_manager if Role.hiring_manager.value in user.roles else Role.recruiter
     candidates = seed_loader.get_candidates(params=params)

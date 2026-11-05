@@ -19,8 +19,22 @@ logger = logging.getLogger("mosaic.services.seed_loader")
 class SeedLoader:
     """In-memory seed data repository and search provider."""
 
-    def __init__(self, data_dir: Optional[Path] = None):
+    def __init__(
+        self,
+        data_dir: Optional[Path] = None,
+        *,
+        load_demo_data: Optional[bool] = None,
+    ):
         self.data_dir = data_dir or settings.DATA_DIR
+        # Explicit data directories are used by isolated tests. The application
+        # repository only reads bundled demo records when deliberately enabled.
+        self.load_demo_data = (
+            data_dir is not None
+            if load_demo_data is None
+            else load_demo_data
+        )
+        if data_dir is None and load_demo_data is None:
+            self.load_demo_data = settings.LOAD_DEMO_DATA
         self._jobs: Dict[str, Job] = {}
         self._candidates: Dict[str, CandidateDetail] = {}
         self._is_loaded: bool = False
@@ -33,6 +47,11 @@ class SeedLoader:
 
         self._jobs.clear()
         self._candidates.clear()
+
+        if not self.load_demo_data:
+            self._is_loaded = True
+            logger.info("Bundled demo data is disabled; starting with an empty repository.")
+            return
 
         # Load Jobs
         jobs_dir = self.data_dir / "jobs"
