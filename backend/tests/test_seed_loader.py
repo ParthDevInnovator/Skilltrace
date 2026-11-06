@@ -3,7 +3,7 @@ from backend.models import JobFilterParams, CandidateFilterParams
 
 
 def test_seed_loader_initial_load():
-    loader = SeedLoader()
+    loader = SeedLoader(load_demo_data=True)
     loader.load_all()
     stats = loader.stats()
     assert stats["total_jobs"] >= 5
@@ -11,13 +11,13 @@ def test_seed_loader_initial_load():
 
 
 def test_seed_loader_get_jobs_unfiltered():
-    loader = SeedLoader()
+    loader = SeedLoader(load_demo_data=True)
     jobs = loader.get_jobs()
     assert len(jobs) >= 5
 
 
 def test_seed_loader_job_search_filter():
-    loader = SeedLoader()
+    loader = SeedLoader(load_demo_data=True)
     # Search by keyword
     results = loader.get_jobs(JobFilterParams(search="distributed"))
     assert len(results) >= 1
@@ -34,7 +34,7 @@ def test_seed_loader_job_search_filter():
 
 
 def test_seed_loader_get_job_by_id():
-    loader = SeedLoader()
+    loader = SeedLoader(load_demo_data=True)
     job = loader.get_job("JOB-001")
     assert job is not None
     assert job.id == "JOB-001"
@@ -45,7 +45,7 @@ def test_seed_loader_get_job_by_id():
 
 
 def test_seed_loader_get_candidates():
-    loader = SeedLoader()
+    loader = SeedLoader(load_demo_data=True)
     candidates = loader.get_candidates()
     assert len(candidates) >= 6
 
@@ -83,7 +83,7 @@ def test_seed_loader_get_candidates():
 
 
 def test_seed_loader_get_candidate_detail():
-    loader = SeedLoader()
+    loader = SeedLoader(load_demo_data=True)
     cand = loader.get_candidate("CAND-001")
     assert cand is not None
     assert cand.full_name == "Alex Rivera"

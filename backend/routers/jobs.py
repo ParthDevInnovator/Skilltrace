@@ -89,6 +89,8 @@ from backend.services.requirement_extractor import extract_requirements
 async def create_job(body: JobCreate, service=Depends(get_context_builder), user=Depends(require_role(Role.recruiter, Role.hr_admin)), db: AsyncSession=Depends(get_db)):
     id = f'CUSTOM-{uuid4()}'
     requirements = body.requirements or extract_requirements(body.description_raw,id)
+    # Requirement IDs are primary keys, and must be unique across persisted jobs.
+    requirements = [r.model_copy(update={"id": f"{id}-REQ-{i:03d}"}) for i, r in enumerate(requirements, 1)]
     job = Job(id=id,**body.model_dump(exclude={'requirements'}),requirements=[{'id':r.id,'requirement_text':r.requirement_text,'category':r.category,'is_mandatory':r.is_mandatory} for r in requirements],requirements_preview=[r.requirement_text for r in requirements[:4]])
     db.add(DBJob(id=id,title=body.title,department=body.department,location=body.location,description_raw=body.description_raw,is_custom=True,created_by=getattr(user,'id',None) if hasattr(getattr(user,'id',None),'hex') else None))
     db.add_all([DBJobRequirement(id=r.id,job_id=id,skill=r.requirement_text,level='required' if r.is_mandatory else 'preferred',weight=1.0) for r in requirements]);await db.commit()

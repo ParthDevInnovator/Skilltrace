@@ -13,7 +13,7 @@ from backend.models import (
 from backend.services.seed_loader import SeedLoader
 
 
-DATA_DIR = Path(__file__).resolve().parents[1] / "data"
+DATA_DIR = Path(__file__).resolve().parent / "data"
 
 
 @pytest.fixture
@@ -108,7 +108,7 @@ def test_context_rejects_inconsistent_data(context_data, record_data, change):
 
 @pytest.mark.parametrize("candidate_id", [f"CAND-{i:03d}" for i in range(1, 7)])
 def test_controlled_fixture_and_seed_stub(candidate_id):
-    fixture = json.loads((DATA_DIR / "fixtures" / f"{candidate_id}.json").read_text(encoding="utf-8"))
+    fixture = json.loads((Path(__file__).resolve().parents[1] / "data" / "fixtures" / f"{candidate_id}.json").read_text(encoding="utf-8"))
     records = [EvidenceRecord.model_validate(record) for record in fixture["evidence_records"]]
     assert fixture["provenance"] == EvidenceProvenance.SYNTHETIC
     assert fixture["candidate_id"] == candidate_id

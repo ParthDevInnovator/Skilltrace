@@ -19,7 +19,7 @@ from backend.services.identity_extractor import ExtractedIdentity, extract_ident
 from backend.services.resume_parser import MAX_UPLOAD_BYTES, ParsedResume, parse_resume
 from backend.services.seed_loader import SeedLoader
 
-DATA_DIR = Path(__file__).resolve().parents[1] / "data"
+DATA_DIR = Path(__file__).resolve().parent / "data"
 FIXTURES = Path(__file__).resolve().parents[2] / "frontend/e2e/fixtures"
 TEXT = """Name: Morgan Test
 Email: morgan.test@example.com

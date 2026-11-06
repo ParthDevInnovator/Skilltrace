@@ -1,14 +1,10 @@
-import { RequirementChips } from './RequirementFilter'
 import { useJob } from '@/context/JobContext'
+import { CandidateGrid } from './CandidateGrid'
+import { RequirementChips } from './RequirementFilter'
 import { JobStatus } from '@/components/common/JobStatus'
-import { CandidateGrid } from '@/components/dashboard/CandidateGrid'
+import { useAuth } from '@/context/AuthContext'
 export function DashboardOverview({ onOpenCustomJDModal }: { onOpenCustomJDModal: () => void }) {
-  const { selectedJob, jobs, isLoadingJobs, jobError } = useJob()
-  return <div className="page-stack"><div className="page-title"><div><h1>Recruiter Overview</h1><p>Your hiring workspace at a glance.</p></div><button className="primary-button" onClick={onOpenCustomJDModal}>Create Job</button></div>
-    <div className="metrics-grid"><article className="panel"><p>Available Jobs</p><strong className="metric-value">{isLoadingJobs ? '...' : jobError ? '--' : jobs.length}</strong><small>Seeded and session requisitions</small></article>{['Candidates Reviewed', 'Interviews Scheduled', 'Awaiting Review'].map(label => <article className="panel" key={label}><p>{label}</p><strong className="metric-value">--</strong><small>Activity tracking is not connected</small></article>)}</div>
-    <JobStatus />
-    <section className="panel"><h2>Active Requisition</h2>{selectedJob ? <><h3>{selectedJob.title}</h3><p>{selectedJob.department} - {selectedJob.location}</p><RequirementChips job={selectedJob} /></> : <p>Select a job in the header or create a custom requisition.</p>}</section>
-    <section className="page-stack"><div><h2>Candidate Pool</h2><p>Select Rank by fit to assess candidates against the active requisition.</p></div><CandidateGrid /></section>
-    <p className="preview-label">Digest export and interview briefs will be available in Phase 4.</p>
-  </div>
+  const { jobs, selectedJob, openJobWorkspace } = useJob()
+  const { hasRole } = useAuth()
+  return <div className="page-stack"><h1>Recruiter Overview</h1><JobStatus /><section className="panel"><h2>Active Requisition</h2>{selectedJob ? <><h2>{selectedJob.title}</h2><p>{selectedJob.department} - {selectedJob.location}</p><RequirementChips job={selectedJob} /></> : <p>Select a job in the header or create a custom requisition.</p>}</section><section className="panel"><div className="page-heading"><h2>{jobs.length} available jobs</h2><button disabled={!hasRole('recruiter')} onClick={onOpenCustomJDModal}>Create a requisition</button></div><div className="grid grid-cols-1 md:grid-cols-3 gap-4">{jobs.slice(0,3).map(job => <article key={job.id}><p className="font-semibold">{job.title}</p><p>{job.department} · {job.location}</p><button onClick={() => openJobWorkspace(job)}>Open workspace</button></article>)}</div>{!jobs.length && <p>No jobs available.</p>}</section><section className="page-stack"><h2>Candidate Pool</h2><p>Rank by fit to assess candidates against the selected job. Missing evidence is unknown.</p><CandidateGrid /></section></div>
 }
