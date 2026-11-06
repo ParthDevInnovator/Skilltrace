@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'react'
 import { setTokenProvider } from '@/services/authToken'
 
 export type AuthUser = {
@@ -17,17 +17,19 @@ type AuthValue = {
   isAuthenticated: boolean
   hasRole: (role: string) => boolean
   ready: boolean
+  error?: string
 }
 
-const AuthContext = createContext<AuthValue | null>(null)
+// oxlint-disable-next-line react/only-export-components
+export const AuthContext = createContext<AuthValue | null>(null)
 const ACCESS = 'mosaic.access_token'
 const REFRESH = 'mosaic.refresh_token'
 
-export const defaultUser: AuthUser = {
+const defaultUser: AuthUser = {
   user_id: 'USR-84920',
   email: 'elena.marsh@skitrace.com',
   full_name: 'Elena Marsh',
-  roles: ['recruiter', 'hr_admin'],
+  roles: ['recruiter'],
 }
 
 async function json(response: Response) {
@@ -47,19 +49,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [accessToken, setAccessToken] = useState<string | null>(() => {
     if (testMode) return 'test-token'
     if (isExplicitlyUnauth) return null
-    return sessionStorage.getItem(ACCESS) || 'demo-session-token'
+    return null
   })
 
   const [user, setUser] = useState<AuthUser | null>(() => {
     if (testMode) return defaultUser
     if (isExplicitlyUnauth) return null
-    return defaultUser
+    return null
   })
 
-  const [ready] = useState<boolean>(true)
+  const [ready, setReady] = useState<boolean>(testMode)
 
-  useEffect(() => {
-    setTokenProvider(async () => accessToken)
+  useLayoutEffect(() => {
+    return setTokenProvider(async () => accessToken)
   }, [accessToken])
 
   const clear = useCallback(() => {
@@ -70,13 +72,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const loadMe = useCallback(async (token: string) => {
-    try {
-      const data = await json(await fetch('/api/v1/auth/me', { headers: { Authorization: `Bearer ${token}` } }))
-      if (data) setUser(data)
-    } catch {
-      // Keep default user if mock/offline
-    }
+    const data = await json(await fetch('/api/v1/auth/me', { headers: { Authorization: `Bearer ${token}` } }))
+    if (!data?.user_id || !Array.isArray(data.roles)) throw new Error('Invalid server identity')
+    setUser(data)
+    return data as AuthUser
   }, [])
+
+  useEffect(() => {
+    if (testMode) return
+    let cancelled = false
+    const token = sessionStorage.getItem(ACCESS)
+    if (!token) { void Promise.resolve().then(() => { if (!cancelled) setReady(true) }); return () => { cancelled = true } }
+    fetch('/api/v1/auth/me', { headers: { Authorization: `Bearer ${token}` } })
+      .then(json).then(data => {
+        if (!data?.user_id || !Array.isArray(data.roles)) throw new Error('Invalid identity')
+        if (!cancelled) { setUser(data); setAccessToken(token) }
+      }).catch(() => { if (!cancelled) clear() })
+      .finally(() => { if (!cancelled) setReady(true) })
+    return () => { cancelled = true }
+  }, [testMode, clear])
 
   const refreshToken = useCallback(async () => {
     try {
@@ -99,7 +113,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [clear, loadMe])
 
   const login = useCallback(
-    async (email: string, password = 'password123') => {
+    async (email: string, password?: string) => {
+      clear()
       try {
         const data = await json(
           await fetch('/api/v1/auth/login', {
@@ -113,21 +128,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (data.refresh_token) sessionStorage.setItem(REFRESH, data.refresh_token)
         setAccessToken(data.access_token)
         await loadMe(data.access_token)
-      } catch {
-        // Fallback for standalone demo/test
-        const demo: AuthUser = {
-          user_id: 'USR-84920',
-          email,
-          full_name: email.split('@')[0].replace(/[._-]/g, ' ') || 'Elena Marsh',
-          roles: ['recruiter', 'hr_admin'],
-        }
-        sessionStorage.setItem(ACCESS, 'demo-token')
-        sessionStorage.removeItem('mosaic.test_unauthenticated')
-        setAccessToken('demo-token')
-        setUser(demo)
+      } catch (error) {
+        clear()
+        throw error
       }
     },
-    [loadMe]
+    [loadMe, clear]
   )
 
   const logout = useCallback(async () => {

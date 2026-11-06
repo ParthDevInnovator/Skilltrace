@@ -19,4 +19,14 @@ describe('Phase 5 authentication UI',()=>{
  it('announces the error region',()=>{render(<App/>);expect(document.querySelector('[aria-live="assertive"]')).toBeInTheDocument()})
  it('requires email',()=>{render(<App/>);expect(screen.getByLabelText('Email')).toBeRequired()})
  it('requires password',()=>{render(<App/>);expect(screen.getByLabelText('Password')).toBeRequired()})
+ it('does not create a demo session when credentials are rejected',async()=>{
+  vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({detail:'Invalid credentials'}),{status:401}))
+  const user=userEvent.setup();render(<App/>);await user.type(screen.getByLabelText('Email'),'recruiter@example.com');await user.type(screen.getByLabelText('Password'),'wrong-password');await user.click(screen.getByRole('button',{name:'Sign in'}))
+  expect(await screen.findByText(/Invalid credentials/)).toBeVisible();expect(sessionStorage.getItem('mosaic.access_token')).toBeNull();expect(screen.queryByRole('heading',{name:'Recruiter Overview'})).not.toBeInTheDocument()
+ })
+ it('clears tokens when server identity lookup rejects an otherwise successful login',async()=>{
+  vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify({access_token:'rejected-identity-token',refresh_token:'refresh'}),{status:200})).mockResolvedValueOnce(new Response('{}',{status:403}))
+  const user=userEvent.setup();render(<App/>);await user.type(screen.getByLabelText('Email'),'recruiter@example.com');await user.type(screen.getByLabelText('Password'),'supplied-password');await user.click(screen.getByRole('button',{name:'Sign in'}))
+  expect(await screen.findByText(/Invalid credentials/)).toBeVisible();expect(sessionStorage.getItem('mosaic.access_token')).toBeNull();expect(sessionStorage.getItem('mosaic.refresh_token')).toBeNull()
+ })
 })

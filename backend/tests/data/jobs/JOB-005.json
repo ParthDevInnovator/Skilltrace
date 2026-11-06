@@ -1,0 +1,41 @@
+{
+  "id": "JOB-005",
+  "title": "Senior Cloud Infrastructure & Site Reliability Engineer",
+  "department": "Platform Operations",
+  "location": "Austin, TX (Remote)",
+  "description_raw": "We are seeking a Senior Cloud Infrastructure & SRE to oversee cloud reliability, automated provisioning with Terraform, zero-downtime deployment pipelines, and global multi-region resilience. You will collaborate directly with security and development squads to guarantee 99.99% uptime for our AI candidate intelligence platform.",
+  "requirements": [
+    {
+      "id": "REQ-501",
+      "requirement_text": "5+ years managing AWS or GCP cloud infrastructure at scale",
+      "category": "Cloud",
+      "is_mandatory": true
+    },
+    {
+      "id": "REQ-502",
+      "requirement_text": "Proficiency in Terraform, Infrastructure-as-Code (IaC), and GitOps",
+      "category": "IaC",
+      "is_mandatory": true
+    },
+    {
+      "id": "REQ-503",
+      "requirement_text": "Deep expertise in Kubernetes cluster management, Helm charts, and Envoy networking",
+      "category": "Kubernetes",
+      "is_mandatory": true
+    },
+    {
+      "id": "REQ-504",
+      "requirement_text": "Experience configuring Prometheus, Grafana, OpenTelemetry, and incident response runbooks",
+      "category": "Observability",
+      "is_mandatory": false
+    }
+  ],
+  "requirements_preview": [
+    "AWS / GCP",
+    "Terraform / IaC",
+    "Kubernetes / Helm",
+    "Observability / SRE",
+    "Zero-Downtime CI/CD"
+  ],
+  "created_at": "2026-10-20T10:00:00Z"
+}

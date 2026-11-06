@@ -17,6 +17,7 @@ import { ChatDrawer } from '@/components/agent/ChatDrawer'
 import { GraphVisualization } from '@/components/graph/GraphVisualization'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from '@/context/AuthContext'
+import { ClerkIdentity } from '@/context/ClerkIdentity'
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute'
 import { LoginPage } from '@/pages/LoginPage'
 import { ForbiddenPage } from '@/pages/ForbiddenPage'
@@ -77,12 +78,13 @@ export default function App() {
   if (import.meta.env.MODE === 'test' && sessionStorage.getItem('mosaic.test_unauthenticated') !== 'true' && window.location.pathname === '/login') {
     window.history.replaceState({}, '', '/')
   }
+  const IdentityProvider = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ? ClerkIdentity : AuthProvider
   return (
-    <BrowserRouter><AuthProvider><Routes>
+    <BrowserRouter><IdentityProvider><Routes>
       <Route path="/login" element={<LoginPage/>}/><Route path="/403" element={<ForbiddenPage/>}/>
       <Route path="/" element={<ProtectedRoute><JobProvider><WorkspaceContent/></JobProvider></ProtectedRoute>}/>
       <Route path="/candidates/*" element={<ProtectedRoute><JobProvider><WorkspaceContent/></JobProvider></ProtectedRoute>}/>
       <Route path="*" element={<NotFoundPage/>}/>
-    </Routes></AuthProvider></BrowserRouter>
+    </Routes></IdentityProvider></BrowserRouter>
   )
 }

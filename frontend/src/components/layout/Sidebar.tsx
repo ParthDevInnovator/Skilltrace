@@ -6,7 +6,7 @@ export function Sidebar() {
   const { user, logout } = useAuth()
 
   return (
-    <aside className="fixed inset-y-0 left-0 w-64 bg-white border-r border-[#e7e2d9] z-40 flex flex-col justify-between shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
+    <aside className="workspace-sidebar bg-white border-r border-[#e7e2d9] z-40 flex flex-col justify-between shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
       <div className="flex flex-col">
         {/* Brand Header */}
         <div className="h-16 px-6 flex items-center gap-3 border-b border-[#e7e2d9]">
@@ -15,13 +15,13 @@ export function Sidebar() {
           </div>
           <div className="flex flex-col leading-tight min-w-0">
             <span className="font-sans font-bold text-base tracking-tight text-[#141618]">skitrace</span>
-            <span className="text-[10px] text-[#77736d] tracking-wide uppercase font-medium">Candidate Intelligence</span>
+            <span className="text-[10px] text-[#59616b] tracking-wide uppercase font-medium">Candidate Intelligence</span>
           </div>
         </div>
 
         {/* Section 1: WORKSPACE */}
         <div className="px-6 pt-6 pb-2">
-          <span className="text-[11px] font-bold text-[#9c9890] tracking-wider uppercase">
+          <span className="text-[11px] font-bold text-[#59616b] tracking-wider uppercase">
             Workspace
           </span>
         </div>
@@ -36,7 +36,7 @@ export function Sidebar() {
                 : 'text-[#59616b] hover:bg-[#f8f7f4] hover:text-[#141618]'
             }`}
           >
-            <span aria-hidden="true" className={`material-symbols-outlined text-[19px] ${activeView === 'overview' ? 'text-[#a9874e]' : 'text-[#77736d]'}`}>
+            <span aria-hidden="true" className={`material-symbols-outlined text-[19px] ${activeView === 'overview' ? 'text-[#a9874e]' : 'text-[#59616b]'}`}>
               dashboard
             </span>
             Overview
@@ -52,7 +52,7 @@ export function Sidebar() {
                 : 'text-[#59616b] hover:bg-[#f8f7f4] hover:text-[#141618]'
             }`}
           >
-            <span aria-hidden="true" className={`material-symbols-outlined text-[19px] ${activeView === 'jobs' || activeView === 'job-detail' || activeView === 'add-candidates' || activeView === 'pipeline' ? 'text-[#a9874e]' : 'text-[#77736d]'}`}>
+            <span aria-hidden="true" className={`material-symbols-outlined text-[19px] ${activeView === 'jobs' || activeView === 'job-detail' || activeView === 'add-candidates' || activeView === 'pipeline' ? 'text-[#a9874e]' : 'text-[#59616b]'}`}>
               work
             </span>
             Jobs
@@ -68,7 +68,7 @@ export function Sidebar() {
                 : 'text-[#59616b] hover:bg-[#f8f7f4] hover:text-[#141618]'
             }`}
           >
-            <span aria-hidden="true" className={`material-symbols-outlined text-[19px] ${activeView === 'talent-pool' || activeView === 'candidates' || activeView === 'candidate-detail' ? 'text-[#a9874e]' : 'text-[#77736d]'}`}>
+            <span aria-hidden="true" className={`material-symbols-outlined text-[19px] ${activeView === 'talent-pool' || activeView === 'candidates' || activeView === 'candidate-detail' ? 'text-[#a9874e]' : 'text-[#59616b]'}`}>
               group
             </span>
             Talent Pool
@@ -77,7 +77,7 @@ export function Sidebar() {
 
         {/* Section 2: INTELLIGENCE */}
         <div className="px-6 pt-6 pb-2">
-          <span className="text-[11px] font-bold text-[#9c9890] tracking-wider uppercase">
+          <span className="text-[11px] font-bold text-[#59616b] tracking-wider uppercase">
             Intelligence
           </span>
         </div>
@@ -92,7 +92,7 @@ export function Sidebar() {
                 : 'text-[#59616b] hover:bg-[#f8f7f4] hover:text-[#141618]'
             }`}
           >
-            <span aria-hidden="true" className={`material-symbols-outlined text-[19px] ${activeView === 'evidence' ? 'text-[#a9874e]' : 'text-[#77736d]'}`}>
+            <span aria-hidden="true" className={`material-symbols-outlined text-[19px] ${activeView === 'evidence' ? 'text-[#a9874e]' : 'text-[#59616b]'}`}>
               fact_check
             </span>
             Evidence Explorer
@@ -108,7 +108,7 @@ export function Sidebar() {
                 : 'text-[#59616b] hover:bg-[#f8f7f4] hover:text-[#141618]'
             }`}
           >
-            <span aria-hidden="true" className={`material-symbols-outlined text-[19px] ${activeView === 'talent-discovery' ? 'text-[#a9874e]' : 'text-[#77736d]'}`}>
+            <span aria-hidden="true" className={`material-symbols-outlined text-[19px] ${activeView === 'talent-discovery' ? 'text-[#a9874e]' : 'text-[#59616b]'}`}>
               saved_search
             </span>
             Talent Discovery
@@ -124,7 +124,7 @@ export function Sidebar() {
                 : 'text-[#59616b] hover:bg-[#f8f7f4] hover:text-[#141618]'
             }`}
           >
-            <span aria-hidden="true" className={`material-symbols-outlined text-[19px] ${activeView === 'graph' ? 'text-[#a9874e]' : 'text-[#77736d]'}`}>
+            <span aria-hidden="true" className={`material-symbols-outlined text-[19px] ${activeView === 'graph' ? 'text-[#a9874e]' : 'text-[#59616b]'}`}>
               hub
             </span>
             Knowledge Graph
@@ -133,17 +133,17 @@ export function Sidebar() {
 
         {/* Section 3: ACCOUNT */}
         <div className="px-6 pt-6 pb-2">
-          <span className="text-[11px] font-bold text-[#9c9890] tracking-wider uppercase">
+          <span className="text-[11px] font-bold text-[#59616b] tracking-wider uppercase">
             Account
           </span>
         </div>
         <nav aria-label="Account" className="flex flex-col px-3 space-y-1">
           <button
             type="button"
-            onClick={() => setActiveView('overview')}
+            disabled title="Settings are not available"
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all text-left text-[#59616b] hover:bg-[#f8f7f4] hover:text-[#141618] cursor-pointer"
           >
-            <span className="material-symbols-outlined text-[19px] text-[#77736d]">
+            <span className="material-symbols-outlined text-[19px] text-[#59616b]">
               settings
             </span>
             Settings
@@ -156,13 +156,13 @@ export function Sidebar() {
         <div className="p-2 rounded-xl border border-[#e7e2d9] bg-[#fbf9f6] flex items-center justify-between gap-3 shadow-2xs hover:bg-[#f5f3ed] transition-colors">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-9 h-9 rounded-full bg-[#ebd8a8] border border-[#a9874e]/30 flex items-center justify-center font-semibold text-xs text-[#745723] shrink-0">
-              EM
+              {user?.full_name.split(' ').map(n => n[0]).join('').slice(0,2)}
             </div>
             <div className="flex flex-col min-w-0">
               <span className="text-xs font-bold text-[#141618] truncate leading-tight">
-                {user?.full_name || 'Elena Marsh'}
+                {user?.full_name || 'Signed-in user'}
               </span>
-              <span className="text-[11px] text-[#77736d] truncate leading-tight">
+              <span className="text-[11px] text-[#59616b] truncate leading-tight">
                 {user?.roles?.[0] ? user.roles[0].replace('_', ' ') : 'Senior Recruiter'}
               </span>
             </div>
@@ -170,8 +170,8 @@ export function Sidebar() {
           <button
             type="button"
             onClick={() => logout()}
-            title="Account Options / Sign Out"
-            className="p-1 rounded-lg text-[#77736d] hover:text-[#141618] hover:bg-white/60 transition-colors"
+            aria-label="Sign out" title="Sign out"
+            className="p-1 rounded-lg text-[#59616b] hover:text-[#141618] hover:bg-white/60 transition-colors"
           >
             <span className="material-symbols-outlined text-[18px]">unfold_more</span>
           </button>

@@ -1,0 +1,47 @@
+{
+  "id": "JOB-001",
+  "title": "Senior Backend Distributed Systems Engineer",
+  "department": "Infrastructure & Core Services",
+  "location": "San Francisco, CA (Hybrid)",
+  "description_raw": "We are seeking a Senior Backend Distributed Systems Engineer to scale our core event-driven infrastructure. You will architect and maintain high-throughput microservices, design reliable message queuing systems using Apache Kafka, and optimize low-latency data pipelines. Ideal candidates have deep expertise in Python or Go, concurrent computing, Kubernetes container orchestration, and observability in mission-critical environments.",
+  "requirements": [
+    {
+      "id": "REQ-101",
+      "requirement_text": "5+ years architecting high-throughput distributed systems in Python or Go",
+      "category": "Backend",
+      "is_mandatory": true
+    },
+    {
+      "id": "REQ-102",
+      "requirement_text": "Hands-on experience with Apache Kafka, RabbitMQ, or event-driven streaming",
+      "category": "Messaging",
+      "is_mandatory": true
+    },
+    {
+      "id": "REQ-103",
+      "requirement_text": "Production experience managing workloads on Kubernetes and Docker",
+      "category": "Cloud/DevOps",
+      "is_mandatory": true
+    },
+    {
+      "id": "REQ-104",
+      "requirement_text": "Strong background in gRPC, REST API design, and protocol buffers",
+      "category": "API",
+      "is_mandatory": false
+    },
+    {
+      "id": "REQ-105",
+      "requirement_text": "Familiarity with distributed cache topologies like Redis or Memcached",
+      "category": "Storage",
+      "is_mandatory": false
+    }
+  ],
+  "requirements_preview": [
+    "Distributed Systems",
+    "Python / Go",
+    "Apache Kafka",
+    "Kubernetes",
+    "gRPC / REST"
+  ],
+  "created_at": "2026-10-10T08:30:00Z"
+}

@@ -1,3 +1,4 @@
+import { useAuth } from '@/context/AuthContext'
 import { useRef } from 'react'
 import type { RankedCandidate } from '@/types/matching'
 import { RequirementFilter } from './RequirementFilter'
@@ -11,6 +12,7 @@ import { CandidateCard } from '@/components/cards/CandidateCard'
 const POPULAR_SKILLS = ['All', 'Python', 'React', 'TypeScript', 'FastAPI', 'Kubernetes', 'Distributed Systems']
 
 export function CandidateGrid() {
+  const { hasRole } = useAuth()
   const { selectedJob, searchQuery, setSearchQuery, selectedSkill, setSelectedSkill } = useJob()
   const [candidates, setCandidates] = useState<CandidateSummary[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
@@ -81,7 +83,7 @@ export function CandidateGrid() {
 
   return (
     <div className="flex flex-col gap-5">
-      <ResumeUpload />
+      {hasRole('recruiter') && <ResumeUpload />}
       {/* Search & Filter Bar */}
       <div className="bg-white border border-[var(--border-default)] rounded-xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Skill filter pills */}
@@ -129,7 +131,7 @@ export function CandidateGrid() {
         </div>
       </div>
 
-      {selectedJob && <div className="modal-actions"><button className="primary-button" disabled={rankingLoading} onClick={()=>void rank()}>Rank by fit</button>{ranked && <button onClick={()=>{ generation.current++; setRanked(null); setSelectedRequirements([]); setRankingLoading(false) }}>Back to default order</button>}</div>}
+      {selectedJob && hasRole('recruiter') && <div className="modal-actions"><button className="primary-button" disabled={rankingLoading} onClick={()=>void rank()}>Rank by fit</button>{ranked && <button onClick={()=>{ generation.current++; setRanked(null); setSelectedRequirements([]); setRankingLoading(false) }}>Back to default order</button>}</div>}
       {selectedJob && ranked && <RequirementFilter requirements={requirements} selected={selectedRequirements} onChange={setSelectedRequirements} />}
       {/* Loading Skeleton */}
       {loading && (

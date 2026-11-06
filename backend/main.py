@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 
 from backend.config import settings
 from backend.routers import candidates, health, jobs, ingest, admin, jd
-from backend.routers import agent, graph
+from backend.routers import agent, graph, auth
 from backend.core.database import AsyncSessionLocal, create_all_tables
 from backend.core.retention import purge_expired_evidence
 from backend.middleware.security import SecurityHeadersMiddleware
@@ -29,7 +29,7 @@ async def lifespan(app: FastAPI):
     logger.info("Starting up Skitrace Backend Service...")
     logger.info(f"Environment: {settings.ENVIRONMENT} | Debug: {settings.DEBUG}")
     await create_all_tables()
-    if settings.E2E_BOOTSTRAP_USERS:
+    if settings.E2E_BOOTSTRAP_USERS and settings.ENVIRONMENT == "e2e":
         from sqlalchemy import select
         from backend.core.security import hash_password
         from backend.models.db import User
@@ -47,6 +47,9 @@ async def lifespan(app: FastAPI):
     # Initialize the runtime repository. Production starts empty; candidates and
     # jobs enter through the ingestion and job-creation APIs.
     seed_loader.load_all()
+    from backend.services.persisted_jobs import restore_custom_jobs
+    async with AsyncSessionLocal() as db:
+        await restore_custom_jobs(db, seed_loader)
     service = context_builder
     app.state.context_builder = service
     service.start_all(wait_for_requests=True)
@@ -120,6 +123,7 @@ app.include_router(jobs.router, prefix=f"{settings.API_V1_PREFIX}/jobs")
 app.include_router(jobs.router, prefix="/jobs")
 app.include_router(ingest.router, prefix=f"{settings.API_V1_PREFIX}/ingest")
 app.include_router(admin.router)
+app.include_router(auth.router, prefix=settings.API_V1_PREFIX)
 for feature in (agent.router, graph.router):
     app.include_router(feature, prefix=settings.API_V1_PREFIX)
     app.include_router(feature)

@@ -15,7 +15,7 @@ from backend.services.identity_extractor import ExtractedIdentity
 from backend.services.resume_parser import ParsedResume
 from backend.services.seed_loader import SeedLoader
 
-DATA_DIR = Path(__file__).resolve().parents[1] / "data"
+DATA_DIR = Path(__file__).resolve().parent / "data"
 NOW = datetime(2026, 10, 26, 12, tzinfo=timezone.utc)
 SOURCES = ("github", "leetcode", "linkedin")
 
@@ -24,7 +24,7 @@ def controlled_fetchers():
     def make(source):
         async def fetch(profile, *, candidate_id, reference_date):
             assert reference_date == NOW.date()
-            fixture = json.loads((DATA_DIR / "fixtures" / f"{candidate_id}.json").read_text(encoding="utf-8"))
+            fixture = json.loads((Path(__file__).resolve().parents[1] / "data" / "fixtures" / f"{candidate_id}.json").read_text(encoding="utf-8"))
             return [EvidenceRecord.model_validate(record) for record in fixture["evidence_records"] if record["source_type"] == source]
         return fetch
     return {source: make(source) for source in SOURCES}
@@ -41,7 +41,7 @@ def service():
 @pytest.mark.parametrize("candidate_id,count", [("CAND-001", 1), ("CAND-002", 1), ("CAND-003", 0), ("CAND-004", 1), ("CAND-005", 0), ("CAND-006", 1)])
 async def test_fixture_context_state_score_claims_and_reference(service, candidate_id, count):
     candidate = service.repository.get_candidate(candidate_id)
-    fixture = json.loads((DATA_DIR / "fixtures" / f"{candidate_id}.json").read_text(encoding="utf-8"))
+    fixture = json.loads((Path(__file__).resolve().parents[1] / "data" / "fixtures" / f"{candidate_id}.json").read_text(encoding="utf-8"))
     context = await service.build_context(candidate)
     state = service.registry.get(candidate_id)
     assert state.status == "ready" and state.error is None
@@ -189,7 +189,7 @@ async def test_duplicate_observations_do_not_inflate_score(service):
         return records + records
     service.fetchers["github"] = duplicate
     context = await service.build_context(service.repository.get_candidate("CAND-001"))
-    expected = json.loads((DATA_DIR / "fixtures/CAND-001.json").read_text(encoding="utf-8"))["expected"]
+    expected = json.loads((Path(__file__).resolve().parents[1] / "data/fixtures/CAND-001.json").read_text(encoding="utf-8"))["expected"]
     assert context.evidence_score == expected["evidence_score"]
 
 

@@ -2,6 +2,8 @@
 
 AI-powered candidate intelligence platform that consolidates fragmented candidate information into a unified, evidence-backed profile.
 
+See [REDESIGN_REPAIR_STATUS.md](REDESIGN_REPAIR_STATUS.md) for current redesign repairs and verification. Run the dedicated desktop/mobile checks with `npm --prefix frontend run test:e2e:repair`.
+
 ---
 
 ## Architecture Overview

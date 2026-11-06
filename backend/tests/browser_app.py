@@ -4,6 +4,7 @@ Used only by playwright.config.ts. Production startup remains backend.main:app.
 """
 import importlib
 import json
+from pathlib import Path
 from backend.models import EvidenceProvenance, EvidenceRecord
 from backend.services.context_builder import ContextBuilder
 from backend.services.deduplicator import ingestion_store
@@ -37,6 +38,10 @@ service = ContextBuilder(ingestion_store, fetchers=fetchers, clock=lambda: NOW)
 main.context_builder = service
 ingest.context_builder = service
 main.settings.ADMIN_KEY = None
+main.settings.CLERK_SECRET_KEY = None
+# Synthetic seed data is opt-in for this offline browser server only.
+main.seed_loader.load_demo_data = True
+main.seed_loader.data_dir = Path(__file__).resolve().parent / 'data'
 
 # Deterministic offline Phase 4 provider used only by browser acceptance tests.
 async def controlled_generate(prompt, system, temperature=0.0, max_tokens=2000):

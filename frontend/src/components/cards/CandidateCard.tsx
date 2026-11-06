@@ -4,6 +4,7 @@ import { EvidenceBar } from '@/components/evidence/EvidenceBar'
 import { provenanceSummary } from '@/types/context'
 import type { CandidateSummary } from '@/types'
 import { useJob } from '@/context/JobContext'
+import { useAuth } from '@/context/AuthContext'
 
 interface CandidateCardProps {
   ranking?: RankedCandidate
@@ -20,8 +21,9 @@ export function CandidateCard({ candidate, ranking }: CandidateCardProps) {
     .slice(0, 2)
     .toUpperCase()
 
-  const { context } = useCandidateContext(candidate.id)
-  const evidenceLabel = context?.evidence_label ?? 'Evidence pending'
+  const { hasRole } = useAuth()
+  const { context } = useCandidateContext(candidate.id, hasRole('recruiter'))
+  const evidenceLabel = context?.evidence_label ?? (hasRole('recruiter') ? 'Evidence pending' : 'Evidence restricted')
 
   return (
     <div className="bg-white border border-[var(--border-default)] rounded-xl p-5 shadow-sm hover:border-[var(--color-primary-container)] hover:shadow-md transition-all flex flex-col justify-between gap-4">

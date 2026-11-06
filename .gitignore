@@ -35,3 +35,4 @@ Thumbs.db
 mosaic.db
 phase5-verification.db
 phase5-migration-check.db
+.pytest-redesign-*/

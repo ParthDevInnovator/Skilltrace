@@ -1,0 +1,35 @@
+import { useAuth as useClerkAuth } from '@clerk/react'
+import { useEffect, useLayoutEffect, useState, type ReactNode } from 'react'
+import { AuthContext, type AuthUser } from './AuthContext'
+import { setTokenProvider } from '@/services/authToken'
+
+export function ClerkIdentity({ children }: { children: ReactNode }) {
+  const { isLoaded, isSignedIn, sessionId, getToken, signOut } = useClerkAuth()
+  const [identity, setIdentity] = useState<{ session: string | null | undefined; user: AuthUser | null } | null>(null)
+  useLayoutEffect(() => setTokenProvider(getToken), [getToken])
+  useEffect(() => {
+    if (!isLoaded) return
+    let live = true
+    void (async () => {
+      try {
+        const token = await getToken()
+        if (!token) { if (live) setIdentity({ session: sessionId, user: null }); return }
+        const response = await fetch('/api/v1/auth/me', { headers: { Authorization: `Bearer ${token}` } })
+        if (!response.ok) throw new Error('Identity unavailable')
+        const user = await response.json()
+        if (!user?.user_id || !Array.isArray(user.roles)) throw new Error('Invalid identity')
+        if (live) setIdentity({ session: sessionId, user })
+      } catch { if (live) setIdentity({ session: sessionId, user: null }) }
+    })()
+    return () => { live = false }
+  }, [isLoaded, sessionId, getToken])
+  const user = identity?.session === sessionId ? identity?.user ?? null : null
+  return <AuthContext.Provider value={{ user, accessToken: null,
+    error: isSignedIn && identity?.session === sessionId && !user ? 'Your sign-in could not be verified by the server. Contact your administrator or sign out and retry.' : undefined,
+    ready: Boolean(isLoaded && identity?.session === sessionId), isAuthenticated: Boolean(isSignedIn && user),
+    hasRole: role => Boolean(user?.roles.includes('hr_admin') || user?.roles.includes(role)),
+    login: async () => { throw new Error('Use Clerk sign in') },
+    logout: async () => { setIdentity(null); await signOut() },
+    refreshToken: async () => { await getToken({ skipCache: true }) },
+  }}>{children}</AuthContext.Provider>
+}

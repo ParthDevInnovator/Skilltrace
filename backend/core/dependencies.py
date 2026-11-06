@@ -39,6 +39,8 @@ async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)
             db.add(user)
             await db.commit()
             await db.refresh(user)
+        if not user.is_active:
+            raise HTTPException(401, "Inactive user")
         return user
     try:
         payload = decode_token(token)

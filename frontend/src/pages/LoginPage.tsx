@@ -1,3 +1,4 @@
+import { SignIn } from '@clerk/react'
 import { useState } from 'react'
 import { Navigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
@@ -5,15 +6,21 @@ import { useAuth } from '@/context/AuthContext'
 export function LoginPage() {
   const auth = useAuth()
   const [params] = useSearchParams()
-  const next = params.get('next') || '/'
+  const requested = params.get('next') || '/'
+  const next = requested.startsWith('/') && !requested.startsWith('//') ? requested : '/'
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('password123')
+  const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   if (auth.ready && auth.isAuthenticated) {
     return <Navigate replace to={next} />
+  }
+
+  if (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
+    if (auth.error) return <main className="login-page"><h1>Sign in to Skitrace</h1><p role="alert">{auth.error}</p><button onClick={() => void auth.logout()}>Sign out and retry</button></main>
+    return <main className="login-page"><h1>Sign in to Skitrace</h1><SignIn routing="hash" forceRedirectUrl={next} /><p>If your session cannot be verified by the server, contact your administrator.</p></main>
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -142,8 +149,7 @@ export function LoginPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setEmail('elena.marsh@google.com')
-                  auth.login('elena.marsh@google.com', 'password123')
+                  setError('Google SSO is not configured. Use your work email and password.')
                 }}
                 className="h-11 px-4 rounded-xl bg-white border border-[#e5e2d9] hover:bg-[#f8f7f4] text-[#171717] text-xs font-medium flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
               >
@@ -159,8 +165,7 @@ export function LoginPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setEmail('elena.marsh@microsoft.com')
-                  auth.login('elena.marsh@microsoft.com', 'password123')
+                  setError('Microsoft SSO is not configured. Use your work email and password.')
                 }}
                 className="h-11 px-4 rounded-xl bg-white border border-[#e5e2d9] hover:bg-[#f8f7f4] text-[#171717] text-xs font-medium flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
               >
@@ -178,9 +183,7 @@ export function LoginPage() {
 
         {/* Footer legal note */}
         <div className="text-center text-xs text-[#888888] leading-relaxed max-w-md mx-auto">
-          By continuing you agree to our{' '}
-          <a href="#" className="underline hover:text-[#171717]">Terms</a> and{' '}
-          <a href="#" className="underline hover:text-[#171717]">Privacy Policy</a>. SOC 2 Type II certified.
+          Contact your administrator for terms and privacy information.
         </div>
       </div>
 
@@ -255,7 +258,7 @@ export function LoginPage() {
                     MC
                   </div>
                   <div>
-                    <h3 className="font-semibold text-sm text-[#141618] leading-tight">Maya Chen</h3>
+                  <h3 className="font-semibold text-sm text-[#141618] leading-tight">Illustrative candidate preview</h3>
                     <p className="text-[12px] text-[#77736d]">Backend Engineer · Berlin</p>
                   </div>
                 </div>

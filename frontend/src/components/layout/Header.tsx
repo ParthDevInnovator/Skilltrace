@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useJob } from '@/context/JobContext'
 import { JobSelector } from '@/components/dashboard/JobSelector'
+import { useAuth } from '@/context/AuthContext'
 
 export function Header({
   onOpenCustomJDModal,
@@ -10,6 +11,7 @@ export function Header({
   onOpenChat: () => void
 }) {
   const { searchQuery, setSearchQuery, activeView, setActiveView } = useJob()
+  const { hasRole } = useAuth()
   const searchRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -24,11 +26,11 @@ export function Header({
   }, [setActiveView])
 
   return (
-    <header className="sticky top-0 z-30 h-16 bg-[#ffffff]/90 backdrop-blur-md border-b border-[#e7e2d9] px-6 lg:px-8 flex items-center justify-between">
+    <header className="workspace-header sticky top-0 z-30 min-h-16 bg-[#ffffff]/90 backdrop-blur-md border-b border-[#e7e2d9] px-6 lg:px-8 flex items-center justify-between">
       {/* Search Input Bar + Requisition Selector (Exact match to Images 3 and 5 + Accessible Job Selector) */}
       <div className="flex items-center gap-4 flex-1 max-w-xl">
         <div className="relative w-full max-w-xs sm:max-w-md">
-          <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[#77736d] text-[19px]">
+          <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[#59616b] text-[19px]">
             search
           </span>
           <label className="sr-only" htmlFor="candidate-search">
@@ -40,20 +42,20 @@ export function Header({
             value={searchQuery}
             onChange={e => {
               setSearchQuery(e.target.value)
-              if (activeView === 'evidence' || activeView === 'graph') {
+              if (activeView !== 'candidates' && activeView !== 'talent-pool' && activeView !== 'overview') {
                 setActiveView('candidates')
               }
             }}
-            placeholder="Search jobs, candidates, skills..."
+            placeholder="Search candidates..."
             className="w-full h-10 pl-10 pr-10 rounded-xl bg-[#f8f7f4] border border-[#e7e2d9] text-[#141618] placeholder-[#9c9890] text-xs focus:outline-none focus:border-[#a9874e] focus:bg-white transition-all shadow-inner"
           />
-          <kbd className="absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded border border-[#e7e2d9] bg-white text-[10px] text-[#77736d] font-mono shadow-2xs">
+          <kbd className="absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded border border-[#e7e2d9] bg-white text-[10px] text-[#59616b] font-mono shadow-2xs">
             K
           </kbd>
         </div>
 
         {/* Embedded Job Selector (Accessible requisition dropdown) */}
-        <div className="hidden sm:block">
+        <div className="header-job">
           <JobSelector onOpenCustomJDModal={onOpenCustomJDModal} />
         </div>
       </div>
@@ -67,15 +69,15 @@ export function Header({
           title="Open AI Assistant"
           className="h-9 px-3 rounded-lg border border-[#e7e2d9] bg-white hover:bg-[#f8f7f4] text-[#141618] text-xs font-medium flex items-center gap-1.5 transition-colors shadow-2xs"
         >
-          <span className="material-symbols-outlined text-[17px] text-[#a9874e]">sparkles</span>
+          <span aria-hidden="true" className="material-symbols-outlined text-[17px] text-[#a9874e]">auto_awesome</span>
           <span className="hidden sm:inline">Ask AI</span>
         </button>
 
         {/* Notifications Icon Button */}
         <button
           type="button"
-          aria-label="Notifications"
-          className="relative w-9 h-9 rounded-lg border border-[#e7e2d9] bg-white hover:bg-[#f8f7f4] text-[#77736d] hover:text-[#141618] flex items-center justify-center transition-colors shadow-2xs"
+          disabled aria-label="Notifications (not available)" title="Notifications are not available"
+          className="relative w-9 h-9 rounded-lg border border-[#e7e2d9] bg-white hover:bg-[#f8f7f4] text-[#59616b] hover:text-[#141618] flex items-center justify-center transition-colors shadow-2xs"
         >
           <span className="material-symbols-outlined text-[19px]">notifications</span>
           <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-[#a9874e]" />
@@ -85,6 +87,7 @@ export function Header({
         <button
           type="button"
           id="btn-create-job"
+          disabled={!hasRole('recruiter')}
           onClick={onOpenCustomJDModal}
           className="h-9 px-4 rounded-lg bg-[#141618] hover:bg-[#2a2d32] text-white font-medium text-xs flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
         >
