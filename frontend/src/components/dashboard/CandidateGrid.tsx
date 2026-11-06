@@ -62,6 +62,13 @@ export function CandidateGrid() {
       }
     }
 
+    if (!searchQuery.trim()) {
+      fetchCandidates()
+      return () => {
+        isMounted = false
+      }
+    }
+
     const timer = setTimeout(() => {
       fetchCandidates()
     }, 150)
@@ -76,10 +83,10 @@ export function CandidateGrid() {
     <div className="flex flex-col gap-5">
       <ResumeUpload />
       {/* Search & Filter Bar */}
-      <div className="bg-white border border-[#e5e7eb] rounded-xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white border border-[var(--border-default)] rounded-xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Skill filter pills */}
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-xs font-semibold text-[#656170] mr-1">Filter by Skill:</span>
+          <span className="text-xs font-semibold text-[var(--text-muted)] mr-1">Filter by Skill:</span>
           {POPULAR_SKILLS.map((skill) => {
             const isActive =
               skill === 'All' ? !selectedSkill || selectedSkill === 'All' : selectedSkill === skill
@@ -91,8 +98,8 @@ export function CandidateGrid() {
                 onClick={() => setSelectedSkill(skill === 'All' ? '' : skill)}
                 className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
                   isActive
-                    ? 'bg-[#6554c0] text-white shadow-xs'
-                    : 'bg-[#f1f3fe] text-[#484552] hover:bg-[#ebedf9]'
+                    ? 'bg-[var(--color-primary-container)] text-white shadow-xs'
+                    : 'bg-[var(--bg-surface-low)] text-[var(--text-secondary)] hover:bg-[var(--bg-surface-container)]'
                 }`}
               >
                 {skill}
@@ -102,9 +109,9 @@ export function CandidateGrid() {
         </div>
 
         {/* Results Count & Reset */}
-        <div className="flex items-center gap-3 text-xs text-[#65646f] self-end md:self-auto">
+        <div className="flex items-center gap-3 text-xs text-[var(--text-tertiary)] self-end md:self-auto">
           <span role="status" aria-live="polite">
-            Showing <strong className="text-[#181c23]">{visible.length}</strong> candidates
+            Showing <strong className="text-[var(--text-primary)]">{visible.length}</strong> candidates
           </span>
           {(searchQuery || selectedSkill) && (
             <button
@@ -113,7 +120,7 @@ export function CandidateGrid() {
                 setSearchQuery('')
                 setSelectedSkill('')
               }}
-              className="text-[#6554c0] font-medium hover:underline flex items-center gap-1"
+              className="text-[var(--color-primary-container)] font-medium hover:underline flex items-center gap-1"
             >
               <span aria-hidden="true" className="material-symbols-outlined text-[14px]">refresh</span>
               <span>Reset Filters</span>
@@ -130,18 +137,18 @@ export function CandidateGrid() {
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <div
               key={i}
-              className="bg-white border border-[#e5e7eb] rounded-xl p-5 h-44 animate-pulse flex flex-col justify-between"
+              className="bg-white border border-[var(--border-default)] rounded-xl p-5 h-44 animate-pulse flex flex-col justify-between"
             >
               <div className="flex gap-3">
-                <div className="w-10 h-10 rounded-lg bg-[#ebedf9]"></div>
+                <div className="w-10 h-10 rounded-lg bg-[var(--bg-surface-container)]"></div>
                 <div className="flex-1 flex flex-col gap-2">
-                  <div className="h-4 bg-[#ebedf9] rounded w-3/4"></div>
-                  <div className="h-3 bg-[#ebedf9] rounded w-1/2"></div>
+                  <div className="h-4 bg-[var(--bg-surface-container)] rounded w-3/4"></div>
+                  <div className="h-3 bg-[var(--bg-surface-container)] rounded w-1/2"></div>
                 </div>
               </div>
               <div className="flex gap-2">
-                <div className="h-5 bg-[#ebedf9] rounded w-16"></div>
-                <div className="h-5 bg-[#ebedf9] rounded w-20"></div>
+                <div className="h-5 bg-[var(--bg-surface-container)] rounded w-16"></div>
+                <div className="h-5 bg-[var(--bg-surface-container)] rounded w-20"></div>
               </div>
             </div>
           ))}
@@ -158,12 +165,12 @@ export function CandidateGrid() {
 
       {/* Empty State */}
       {!loading && !error && visible.length === 0 && (
-        <div className="bg-white border border-[#e5e7eb] rounded-xl p-12 text-center flex flex-col items-center justify-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-[#f1eefc] text-[#6554c0] flex items-center justify-center">
+        <div className="bg-white border border-[var(--border-default)] rounded-xl p-12 text-center flex flex-col items-center justify-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-[var(--color-primary-subtle)] text-[var(--color-primary-container)] flex items-center justify-center">
             <span aria-hidden="true" className="material-symbols-outlined text-[24px]">person_search</span>
           </div>
-          <h3 className="text-base font-semibold text-[#181c23]">No Candidates Found</h3>
-          <p className="text-xs text-[#65646f] max-w-sm">
+          <h3 className="text-base font-semibold text-[var(--text-primary)]">No Candidates Found</h3>
+          <p className="text-xs text-[var(--text-tertiary)] max-w-sm">
             No candidates matched your search criteria{' '}
             {searchQuery && <span>"{searchQuery}"</span>}{' '}
             {selectedSkill && <span>with skill "{selectedSkill}"</span>}.
@@ -174,7 +181,7 @@ export function CandidateGrid() {
               setSearchQuery('')
               setSelectedSkill('')
             }}
-            className="mt-2 px-3.5 py-1.5 rounded-md text-xs font-semibold bg-[#6554c0] text-white hover:bg-[#5545a8]"
+            className="mt-2 px-3.5 py-1.5 rounded-md text-xs font-semibold bg-[var(--color-primary-container)] text-white hover:bg-[var(--color-primary-hover)]"
           >
             Clear All Filters
           </button>

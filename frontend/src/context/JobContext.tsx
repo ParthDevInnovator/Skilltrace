@@ -14,11 +14,14 @@ interface JobContextType {
   setSearchQuery: (q: string) => void
   selectedSkill: string
   setSelectedSkill: (skill: string) => void
-  activeView: 'overview' | 'jobs' | 'candidates' | 'candidate-detail' | 'evidence' | 'graph'
-  setActiveView: (view: 'overview' | 'jobs' | 'candidates' | 'candidate-detail' | 'evidence' | 'graph') => void
+  activeView: 'overview' | 'jobs' | 'candidates' | 'candidate-detail' | 'evidence' | 'graph' | 'job-detail' | 'add-candidates' | 'pipeline' | 'talent-pool' | 'talent-discovery' | 'comparison'
+  setActiveView: (view: 'overview' | 'jobs' | 'candidates' | 'candidate-detail' | 'evidence' | 'graph' | 'job-detail' | 'add-candidates' | 'pipeline' | 'talent-pool' | 'talent-discovery' | 'comparison') => void
   selectedCandidateId: string | null
   openCandidateDetail: (candidateId: string) => void
   backToDashboard: () => void
+  jobWorkspaceTab: 'overview' | 'candidates' | 'requirements' | 'comparison' | 'activity'
+  setJobWorkspaceTab: (tab: 'overview' | 'candidates' | 'requirements' | 'comparison' | 'activity') => void
+  openJobWorkspace: (job: Job, tab?: 'overview' | 'candidates') => void
   isLoadingJobs: boolean
   retryJobs: () => void
   jobError: string | null
@@ -32,8 +35,9 @@ export function JobProvider({ children }: { children: ReactNode }) {
   const [customJD, setCustomJD] = useState<string>('')
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [selectedSkill, setSelectedSkill] = useState<string>('')
-  const [activeView, setActiveView] = useState<'overview' | 'jobs' | 'candidates' | 'candidate-detail' | 'evidence' | 'graph'>('overview')
+  const [activeView, setActiveView] = useState<'overview' | 'jobs' | 'candidates' | 'candidate-detail' | 'evidence' | 'graph' | 'job-detail' | 'add-candidates' | 'pipeline' | 'talent-pool' | 'talent-discovery' | 'comparison'>('overview')
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null)
+  const [jobWorkspaceTab, setJobWorkspaceTab] = useState<'overview' | 'candidates' | 'requirements' | 'comparison' | 'activity'>('overview')
   const [isLoadingJobs, setIsLoadingJobs] = useState<boolean>(true)
   const [jobError, setJobError] = useState<string | null>(null)
 
@@ -63,6 +67,12 @@ export function JobProvider({ children }: { children: ReactNode }) {
     setActiveView('candidate-detail')
   }
 
+  const openJobWorkspace = (job: Job, tab: 'overview' | 'candidates' = 'overview') => {
+    setSelectedJob(job)
+    setJobWorkspaceTab(tab)
+    setActiveView('job-detail')
+  }
+
   const backToDashboard = () => {
     setSelectedCandidateId(null)
     setActiveView('overview')
@@ -86,6 +96,9 @@ export function JobProvider({ children }: { children: ReactNode }) {
         selectedCandidateId,
         openCandidateDetail,
         backToDashboard,
+        jobWorkspaceTab,
+        setJobWorkspaceTab,
+        openJobWorkspace,
         isLoadingJobs,
         jobError,
         retryJobs,

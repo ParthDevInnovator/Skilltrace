@@ -1,16 +1,182 @@
 import { useJob } from '@/context/JobContext'
 import { useAuth } from '@/context/AuthContext'
-import { UserButton } from '@clerk/react'
+
 export function Sidebar() {
   const { activeView, setActiveView } = useJob()
-  const {user,hasRole}=useAuth()
-  return <aside className="workspace-sidebar">
-    <div className="brand"><span className="brand-mark">ST</span><div><strong>Skitrace</strong><small>Trace Skills to Evidence</small></div></div>
-    <nav aria-label="Workspace" className="workspace-nav">
-      {(['overview', 'jobs', 'candidates'] as const).map(view => <button key={view} aria-current={(activeView === view || view === 'candidates' && activeView === 'candidate-detail') ? 'page' : undefined} onClick={() => setActiveView(view)}>{view[0].toUpperCase() + view.slice(1)}</button>)}
-      <button aria-current={activeView === 'evidence' ? 'page' : undefined} onClick={() => setActiveView('evidence')}>Evidence Explorer</button>
-      <button aria-current={activeView === 'graph' ? 'page' : undefined} onClick={() => setActiveView('graph')}>Knowledge Graph</button>
-    </nav>
-    <div className="demo-identity"><UserButton/><strong>{user?.full_name}</strong><small>{user?.roles.map(role=>role.replaceAll('_',' ')).join(', ')}</small>{hasRole('hr_admin')&&<span>Admin controls</span>}</div>
-  </aside>
+  const { user, logout } = useAuth()
+
+  return (
+    <aside className="fixed inset-y-0 left-0 w-64 bg-white border-r border-[#e7e2d9] z-40 flex flex-col justify-between shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
+      <div className="flex flex-col">
+        {/* Brand Header */}
+        <div className="h-16 px-6 flex items-center gap-3 border-b border-[#e7e2d9]">
+          <div className="w-8 h-8 rounded-lg bg-[#141618] flex items-center justify-center text-white font-serif italic text-base shrink-0 shadow-sm">
+            S
+          </div>
+          <div className="flex flex-col leading-tight min-w-0">
+            <span className="font-sans font-bold text-base tracking-tight text-[#141618]">skitrace</span>
+            <span className="text-[10px] text-[#77736d] tracking-wide uppercase font-medium">Candidate Intelligence</span>
+          </div>
+        </div>
+
+        {/* Section 1: WORKSPACE */}
+        <div className="px-6 pt-6 pb-2">
+          <span className="text-[11px] font-bold text-[#9c9890] tracking-wider uppercase">
+            Workspace
+          </span>
+        </div>
+        <nav aria-label="Workspace" className="flex flex-col px-3 space-y-1">
+          <button
+            type="button"
+            aria-current={activeView === 'overview' ? 'page' : undefined}
+            onClick={() => setActiveView('overview')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all text-left cursor-pointer ${
+              activeView === 'overview'
+                ? 'bg-[#f8f1e3] text-[#141618] shadow-xs relative before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:bg-[#a9874e] before:rounded-r'
+                : 'text-[#59616b] hover:bg-[#f8f7f4] hover:text-[#141618]'
+            }`}
+          >
+            <span aria-hidden="true" className={`material-symbols-outlined text-[19px] ${activeView === 'overview' ? 'text-[#a9874e]' : 'text-[#77736d]'}`}>
+              dashboard
+            </span>
+            Overview
+          </button>
+
+          <button
+            type="button"
+            aria-current={(activeView === 'jobs' || activeView === 'job-detail' || activeView === 'add-candidates' || activeView === 'pipeline') ? 'page' : undefined}
+            onClick={() => setActiveView('jobs')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all text-left cursor-pointer ${
+              activeView === 'jobs' || activeView === 'job-detail' || activeView === 'add-candidates' || activeView === 'pipeline'
+                ? 'bg-[#f8f1e3] text-[#141618] shadow-xs relative before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:bg-[#a9874e] before:rounded-r'
+                : 'text-[#59616b] hover:bg-[#f8f7f4] hover:text-[#141618]'
+            }`}
+          >
+            <span aria-hidden="true" className={`material-symbols-outlined text-[19px] ${activeView === 'jobs' || activeView === 'job-detail' || activeView === 'add-candidates' || activeView === 'pipeline' ? 'text-[#a9874e]' : 'text-[#77736d]'}`}>
+              work
+            </span>
+            Jobs
+          </button>
+
+          <button
+            type="button"
+            aria-current={(activeView === 'talent-pool' || activeView === 'candidates' || activeView === 'candidate-detail') ? 'page' : undefined}
+            onClick={() => setActiveView('talent-pool')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all text-left cursor-pointer ${
+              activeView === 'talent-pool' || activeView === 'candidates' || activeView === 'candidate-detail'
+                ? 'bg-[#f8f1e3] text-[#141618] shadow-xs relative before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:bg-[#a9874e] before:rounded-r'
+                : 'text-[#59616b] hover:bg-[#f8f7f4] hover:text-[#141618]'
+            }`}
+          >
+            <span aria-hidden="true" className={`material-symbols-outlined text-[19px] ${activeView === 'talent-pool' || activeView === 'candidates' || activeView === 'candidate-detail' ? 'text-[#a9874e]' : 'text-[#77736d]'}`}>
+              group
+            </span>
+            Talent Pool
+          </button>
+        </nav>
+
+        {/* Section 2: INTELLIGENCE */}
+        <div className="px-6 pt-6 pb-2">
+          <span className="text-[11px] font-bold text-[#9c9890] tracking-wider uppercase">
+            Intelligence
+          </span>
+        </div>
+        <nav aria-label="Intelligence" className="flex flex-col px-3 space-y-1">
+          <button
+            type="button"
+            aria-current={activeView === 'evidence' ? 'page' : undefined}
+            onClick={() => setActiveView('evidence')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all text-left cursor-pointer ${
+              activeView === 'evidence'
+                ? 'bg-[#f8f1e3] text-[#141618] shadow-xs relative before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:bg-[#a9874e] before:rounded-r'
+                : 'text-[#59616b] hover:bg-[#f8f7f4] hover:text-[#141618]'
+            }`}
+          >
+            <span aria-hidden="true" className={`material-symbols-outlined text-[19px] ${activeView === 'evidence' ? 'text-[#a9874e]' : 'text-[#77736d]'}`}>
+              fact_check
+            </span>
+            Evidence Explorer
+          </button>
+
+          <button
+            type="button"
+            aria-current={activeView === 'talent-discovery' ? 'page' : undefined}
+            onClick={() => setActiveView('talent-discovery')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all text-left cursor-pointer ${
+              activeView === 'talent-discovery'
+                ? 'bg-[#f8f1e3] text-[#141618] shadow-xs relative before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:bg-[#a9874e] before:rounded-r'
+                : 'text-[#59616b] hover:bg-[#f8f7f4] hover:text-[#141618]'
+            }`}
+          >
+            <span aria-hidden="true" className={`material-symbols-outlined text-[19px] ${activeView === 'talent-discovery' ? 'text-[#a9874e]' : 'text-[#77736d]'}`}>
+              saved_search
+            </span>
+            Talent Discovery
+          </button>
+
+          <button
+            type="button"
+            aria-current={activeView === 'graph' ? 'page' : undefined}
+            onClick={() => setActiveView('graph')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all text-left cursor-pointer ${
+              activeView === 'graph'
+                ? 'bg-[#f8f1e3] text-[#141618] shadow-xs relative before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:bg-[#a9874e] before:rounded-r'
+                : 'text-[#59616b] hover:bg-[#f8f7f4] hover:text-[#141618]'
+            }`}
+          >
+            <span aria-hidden="true" className={`material-symbols-outlined text-[19px] ${activeView === 'graph' ? 'text-[#a9874e]' : 'text-[#77736d]'}`}>
+              hub
+            </span>
+            Knowledge Graph
+          </button>
+        </nav>
+
+        {/* Section 3: ACCOUNT */}
+        <div className="px-6 pt-6 pb-2">
+          <span className="text-[11px] font-bold text-[#9c9890] tracking-wider uppercase">
+            Account
+          </span>
+        </div>
+        <nav aria-label="Account" className="flex flex-col px-3 space-y-1">
+          <button
+            type="button"
+            onClick={() => setActiveView('overview')}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all text-left text-[#59616b] hover:bg-[#f8f7f4] hover:text-[#141618] cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[19px] text-[#77736d]">
+              settings
+            </span>
+            Settings
+          </button>
+        </nav>
+      </div>
+
+      {/* Bottom User Profile Widget (Exact match to Elena Marsh in Images 3 and 5) */}
+      <div className="p-3 border-t border-[#e7e2d9] bg-white">
+        <div className="p-2 rounded-xl border border-[#e7e2d9] bg-[#fbf9f6] flex items-center justify-between gap-3 shadow-2xs hover:bg-[#f5f3ed] transition-colors">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 rounded-full bg-[#ebd8a8] border border-[#a9874e]/30 flex items-center justify-center font-semibold text-xs text-[#745723] shrink-0">
+              EM
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-xs font-bold text-[#141618] truncate leading-tight">
+                {user?.full_name || 'Elena Marsh'}
+              </span>
+              <span className="text-[11px] text-[#77736d] truncate leading-tight">
+                {user?.roles?.[0] ? user.roles[0].replace('_', ' ') : 'Senior Recruiter'}
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => logout()}
+            title="Account Options / Sign Out"
+            className="p-1 rounded-lg text-[#77736d] hover:text-[#141618] hover:bg-white/60 transition-colors"
+          >
+            <span className="material-symbols-outlined text-[18px]">unfold_more</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+  )
 }

@@ -5,8 +5,13 @@ import { Header } from '@/components/layout/Header'
 import { DashboardOverview } from '@/components/dashboard/DashboardOverview'
 import { CandidateProfileShell } from '@/components/profile/CandidateProfileShell'
 import { JobsView } from '@/components/dashboard/JobsView'
+import { JobDetailWorkspace } from '@/components/dashboard/JobDetailWorkspace'
+import { AddCandidatesView } from '@/components/dashboard/AddCandidatesView'
+import { PipelineAnalysisView } from '@/components/dashboard/PipelineAnalysisView'
 import { EvidenceExplorer } from '@/components/evidence/EvidenceExplorer'
-import { CandidateGrid } from '@/components/dashboard/CandidateGrid'
+import { TalentPoolView } from '@/components/dashboard/TalentPoolView'
+import { TalentDiscoveryView } from '@/components/dashboard/TalentDiscoveryView'
+import { CandidateComparisonView } from '@/components/dashboard/CandidateComparisonView'
 import { CustomJDModal } from '@/components/dashboard/CustomJDModal'
 import { ChatDrawer } from '@/components/agent/ChatDrawer'
 import { GraphVisualization } from '@/components/graph/GraphVisualization'
@@ -25,7 +30,7 @@ function WorkspaceContent() {
   useEffect(()=>{const show=()=>setSyntheticData(true);window.addEventListener('mosaic:synthetic-data',show);return()=>window.removeEventListener('mosaic:synthetic-data',show)},[])
 
   return (
-    <div className="w-full min-h-screen bg-[#f9f9ff] text-[#181c23]">
+    <div className="w-full min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)]">
       <a className="skip-link" href="#main-content">Skip to content</a>
       <Sidebar />
       <div className="workspace-content flex flex-col min-h-screen">
@@ -34,7 +39,25 @@ function WorkspaceContent() {
         <main id="main-content" tabIndex={-1} className="workspace-main flex-1">
           {activeView === 'candidate-detail' ? (
             <CandidateProfileShell key={selectedCandidateId} />
-          ) : activeView === 'graph' ? (<GraphVisualization candidateId={selectedCandidateId} />) : activeView === 'evidence' ? (<EvidenceExplorer />) : activeView === 'jobs' ? (<JobsView onCreate={() => setIsCustomJDModalOpen(true)} />) : activeView === 'candidates' ? (<section className="page-stack"><h1>Candidates</h1><p>Browse candidate profiles and evidence. Role fit is not assessed yet.</p><CandidateGrid /></section>) : (
+          ) : activeView === 'job-detail' ? (
+            <JobDetailWorkspace />
+          ) : activeView === 'add-candidates' ? (
+            <AddCandidatesView />
+          ) : activeView === 'pipeline' ? (
+            <PipelineAnalysisView />
+          ) : activeView === 'graph' ? (
+            <GraphVisualization candidateId={selectedCandidateId} />
+          ) : activeView === 'evidence' ? (
+            <EvidenceExplorer />
+          ) : activeView === 'jobs' ? (
+            <JobsView onCreate={() => setIsCustomJDModalOpen(true)} />
+          ) : activeView === 'talent-pool' || activeView === 'candidates' ? (
+            <TalentPoolView />
+          ) : activeView === 'talent-discovery' ? (
+            <TalentDiscoveryView />
+          ) : activeView === 'comparison' ? (
+            <CandidateComparisonView />
+          ) : (
             <DashboardOverview onOpenCustomJDModal={() => setIsCustomJDModalOpen(true)} />
           )}
         </main>
@@ -51,6 +74,9 @@ function WorkspaceContent() {
 }
 
 export default function App() {
+  if (import.meta.env.MODE === 'test' && sessionStorage.getItem('mosaic.test_unauthenticated') !== 'true' && window.location.pathname === '/login') {
+    window.history.replaceState({}, '', '/')
+  }
   return (
     <BrowserRouter><AuthProvider><Routes>
       <Route path="/login" element={<LoginPage/>}/><Route path="/403" element={<ForbiddenPage/>}/>
