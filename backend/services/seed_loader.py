@@ -27,14 +27,14 @@ class SeedLoader:
     ):
         self.data_dir = data_dir or settings.DATA_DIR
         # Explicit data directories are used by isolated tests. The application
-        # repository only reads bundled demo records when deliberately enabled.
+        # repository always starts empty; records enter through runtime APIs.
         self.load_demo_data = (
             data_dir is not None
             if load_demo_data is None
             else load_demo_data
         )
         if data_dir is None and load_demo_data is None:
-            self.load_demo_data = settings.LOAD_DEMO_DATA
+            self.load_demo_data = False
         self._jobs: Dict[str, Job] = {}
         self._candidates: Dict[str, CandidateDetail] = {}
         self._is_loaded: bool = False

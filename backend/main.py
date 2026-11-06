@@ -29,9 +29,6 @@ async def lifespan(app: FastAPI):
     logger.info("Starting up Skitrace Backend Service...")
     logger.info(f"Environment: {settings.ENVIRONMENT} | Debug: {settings.DEBUG}")
     await create_all_tables()
-    if settings.AUTO_SEED_DB:
-        from backend.scripts.seed_db import seed_database
-        await seed_database()
     if settings.E2E_BOOTSTRAP_USERS:
         from sqlalchemy import select
         from backend.core.security import hash_password
@@ -47,7 +44,8 @@ async def lifespan(app: FastAPI):
             await db.commit()
     async with AsyncSessionLocal() as db:
         logger.info("Purged %s expired evidence records", await purge_expired_evidence(db))
-    # Preload seed data into memory
+    # Initialize the runtime repository. Production starts empty; candidates and
+    # jobs enter through the ingestion and job-creation APIs.
     seed_loader.load_all()
     service = context_builder
     app.state.context_builder = service
