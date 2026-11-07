@@ -34,7 +34,7 @@ it('clears ranking when the active job is removed',async()=>{
 })
 it.each([false,true])('custom extraction chips and fallback (failure=%s)',async(failure)=>{
  if(failure)vi.mocked(api.extractRequirements).mockRejectedValue(new Error('offline'))
- const user=userEvent.setup();render(<App/>);await user.click(screen.getByRole('button',{name:'Create Job'}));await user.type(screen.getByLabelText('Job Title *'),'Custom Developer');await user.type(screen.getByLabelText('Job Description Text *'),'Build Python services for customers. React interfaces are preferred.');await user.click(screen.getByRole('button',{name:'Set as Active Requisition'}));await screen.findByRole('button',{name:/Custom Developer/})
+ const user=userEvent.setup();render(<App/>);await user.click(screen.getByRole('button',{name:'Create Job'}));await user.type(screen.getByLabelText('Job title'),'Custom Developer');await user.click(screen.getByRole('button',{name:'Save & Continue'}));await user.type(screen.getByLabelText('A. Paste Job Description'),'Build Python services for customers. React interfaces are preferred.');await user.click(screen.getByRole('button',{name:'Save Job Requirements'}));await screen.findByRole('heading',{name:'Add Candidates'})
  expect(api.createJob).toHaveBeenCalledWith(expect.objectContaining({title:'Custom Developer',requirements:failure ? [] : requirements}))
 })
 it('renders coverage colors, scores and expandable context support',async()=>{
