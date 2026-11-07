@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { IntelligenceOverview } from './IntelligenceOverview'
 import type { CandidateDetail } from '@/types'
 import { api } from '@/services/api'
 import { useJob } from '@/context/JobContext'
@@ -19,7 +20,7 @@ export function CandidateProfileShell() {
   const [candidate, setCandidate] = useState<CandidateDetail | null>(null)
   const [failed, setFailed] = useState(false)
   const [detailAttempt, setDetailAttempt] = useState(0)
-  const [activeTab, setActiveTab] = useState<'overview' | 'skills' | 'background' | 'claims' | 'match' | 'brief' | 'resume' | 'evidence'>('claims')
+  const [activeTab, setActiveTab] = useState<'overview' | 'skills' | 'background' | 'claims' | 'match' | 'brief' | 'resume' | 'evidence'>('overview')
   const [chatOpen, setChatOpen] = useState(false)
   const [exportRequest, setExportRequest] = useState(0)
 
@@ -75,7 +76,7 @@ export function CandidateProfileShell() {
   const jobTitle = selectedJob?.title || 'No job selected'
 
   return (
-    <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-16">
+    <div className="candidate-intelligence flex flex-col gap-6 max-w-7xl mx-auto pb-16">
       {/* Context Feedback (Alert / Loading / Polling) */}
       {hasRole('recruiter') ? <ContextFeedback phase={phase} retry={retry} /> : <p>Raw evidence context is restricted to recruiters. Interview questions remain available.</p>}
 
@@ -199,19 +200,19 @@ export function CandidateProfileShell() {
 
           {/* Score Badges (Black & Champagne gold cards) */}
           <div className="flex items-center gap-3">
-            <div className="w-18 h-18 rounded-2xl bg-[#141618] text-white flex flex-col items-center justify-center shadow-sm">
+            <button type="button" onClick={() => setActiveTab('match')} disabled={!selectedJob || !hasRole('recruiter')} aria-label="View job fit assessment" className="profile-score-card profile-score-fit">
               <span className="text-sm font-bold">See JD Match</span>
               <span className="text-[10px] text-white/70 uppercase tracking-wider font-semibold mt-1">
                 Job Fit
               </span>
-            </div>
+            </button>
 
-            <div className="w-18 h-18 rounded-2xl bg-[#faf5e8] border border-[#ebd8a8] text-[#745723] flex flex-col items-center justify-center shadow-2xs">
+            <button type="button" onClick={() => setActiveTab('evidence')} disabled={!hasRole('recruiter')} aria-label="View candidate evidence" className="profile-score-card profile-score-evidence">
               <span className="text-sm font-bold">{context?.evidence_label ?? 'Pending'}</span>
               <span className="text-[10px] text-[#745723]/80 uppercase tracking-wider font-semibold mt-1">
                 Evidence
               </span>
-            </div>
+            </button>
           </div>
         </div>
       </header>
@@ -321,12 +322,12 @@ export function CandidateProfileShell() {
               : 'border-transparent text-[#59616b] hover:text-[#141618]'
           }`}
         >
-          Evidence Observations ({context?.evidence_records.length || 14})
+          Evidence Observations ({context?.evidence_records.length ?? 0})
         </button>
       </nav>
 
       {/* TAB 1: DOSSIER OVERVIEW (Exact match to Image 1) */}
-      {activeTab === 'overview' && <article className="panel"><h2>Candidate overview</h2><p>{displayCandidate.summary || 'No summary provided.'}</p><p>Reported experience: {displayCandidate.experience_years ?? 'Unknown'} years. Inspect JD Match for role-specific coverage.</p><p>Missing public evidence means unknown, not contradicted.</p><button disabled>Request Evidence (not available)</button></article>}
+      {activeTab === 'overview' && <IntelligenceOverview candidate={displayCandidate} context={context} job={selectedJob} inspectClaims={() => setActiveTab('claims')} />}
 
       {/* TAB: CLAIMS & EVIDENCE */}
       {activeTab === 'claims' && (
