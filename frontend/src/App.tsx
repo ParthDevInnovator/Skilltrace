@@ -9,6 +9,7 @@ import { JobDetailWorkspace } from '@/components/dashboard/JobDetailWorkspace'
 import { AddCandidatesView } from '@/components/dashboard/AddCandidatesView'
 import { PipelineAnalysisView } from '@/components/dashboard/PipelineAnalysisView'
 import { EvidenceExplorer } from '@/components/evidence/EvidenceExplorer'
+import { CandidateResultsView } from '@/components/dashboard/CandidateResultsView'
 import { TalentPoolView } from '@/components/dashboard/TalentPoolView'
 import { TalentDiscoveryView } from '@/components/dashboard/TalentDiscoveryView'
 import { CandidateComparisonView } from '@/components/dashboard/CandidateComparisonView'
@@ -31,6 +32,7 @@ function WorkspaceContent() {
   useEffect(()=>{const show=()=>setSyntheticData(true);window.addEventListener('mosaic:synthetic-data',show);return()=>window.removeEventListener('mosaic:synthetic-data',show)},[])
 
   if (activeView === 'add-candidates') return <div className="resume-intake-page"><a className="skip-link" href="#main-content">Skip to content</a><main id="main-content" tabIndex={-1}><AddCandidatesView /></main></div>
+  if (activeView === 'pipeline') return <div className="pipeline-page"><a className="skip-link" href="#main-content">Skip to content</a><div id="main-content" tabIndex={-1}><PipelineAnalysisView /></div></div>
 
   return (
     <div className={`w-full min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] ${(activeView === 'overview' || activeView === 'jobs') ? 'overview-workspace' : ''}`}>
@@ -44,15 +46,15 @@ function WorkspaceContent() {
             <CandidateProfileShell key={selectedCandidateId} />
           ) : activeView === 'job-detail' ? (
             <JobDetailWorkspace />
-          ) : activeView === 'pipeline' ? (
-            <PipelineAnalysisView />
           ) : activeView === 'graph' ? (
             <GraphVisualization candidateId={selectedCandidateId} />
           ) : activeView === 'evidence' ? (
             <EvidenceExplorer />
           ) : activeView === 'jobs' ? (
             <JobsView onCreate={() => setIsCustomJDModalOpen(true)} />
-          ) : activeView === 'talent-pool' || activeView === 'candidates' ? (
+          ) : activeView === 'candidates' ? (
+            <CandidateResultsView />
+          ) : activeView === 'talent-pool' ? (
             <TalentPoolView />
           ) : activeView === 'talent-discovery' ? (
             <TalentDiscoveryView />

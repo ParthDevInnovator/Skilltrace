@@ -1,6 +1,6 @@
-﻿import { useJob } from '@/context/JobContext'
+import { useJob } from '@/context/JobContext'
 import { useAuth } from '@/context/AuthContext'
-import { CandidateGrid } from './CandidateGrid'
+import { CandidateResultsView } from './CandidateResultsView'
 import { CandidateComparisonView } from './CandidateComparisonView'
 
 function Icon({ name }: { name: string }) {
@@ -27,7 +27,7 @@ export function JobDetailWorkspace() {
     </header>
     {jobWorkspaceTab === 'overview' && <div className="workspace-overview"><article className="workspace-description"><h2>Job description summary</h2><p className="workspace-description-text">{selectedJob.description_raw}</p><h3>Mandatory skills</h3><div className="workspace-skill-list">{mandatory.length ? mandatory.map(requirement => <span className="workspace-skill mandatory" key={requirement.id}>{requirement.requirement_text}</span>) : <p>No mandatory skills specified.</p>}</div><h3>Preferred</h3><div className="workspace-skill-list">{preferred.length ? preferred.map(requirement => <span className="workspace-skill" key={requirement.id}>{requirement.requirement_text}</span>) : <p>No preferred skills specified.</p>}</div></article>
     <aside className="workspace-evidence"><h2><Icon name="description" />Ready to discover evidence?</h2><p>Upload resumes to discover the evidence behind each candidate and evaluate it against this role.</p>{hasRole('recruiter') && <button onClick={addResumes}><Icon name="upload" />Add Resumes</button>}<small>PDF, DOCX or TXT · Single or batch · Up to 5 MB per resume</small></aside></div>}
-    {jobWorkspaceTab === 'candidates' && <CandidateGrid key={selectedJob.id} />}
+    {jobWorkspaceTab === 'candidates' && <CandidateResultsView key={selectedJob.id} />}
     {jobWorkspaceTab === 'requirements' && <article className="workspace-description"><h2>Role requirements</h2>{selectedJob.requirements?.length ? <ul className="workspace-requirement-list">{selectedJob.requirements.map(requirement => <li key={requirement.id}><span>{requirement.requirement_text}</span><span className={'workspace-skill ' + (requirement.is_mandatory ? 'mandatory' : '')}>{requirement.is_mandatory ? 'Mandatory' : 'Preferred'}</span></li>)}</ul> : <p>No structured requirements available.</p>}</article>}
     {jobWorkspaceTab === 'comparison' && <CandidateComparisonView />}
     {jobWorkspaceTab === 'activity' && <p className="workspace-description">Job activity history is not available in this workspace.</p>}
