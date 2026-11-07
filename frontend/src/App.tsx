@@ -30,6 +30,8 @@ function WorkspaceContent() {
   const [syntheticData, setSyntheticData] = useState(false)
   useEffect(()=>{const show=()=>setSyntheticData(true);window.addEventListener('mosaic:synthetic-data',show);return()=>window.removeEventListener('mosaic:synthetic-data',show)},[])
 
+  if (activeView === 'add-candidates') return <div className="resume-intake-page"><a className="skip-link" href="#main-content">Skip to content</a><main id="main-content" tabIndex={-1}><AddCandidatesView /></main></div>
+
   return (
     <div className={`w-full min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] ${(activeView === 'overview' || activeView === 'jobs') ? 'overview-workspace' : ''}`}>
       <a className="skip-link" href="#main-content">Skip to content</a>
@@ -42,8 +44,6 @@ function WorkspaceContent() {
             <CandidateProfileShell key={selectedCandidateId} />
           ) : activeView === 'job-detail' ? (
             <JobDetailWorkspace />
-          ) : activeView === 'add-candidates' ? (
-            <AddCandidatesView />
           ) : activeView === 'pipeline' ? (
             <PipelineAnalysisView />
           ) : activeView === 'graph' ? (
