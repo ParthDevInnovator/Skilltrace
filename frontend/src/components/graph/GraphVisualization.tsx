@@ -6,8 +6,8 @@ import { useJob } from '@/context/JobContext'
 
 export const nodeColors = {
   Candidate: '#141618',
-  Skill: '#2563eb',
-  Repository: '#15803d',
+  Skill: '#c5a263',
+  Repository: '#d8d4ca',
   Job: '#a4823e',
   Requirement: '#4d545d',
 }
@@ -16,50 +16,17 @@ const unavailable =
   'Knowledge graph is not available in this environment. Enable Neo4j to use graph exploration.'
 
 function layout(graph: CandidateSubgraph) {
-  const nodes = graph.nodes.map((n, i) => ({
-    ...n,
-    x: 300 + 180 * Math.cos((i * 2 * Math.PI) / Math.max(1, graph.nodes.length)),
-    y: 220 + 150 * Math.sin((i * 2 * Math.PI) / Math.max(1, graph.nodes.length)),
+  const center = graph.nodes.find(node => node.label === 'Candidate')
+  const rings = [graph.nodes.filter(node => node.id !== center?.id && ['Skill', 'Repository'].includes(node.label)), graph.nodes.filter(node => node.id !== center?.id && !['Skill', 'Repository'].includes(node.label))]
+  const positioned = rings.flatMap((ring, ringIndex) => ring.map((node, index) => {
+    const angle = -Math.PI * .8 + index * Math.PI * 2 / Math.max(1, ring.length)
+    return { ...node, x: 450 + (ringIndex ? 335 : 220) * Math.cos(angle), y: 230 + (ringIndex ? 180 : 135) * Math.sin(angle) }
   }))
-  const byId = new Map(nodes.map((n) => [n.id, n]))
-
-  for (let step = 0; step < 100; step++) {
-    const forces = nodes.map((n) => ({ x: (300 - n.x) * 0.005, y: (220 - n.y) * 0.005 }))
-    nodes.forEach((a, i) =>
-      nodes.forEach((b, j) => {
-        if (i === j) return
-        const dx = a.x - b.x,
-          dy = a.y - b.y,
-          d = Math.max(25, dx * dx + dy * dy)
-        forces[i].x += (dx * 500) / d
-        forces[i].y += (dy * 500) / d
-      })
-    )
-    graph.edges.forEach((e) => {
-      const a = byId.get(e.source_id),
-        b = byId.get(e.target_id)
-      if (!a || !b) return
-      const dx = b.x - a.x,
-        dy = b.y - a.y,
-        d = Math.max(1, Math.hypot(dx, dy)),
-        f = (d - 110) * 0.015
-      const ai = nodes.indexOf(a),
-        bi = nodes.indexOf(b)
-      forces[ai].x += (dx / d) * f
-      forces[ai].y += (dy / d) * f
-      forces[bi].x -= (dx / d) * f
-      forces[bi].y -= (dy / d) * f
-    })
-    nodes.forEach((n, i) => {
-      n.x = Math.max(40, Math.min(560, n.x + forces[i].x))
-      n.y = Math.max(40, Math.min(400, n.y + forces[i].y))
-    })
-  }
-  return nodes
+  return center ? [{ ...center, x: 450, y: 230 }, ...positioned] : positioned
 }
 
 export function GraphVisualization({ candidateId }: { candidateId?: string | null }) {
-  const { openCandidateDetail, selectedJob } = useJob()
+  const { openCandidateDetail, selectedJob, setActiveView } = useJob()
   const [graph, setGraph] = useState<CandidateSubgraph>({ nodes: [], edges: [] })
   const [message, setMessage] = useState('')
   const [related, setRelated] = useState<GraphNode[]>([])
@@ -68,7 +35,7 @@ export function GraphVisualization({ candidateId }: { candidateId?: string | nul
   const [failed, setFailed] = useState(false)
   const [viewMode, setViewMode] = useState<'all' | 'projects' | 'sources'>('all')
 
-  const jobTitle = selectedJob?.title || 'Backend Engineer'
+  const jobTitle = selectedJob?.title || 'the selected candidate'
 
   useEffect(() => {
     let cancelled = false
@@ -124,8 +91,37 @@ export function GraphVisualization({ candidateId }: { candidateId?: string | nul
   }
 
   const displayedNodes = viewMode === 'projects' ? nodes.filter(n => ['Candidate','Skill','Repository'].includes(n.label)) : viewMode === 'sources' ? nodes.filter(n => ['Candidate','Repository'].includes(n.label)) : nodes
-  return <section className="page-stack"><h1>Knowledge Graph</h1><p>{jobTitle} · Attributed relationships do not certify claims.</p><div className="profile-tabs">{(['all','projects','sources'] as const).map(mode => <button key={mode} aria-pressed={viewMode === mode} onClick={() => setViewMode(mode)}>{mode}</button>)}</div>{message && <p role={failed ? 'alert' : 'status'}>{message}</p>}{failed && <button onClick={() => setAttempt(a => a+1)}>Retry graph</button>}
-  {!!displayedNodes.length && <svg viewBox="0 0 600 440" className="knowledge-graph" aria-label="Candidate knowledge graph">{graph.edges.map((e,i) => {const a=displayedNodes.find(n => n.id === e.source_id), b=displayedNodes.find(n => n.id === e.target_id);return a && b ? <line key={i} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#717a84"><title>{e.relationship}</title></line> : null})}{displayedNodes.map(n => <g key={n.id} role="button" tabIndex={0} aria-label={`${n.label}: ${n.properties.name || n.properties.title || n.id}`} onClick={() => void select(n)} onKeyDown={e => {if(e.key === 'Enter' || e.key === ' ') {e.preventDefault();void select(n)}}}><circle cx={n.x} cy={n.y} r={16} fill={nodeColors[n.label]} /><text x={n.x} y={n.y+30} textAnchor="middle" fontSize="11">{String(n.properties.name || n.properties.title || n.label).slice(0,26)}</text></g>)}</svg>}
-  <p>{displayedNodes.length} nodes · {graph.edges.filter(e => displayedNodes.some(n => n.id === e.source_id) && displayedNodes.some(n => n.id === e.target_id)).length} relationships</p>
-  {skill && <aside aria-label="Skill evidence" className="panel"><h2>Evidence for {skill}</h2>{related.length ? related.map(n => <p key={n.id}>{String(n.properties.title || n.properties.url || n.id)}</p>) : <p>No linked observations found.</p>}</aside>}</section>
+  const visibleEdges = graph.edges.filter(edge => displayedNodes.some(node => node.id === edge.source_id) && displayedNodes.some(node => node.id === edge.target_id))
+  const connectedToCandidate = (source: string, target: string) => displayedNodes.some(node => node.label === 'Candidate' && (node.id === source || node.id === target))
+  return <section className="graph-workspace">
+    <div className="graph-heading"><div><h1>Knowledge Graph</h1><p>How candidates, skills, projects and evidence connect for {jobTitle}.</p></div><nav className="graph-view-controls" aria-label="Graph views">{(['all', 'projects', 'sources'] as const).map(mode => <button key={mode} aria-pressed={viewMode === mode} onClick={() => setViewMode(mode)}>{mode === 'all' ? 'Candidates + Skills' : mode === 'projects' ? 'Projects' : 'Sources'}</button>)}</nav></div>
+    <div className="graph-canvas-frame">
+      {message && <div className="graph-message"><p role={failed ? 'alert' : 'status'}>{message}</p>{failed && <button className="secondary-button" onClick={() => setAttempt(value => value + 1)}>Retry graph</button>}{!candidateId && <button className="primary-button" onClick={() => setActiveView('talent-pool')}>Browse Talent Pool</button>}</div>}
+      {!!displayedNodes.length && <svg viewBox="0 0 900 460" className="knowledge-graph intelligence-graph" aria-label="Candidate knowledge graph">
+        {visibleEdges.map((edge, index) => {
+          const source = displayedNodes.find(node => node.id === edge.source_id)!
+          const target = displayedNodes.find(node => node.id === edge.target_id)!
+          return <line key={index} x1={source.x} y1={source.y} x2={target.x} y2={target.y} stroke={connectedToCandidate(source.id, target.id) ? '#c4a15e' : '#dedcd5'} strokeWidth="1.5"><title>{edge.relationship.replaceAll('_', ' ')}</title></line>
+        })}
+        {displayedNodes.map(node => {
+          const isCandidate = node.label === 'Candidate'
+          const title = String(node.properties.name || node.properties.title || node.id)
+          const count = graph.edges.filter(edge => edge.source_id === node.id || edge.target_id === node.id).length
+          const subtitle = node.label === 'Skill' ? `${count} linked relationship${count === 1 ? '' : 's'}` : node.label === 'Repository' ? 'Project evidence' : node.label
+          return <g key={node.id} className={`intelligence-graph-node ${isCandidate ? 'graph-candidate-node' : ''}`} role="button" tabIndex={0} aria-label={`${node.label}: ${title}`} onClick={() => void select(node)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); void select(node) } }}>
+            <title>{title} ? {subtitle}</title>
+            <circle cx={node.x} cy={node.y} r="1" fill={nodeColors[node.label]} />
+            <rect x={node.x - (isCandidate ? 66 : 57)} y={node.y - (isCandidate ? 39 : 25)} width={isCandidate ? 132 : 114} height={isCandidate ? 78 : 50} rx="7" fill={isCandidate ? '#242422' : '#ffffff'} stroke={isCandidate || node.label === 'Skill' ? '#c4a15e' : '#e8e4dc'} strokeWidth={isCandidate ? '1.5' : '1'}/>
+            {isCandidate && <text className="graph-node-eyebrow" x={node.x} y={node.y - 17} textAnchor="middle">CANDIDATE</text>}
+            <text className="graph-node-title" x={node.x} y={node.y + (isCandidate ? 3 : -2)} textAnchor="middle">{title.length > 22 ? `${title.slice(0, 21)}?` : title}</text>
+            <text className="graph-node-subtitle" x={node.x} y={node.y + (isCandidate ? 20 : 13)} textAnchor="middle">{isCandidate ? `${count} linked relationships` : subtitle}</text>
+          </g>
+        })}
+      </svg>}
+      <footer className="graph-canvas-footer"><div className="graph-link-legend"><span><i/>Candidate link</span><span><i/>Associated</span><span><i/>Candidate</span></div><span>{displayedNodes.length} nodes ? {visibleEdges.length} relationships</span></footer>
+    </div>
+    {viewMode === 'sources' && <p className="graph-attribution">Sources shows repository evidence linked to the candidate.</p>}
+    <p className="graph-attribution">Attributed relationships do not certify claims. Select a skill to inspect its linked observations.</p>
+    {skill && <aside aria-label="Skill evidence" className="panel graph-evidence-panel"><div><h2>Evidence for {skill}</h2><button aria-label="Close skill evidence" onClick={() => { setSkill(''); setRelated([]) }}>?</button></div>{related.length ? related.map(node => <p key={node.id}>{String(node.properties.title || node.properties.url || node.id)}</p>) : <p>No linked observations found.</p>}</aside>}
+  </section>
 }
