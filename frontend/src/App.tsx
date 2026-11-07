@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { JobProvider, useJob } from '@/context/JobContext'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Header } from '@/components/layout/Header'
@@ -31,7 +31,7 @@ function WorkspaceContent() {
   useEffect(()=>{const show=()=>setSyntheticData(true);window.addEventListener('mosaic:synthetic-data',show);return()=>window.removeEventListener('mosaic:synthetic-data',show)},[])
 
   return (
-    <div className="w-full min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)]">
+    <div className={`w-full min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] ${(activeView === 'overview' || activeView === 'jobs') ? 'overview-workspace' : ''}`}>
       <a className="skip-link" href="#main-content">Skip to content</a>
       <Sidebar />
       <div className="workspace-content flex flex-col min-h-screen">
@@ -87,3 +87,4 @@ export default function App() {
     </Routes></IdentityProvider></BrowserRouter>
   )
 }
+

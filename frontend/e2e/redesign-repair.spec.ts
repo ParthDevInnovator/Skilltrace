@@ -7,13 +7,14 @@ async function login(page: Page, email = 'recruiter@example.com') {
   await page.getByLabel('Password', { exact: true }).fill('Phase5Test!')
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL('/dashboard')
-  await expect(page.getByRole('heading', { name: 'Recruiter Overview' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Your Hiring Intelligence' })).toBeVisible()
 }
 async function headers(page: Page) {
   const token = await page.evaluate(() => sessionStorage.getItem('mosaic.access_token'))
   return { Authorization: `Bearer ${token}` }
 }
 async function openFirstProfile(page: Page) {
+  await page.getByRole('button', { name: 'Talent Pool', exact: true }).click()
   await page.getByRole('button', { name: 'View Profile', exact: true }).first().click()
   await expect(page.getByRole('button', { name: 'Evidence & Claims', exact: true })).toBeVisible()
 }
@@ -25,7 +26,7 @@ test('invalid login stays signed out; protected routes and logout survive reload
   await expect(page.getByRole('heading', { name: 'Sign in to Skitrace', exact: true })).toBeVisible()
   await page.goto('/dashboard')
   await expect(page).toHaveURL(/\/login\?next=%2Fdashboard/)
-  await expect(page.getByRole('heading', { name: 'Recruiter Overview', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Your Hiring Intelligence', exact: true })).toHaveCount(0)
   for (const path of ['/api/v1/jobs', '/api/v1/candidates']) {
     expect((await page.request.get(path)).status()).toBe(401)
   }
@@ -52,6 +53,7 @@ test('invalid login stays signed out; protected routes and logout survive reload
 
 test('manager cannot upload, rank, match or generate briefs', async ({ page }) => {
   await login(page, 'manager@example.com')
+  await page.getByRole('button', { name: 'Talent Pool', exact: true }).click()
   await expect(page.getByText('Upload candidate resume', { exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Rank by fit', exact: true })).toHaveCount(0)
   const denied = await page.request.post('/api/v1/jd/rank', { headers: await headers(page), data: { job_id: 'JOB-001' } })
