@@ -4,6 +4,10 @@ AI-powered candidate intelligence platform that consolidates fragmented candidat
 
 See [REDESIGN_REPAIR_STATUS.md](REDESIGN_REPAIR_STATUS.md) for current redesign repairs and verification. Run the dedicated desktop/mobile checks with `npm --prefix frontend run test:e2e:repair`.
 
+For endpoint status, authentication, sample requests and a feature-by-feature manual walkthrough, see [API_FEATURE_TEST_REPORT.md](API_FEATURE_TEST_REPORT.md).
+
+This app hosts login and the protected dashboard; the marketing landing page is maintained separately. `/` redirects to `/login`. After sign-in, users enter `/dashboard`. Direct dashboard requests from signed-out users redirect to login; candidate/job APIs also require authentication.
+
 ---
 
 ## Architecture Overview

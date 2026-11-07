@@ -5,7 +5,7 @@ test.describe.configure({mode:'serial'})
 test.beforeEach(async({},info)=>test.skip(info.project.name!=='desktop','Phase 5 acceptance runs once on desktop'))
 
 async function login(page:any,email:string){
- await page.goto('/login');await page.getByLabel('Email').fill(email);await page.getByLabel('Password').fill('Phase5Test!');await page.getByRole('button',{name:'Sign in'}).click();await expect(page).toHaveURL('/')
+ await page.goto('/login');await page.getByLabel('Email').fill(email);await page.getByLabel('Password').fill('Phase5Test!');await page.getByRole('button',{name:'Sign in'}).click();await expect(page).toHaveURL('/dashboard')
 }
 
 test('full authenticated recruiter flow',async({page})=>{

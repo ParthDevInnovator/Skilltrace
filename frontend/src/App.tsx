@@ -15,11 +15,11 @@ import { CandidateComparisonView } from '@/components/dashboard/CandidateCompari
 import { CustomJDModal } from '@/components/dashboard/CustomJDModal'
 import { ChatDrawer } from '@/components/agent/ChatDrawer'
 import { GraphVisualization } from '@/components/graph/GraphVisualization'
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from '@/context/AuthContext'
 import { ClerkIdentity } from '@/context/ClerkIdentity'
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute'
-import { LoginPage } from '@/pages/LoginPage'
+import { GoogleLoginPage as LoginPage, GoogleSSOCallback } from '@/pages/GoogleLogin'
 import { ForbiddenPage } from '@/pages/ForbiddenPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 
@@ -75,14 +75,13 @@ function WorkspaceContent() {
 }
 
 export default function App() {
-  if (import.meta.env.MODE === 'test' && sessionStorage.getItem('mosaic.test_unauthenticated') !== 'true' && window.location.pathname === '/login') {
-    window.history.replaceState({}, '', '/')
-  }
   const IdentityProvider = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ? ClerkIdentity : AuthProvider
   return (
     <BrowserRouter><IdentityProvider><Routes>
       <Route path="/login" element={<LoginPage/>}/><Route path="/403" element={<ForbiddenPage/>}/>
-      <Route path="/" element={<ProtectedRoute><JobProvider><WorkspaceContent/></JobProvider></ProtectedRoute>}/>
+      <Route path="/sso-callback" element={<GoogleSSOCallback/>}/>
+      <Route path="/" element={<Navigate replace to="/login"/>}/>
+      <Route path="/dashboard/*" element={<ProtectedRoute><JobProvider><WorkspaceContent/></JobProvider></ProtectedRoute>}/>
       <Route path="/candidates/*" element={<ProtectedRoute><JobProvider><WorkspaceContent/></JobProvider></ProtectedRoute>}/>
       <Route path="*" element={<NotFoundPage/>}/>
     </Routes></IdentityProvider></BrowserRouter>

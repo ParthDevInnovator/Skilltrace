@@ -7,6 +7,16 @@ describe('Phase 5 authentication UI',()=>{
  beforeEach(()=>{sessionStorage.clear();sessionStorage.setItem('mosaic.test_unauthenticated','true');history.replaceState({},'', '/login');vi.stubGlobal('fetch',vi.fn())})
  afterEach(()=>{cleanup();vi.unstubAllGlobals();sessionStorage.clear()})
  it('renders the login heading',()=>{render(<App/>);expect(screen.getByRole('heading',{name:'Sign in to Skitrace'})).toBeInTheDocument()})
+ it('redirects the app root to login without mounting the dashboard',async()=>{
+  history.replaceState({},'', '/');render(<App/>);
+  expect(await screen.findByRole('heading',{name:'Sign in to Skitrace'})).toBeVisible();expect(location.pathname).toBe('/login');expect(screen.queryByRole('navigation',{name:'Workspace'})).not.toBeInTheDocument();expect(fetch).not.toHaveBeenCalled()
+ })
+ it('protects direct dashboard URLs and preserves the return URL',async()=>{
+  history.replaceState({},'', '/dashboard');render(<App/>);expect(await screen.findByRole('heading',{name:'Sign in to Skitrace'})).toBeVisible();expect(decodeURIComponent(location.search)).toBe('?next=/dashboard');expect(screen.queryByRole('navigation',{name:'Workspace'})).not.toBeInTheDocument()
+ })
+ it('protects nested dashboard URLs',async()=>{
+  history.replaceState({},'', '/dashboard/jobs');render(<App/>);await screen.findByRole('heading',{name:'Sign in to Skitrace'});expect(decodeURIComponent(location.search)).toBe('?next=/dashboard/jobs')
+ })
  it('labels email',()=>{render(<App/>);expect(screen.getByLabelText('Email')).toHaveAttribute('type','email')})
  it('labels password',()=>{render(<App/>);expect(screen.getByLabelText('Password')).toHaveAttribute('type','password')})
  it('uses password autocomplete',()=>{render(<App/>);expect(screen.getByLabelText('Password')).toHaveAttribute('autocomplete','current-password')})

@@ -1,5 +1,6 @@
 import { useJob } from '@/context/JobContext'
 import { useAuth } from '@/context/AuthContext'
+import { ProfileAvatar } from './ProfileAvatar'
 
 export function Sidebar() {
   const { activeView, setActiveView } = useJob()
@@ -151,19 +152,18 @@ export function Sidebar() {
         </nav>
       </div>
 
-      {/* Bottom User Profile Widget (Exact match to Elena Marsh in Images 3 and 5) */}
+      {/* Signed-in account details; permissions come from server roles. */}
       <div className="p-3 border-t border-[#e7e2d9] bg-white">
         <div className="p-2 rounded-xl border border-[#e7e2d9] bg-[#fbf9f6] flex items-center justify-between gap-3 shadow-2xs hover:bg-[#f5f3ed] transition-colors">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-full bg-[#ebd8a8] border border-[#a9874e]/30 flex items-center justify-center font-semibold text-xs text-[#745723] shrink-0">
-              {user?.full_name.split(' ').map(n => n[0]).join('').slice(0,2)}
-            </div>
+            <ProfileAvatar name={user?.full_name || 'Signed-in user'} imageUrl={user?.image_url} />
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-bold text-[#141618] truncate leading-tight">
+              <span title={user?.full_name} className="text-xs font-bold text-[#141618] truncate leading-tight">
                 {user?.full_name || 'Signed-in user'}
               </span>
+              {user?.email && <span title={user.email} className="text-[11px] text-[#59616b] truncate leading-tight">{user.email}</span>}
               <span className="text-[11px] text-[#59616b] truncate leading-tight">
-                {user?.roles?.[0] ? user.roles[0].replace('_', ' ') : 'Senior Recruiter'}
+                {user?.roles?.[0] ? user.roles[0].replaceAll('_', ' ') : 'No role assigned'}
               </span>
             </div>
           </div>
