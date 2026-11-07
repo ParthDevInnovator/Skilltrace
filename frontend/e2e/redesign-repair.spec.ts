@@ -6,6 +6,7 @@ async function login(page: Page, email = 'recruiter@example.com') {
   await page.getByLabel('Email', { exact: true }).fill(email)
   await page.getByLabel('Password', { exact: true }).fill('Phase5Test!')
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await expect(page).toHaveURL('/dashboard')
   await expect(page.getByRole('heading', { name: 'Recruiter Overview' })).toBeVisible()
 }
 async function headers(page: Page) {
@@ -18,6 +19,16 @@ async function openFirstProfile(page: Page) {
 }
 
 test('invalid login stays signed out; protected routes and logout survive reload', async ({ page }) => {
+  await page.goto('/')
+  await expect(page).toHaveURL('/login')
+  await expect(page.getByRole('navigation', { name: 'Workspace', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Sign in to Skitrace', exact: true })).toBeVisible()
+  await page.goto('/dashboard')
+  await expect(page).toHaveURL(/\/login\?next=%2Fdashboard/)
+  await expect(page.getByRole('heading', { name: 'Recruiter Overview', exact: true })).toHaveCount(0)
+  for (const path of ['/api/v1/jobs', '/api/v1/candidates']) {
+    expect((await page.request.get(path)).status()).toBe(401)
+  }
   await page.goto('/candidates')
   await expect(page).toHaveURL(/\/login\?next=/)
   await page.getByLabel('Email', { exact: true }).fill('recruiter@example.com')
@@ -32,6 +43,11 @@ test('invalid login stays signed out; protected routes and logout survive reload
   await page.getByRole('button', { name: 'Sign out', exact: true }).click()
   await page.reload()
   await expect(page).toHaveURL(/\/login/)
+  await page.goto('/dashboard')
+  await expect(page).toHaveURL(/\/login\?next=/)
+  await page.goto('/')
+  await expect(page).toHaveURL('/login')
+  await expect(page.getByRole('heading', { name: 'Sign in to Skitrace', exact: true })).toBeVisible()
 })
 
 test('manager cannot upload, rank, match or generate briefs', async ({ page }) => {

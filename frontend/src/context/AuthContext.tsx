@@ -5,6 +5,7 @@ export type AuthUser = {
   user_id: string
   email: string
   full_name: string
+  image_url?: string
   roles: string[]
 }
 

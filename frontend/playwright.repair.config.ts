@@ -11,6 +11,6 @@ export default defineConfig({
     { command: '"..\\.venv\\Scripts\\python.exe" -m uvicorn backend.tests.browser_app:app --app-dir .. --host 127.0.0.1 --port 8011', url: 'http://127.0.0.1:8011/health', reuseExistingServer: false,
       env: { DEBUG: 'false', ENVIRONMENT: 'e2e', CLERK_SECRET_KEY: '', E2E_BOOTSTRAP_USERS: 'true', JWT_SECRET: 'redesign-offline-test-secret-at-least-32-chars', DATABASE_URL: 'sqlite+aiosqlite:///./.e2e-redesign.db' } },
     { command: 'npm run dev -- --host 127.0.0.1 --port 5181 --strictPort', url: 'http://127.0.0.1:5181', reuseExistingServer: false,
-      env: { VITE_CLERK_PUBLISHABLE_KEY: '', API_PROXY_TARGET: 'http://127.0.0.1:8011' } },
+      env: { VITE_CLERK_PUBLISHABLE_KEY: '', VITE_E2E_NATIVE_AUTH: 'true', API_PROXY_TARGET: 'http://127.0.0.1:8011' } },
   ],
 })
