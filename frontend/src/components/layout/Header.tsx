@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+﻿import { useEffect, useRef } from 'react'
 import { useJob } from '@/context/JobContext'
 import { JobSelector } from '@/components/dashboard/JobSelector'
 import { useAuth } from '@/context/AuthContext'
@@ -42,11 +42,11 @@ export function Header({
             value={searchQuery}
             onChange={e => {
               setSearchQuery(e.target.value)
-              if (activeView !== 'candidates' && activeView !== 'talent-pool' && activeView !== 'overview') {
+              if (activeView !== 'candidates' && activeView !== 'talent-pool') {
                 setActiveView('candidates')
               }
             }}
-            placeholder="Search candidates..."
+            placeholder="Search candidates, skills..."
             className="w-full h-10 pl-10 pr-10 rounded-xl bg-[#f8f7f4] border border-[#e7e2d9] text-[#141618] placeholder-[#9c9890] text-xs focus:outline-none focus:border-[#a9874e] focus:bg-white transition-all shadow-inner"
           />
           <kbd className="absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded border border-[#e7e2d9] bg-white text-[10px] text-[#59616b] font-mono shadow-2xs">
@@ -55,15 +55,15 @@ export function Header({
         </div>
 
         {/* Embedded Job Selector (Accessible requisition dropdown) */}
-        <div className="header-job">
+        {activeView !== 'overview' && activeView !== 'jobs' && <div className="header-job">
           <JobSelector onOpenCustomJDModal={onOpenCustomJDModal} />
-        </div>
+        </div>}
       </div>
 
       {/* Right Controls */}
       <div className="flex items-center gap-3">
         {/* Chat Drawer Trigger */}
-        <button
+        {activeView !== 'overview' && activeView !== 'jobs' && <button
           type="button"
           onClick={onOpenChat}
           title="Open AI Assistant"
@@ -71,7 +71,7 @@ export function Header({
         >
           <span aria-hidden="true" className="material-symbols-outlined text-[17px] text-[#a9874e]">auto_awesome</span>
           <span className="hidden sm:inline">Ask AI</span>
-        </button>
+        </button>}
 
         {/* Notifications Icon Button */}
         <button
@@ -98,3 +98,4 @@ export function Header({
     </header>
   )
 }
+
