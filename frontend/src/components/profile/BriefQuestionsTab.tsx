@@ -1,7 +1,7 @@
 /* oxlint-disable react/only-export-components, react/set-state-in-effect, react-hooks/exhaustive-deps -- formatting helpers are reusable; exportRequest is an edge-triggered command consumed once. */
 import { useEffect, useRef, useState } from 'react'
 import type { CandidateBrief, InterviewQuestionSet } from '@/types'
-import { api } from '@/services/api'
+import { api, type ExportEvent } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
 
 const sections = [['strengths','Strengths'],['evidence_summary','Evidence Summary'],['application_history_notes','Application History Notes'],['identified_gaps','Identified Gaps']] as const
@@ -22,6 +22,15 @@ export function BriefQuestionsTab({candidateId,jobId,exportRequest=0}: {candidat
   const [error,setError] = useState(false)
   const [copyStatus,setCopyStatus] = useState('')
   const handledExport = useRef(0)
+  const [exportError,setExportError] = useState('')
+  /** Records the export on the server first; if that fails nothing leaves the app (OI-08). */
+  async function audited(event:ExportEvent, action:()=>unknown) {
+    setExportError('')
+    try { await api.recordExport(event) }
+    catch { if(live.current) setExportError('This export could not be recorded, so it was not started. Please retry.'); return }
+    await action()
+  }
+  const exportBrief=(value:CandidateBrief)=>audited({kind:'brief',candidate_id:candidateId,job_id:jobId,format:'txt'},()=>downloadBrief(value))
   const live = useRef(true)
   const inFlight = useRef(false)
   useEffect(()=>{live.current=true;return()=>{live.current=false}},[])
@@ -34,7 +43,7 @@ export function BriefQuestionsTab({candidateId,jobId,exportRequest=0}: {candidat
       if('status' in result) {
         setNotice(result.status==='building' ? `Candidate context is still building. ${kind==='brief'?'Brief':'Questions'} will be available once context is ready.` : result.error || 'AI providers unavailable. Please retry.')
         setError(result.status==='failed')
-      } else if(kind==='brief') { setBrief(result as CandidateBrief); if(download)downloadBrief(result as CandidateBrief) }
+      } else if(kind==='brief') { setBrief(result as CandidateBrief); if(download)void exportBrief(result as CandidateBrief) }
       else setQuestions(result as InterviewQuestionSet)
     } catch { if(live.current){setNotice('Could not generate content. Please retry.');setError(true)} }
     finally {inFlight.current=false;if(live.current)setBusy(false)}
@@ -42,7 +51,7 @@ export function BriefQuestionsTab({candidateId,jobId,exportRequest=0}: {candidat
   useEffect(()=>{
     if(exportRequest && exportRequest!==handledExport.current){
       handledExport.current=exportRequest;setView('brief')
-      if(brief)downloadBrief(brief);else void generate('brief',true)
+      if(brief)void exportBrief(brief);else void generate('brief',true)
     }
   },[exportRequest]) // Each export action is consumed once; current brief is retained while mounted.
   async function copy(text:string) { try{await navigator.clipboard.writeText(text);setCopyStatus('Copied to clipboard.')}catch{setCopyStatus('Clipboard unavailable. Use Download as TXT for the brief.')} }
@@ -51,11 +60,12 @@ export function BriefQuestionsTab({candidateId,jobId,exportRequest=0}: {candidat
     {busy && <div role="status" className="generation-skeleton">Generating {view==='brief'?'executive brief':'interview questions'}…</div>}
     {notice && <div role={error?'alert':'status'} className="panel"><p>{notice}</p><button disabled={busy} onClick={()=>generate(view)}>Retry generation</button></div>}
     {copyStatus && <p role="status">{copyStatus}</p>}
+    {exportError && <p role="alert" className="access-error">{exportError}</p>}
     {view==='brief' ? <>
-      <div className="modal-actions">{hasRole('recruiter')&&<button className="primary-button" disabled={busy} onClick={()=>generate('brief')}>{brief?'Regenerate':'Generate Brief'}</button>}{brief && <><button onClick={()=>copy(formatBrief(brief))}>Copy to Clipboard</button><button onClick={()=>downloadBrief(brief)}>Download as TXT</button><span className="provider-badge">{brief.provider_used}</span></>}</div>
+      <div className="modal-actions">{hasRole('recruiter')&&<button className="primary-button" disabled={busy} onClick={()=>generate('brief')}>{brief?'Regenerate':'Generate Brief'}</button>}{brief && <><button onClick={()=>audited({kind:'brief',candidate_id:candidateId,job_id:jobId,format:'clipboard'},()=>copy(formatBrief(brief)))}>Copy to Clipboard</button><button onClick={()=>exportBrief(brief)}>Download as TXT</button><span className="provider-badge">{brief.provider_used}</span></>}</div>
       {brief && <>{sections.map(([field,title])=><article className="panel" key={field}><h2>{title}</h2><p className="preserve-text">{brief[field]}</p></article>)}<details><summary>Sources cited</summary>{brief.grounding_ids.map(id=><p key={id}><code className="source-chip">{id}</code></p>)}</details></>}
     </> : !jobId ? <p>Select a job to generate targeted questions.</p> : <>
-      <div className="modal-actions"><button className="primary-button" disabled={busy} onClick={()=>generate('questions')}>{questions?'Regenerate Questions':'Generate Questions'}</button>{questions && <button onClick={()=>copy(questions.questions.map((q,i)=>`${i+1}. ${q.question_text}\n${q.rationale} [${q.source_id}]`).join('\n\n'))}>Copy All Questions</button>}</div>
+      <div className="modal-actions"><button className="primary-button" disabled={busy} onClick={()=>generate('questions')}>{questions?'Regenerate Questions':'Generate Questions'}</button>{questions && <button onClick={()=>audited({kind:'questions',candidate_id:candidateId,job_id:jobId,item_count:questions.questions.length,format:'clipboard'},()=>copy(questions.questions.map((q,i)=>`${i+1}. ${q.question_text}\n${q.rationale} [${q.source_id}]`).join('\n\n')))}>Copy All Questions</button>}</div>
       {questions && <><span className="provider-badge">{questions.provider_used}</span>{!questions.questions.length && <p>No grounded questions were generated. Try regenerating after reviewing the candidate context.</p>}<ol className="question-list">{questions.questions.map((q,i)=><li className="panel" key={`${q.source_id}-${i}`}><p>{q.question_text}</p><span className={`question-category ${q.target_type}`}>{q.target_type.replaceAll('_',' ')}</span><details><summary>Rationale for question {i+1}</summary><p>{q.rationale}</p><code className="source-chip">{q.source_id}</code></details></li>)}</ol></>}
     </>}
   </section>

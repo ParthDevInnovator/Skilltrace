@@ -11,7 +11,8 @@ export function Header({
   onOpenChat: () => void
 }) {
   const { searchQuery, setSearchQuery, activeView, setActiveView } = useJob()
-  const { hasRole } = useAuth()
+  const { hasRole, user } = useAuth()
+  const showJobTools = activeView !== 'overview' && activeView !== 'jobs' && activeView !== 'admin-access'
   const searchRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -55,15 +56,22 @@ export function Header({
         </div>
 
         {/* Embedded Job Selector (Accessible requisition dropdown) */}
-        {activeView !== 'overview' && activeView !== 'jobs' && <div className="header-job">
+        {showJobTools && <div className="header-job">
           <JobSelector onOpenCustomJDModal={onOpenCustomJDModal} />
         </div>}
       </div>
 
       {/* Right Controls */}
       <div className="flex items-center gap-3">
+        {user?.workspace?.name && (
+          <span className="workspace-name" title={`Workspace: ${user.workspace.name}`} aria-label={`Workspace: ${user.workspace.name}`}>
+            <span aria-hidden="true" className="material-symbols-outlined text-[16px] text-[#a9874e]">apartment</span>
+            <span aria-hidden="true">{user.workspace.name}</span>
+          </span>
+        )}
+
         {/* Chat Drawer Trigger */}
-        {activeView !== 'overview' && activeView !== 'jobs' && <button
+        {showJobTools && <button
           type="button"
           onClick={onOpenChat}
           title="Open AI Assistant"

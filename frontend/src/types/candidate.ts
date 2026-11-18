@@ -22,6 +22,8 @@ export interface CandidateSummary {
   top_skills: string[]
   resume_path?: string | null
   match_preview?: MatchPreview | null
+  /** Fields the server masked for this viewer's role, e.g. email and location for hiring managers. */
+  masked_fields?: string[]
 }
 
 export interface ExternalIdentifiers {

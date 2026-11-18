@@ -16,8 +16,9 @@ import { CandidateComparisonView } from '@/components/dashboard/CandidateCompari
 import { CustomJDModal } from '@/components/dashboard/CustomJDModal'
 import { ChatDrawer } from '@/components/agent/ChatDrawer'
 import { GraphVisualization } from '@/components/graph/GraphVisualization'
+import { AccessManagementView } from '@/components/admin/AccessManagementView'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import { AuthProvider } from '@/context/AuthContext'
+import { AuthProvider, useAuth } from '@/context/AuthContext'
 import { ClerkIdentity } from '@/context/ClerkIdentity'
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute'
 import { GoogleLoginPage as LoginPage, GoogleSSOCallback } from '@/pages/GoogleLogin'
@@ -26,6 +27,7 @@ import { NotFoundPage } from '@/pages/NotFoundPage'
 
 function WorkspaceContent() {
   const { activeView, selectedCandidateId } = useJob()
+  const { hasRole } = useAuth()
   const [isCustomJDModalOpen, setIsCustomJDModalOpen] = useState(false)
   const [isChatOpen, setIsChatOpen] = useState(false)
   const [syntheticData, setSyntheticData] = useState(false)
@@ -60,6 +62,8 @@ function WorkspaceContent() {
             <TalentDiscoveryView />
           ) : activeView === 'comparison' ? (
             <CandidateComparisonView />
+          ) : activeView === 'admin-access' ? (
+            hasRole('hr_admin') ? <AccessManagementView /> : <section className="panel"><h1>Team access</h1><p>Only HR administrators can manage workspace access.</p></section>
           ) : (
             <DashboardOverview onOpenCustomJDModal={() => setIsCustomJDModalOpen(true)} />
           )}

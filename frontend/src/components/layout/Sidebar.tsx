@@ -4,7 +4,7 @@ import { ProfileAvatar } from './ProfileAvatar'
 
 export function Sidebar() {
   const { activeView, setActiveView } = useJob()
-  const { user, logout } = useAuth()
+  const { user, logout, hasRole } = useAuth()
 
   return (
     <aside className="workspace-sidebar bg-white border-r border-[#e7e2d9] z-40 flex flex-col justify-between shadow-[0_1px_4px_rgba(0,0,0,0.02)]">
@@ -139,6 +139,23 @@ export function Sidebar() {
           </span>
         </div>
         <nav aria-label="Account" className="flex flex-col px-3 space-y-1">
+          {hasRole('hr_admin') && (
+            <button
+              type="button"
+              aria-current={activeView === 'admin-access' ? 'page' : undefined}
+              onClick={() => setActiveView('admin-access')}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all text-left cursor-pointer ${
+                activeView === 'admin-access'
+                  ? 'bg-[#f8f1e3] text-[#141618] shadow-xs relative before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:bg-[#a9874e] before:rounded-r'
+                  : 'text-[#59616b] hover:bg-[#f8f7f4] hover:text-[#141618]'
+              }`}
+            >
+              <span aria-hidden="true" className={`material-symbols-outlined text-[19px] ${activeView === 'admin-access' ? 'text-[#a9874e]' : 'text-[#59616b]'}`}>
+                admin_panel_settings
+              </span>
+              Team access
+            </button>
+          )}
           <button
             type="button"
             disabled title="Settings are not available"

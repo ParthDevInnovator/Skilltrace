@@ -15,6 +15,7 @@ export function EvidenceExplorer() {
   const { openCandidateDetail } = useJob()
   const [rows, setRows] = useState<Row[] | null>(null)
   const [error, setError] = useState(false)
+  const [exportError, setExportError] = useState('')
   const [waiting, setWaiting] = useState(false)
   const [attempt, setAttempt] = useState(0)
   const [tier, setTier] = useState('')
@@ -85,12 +86,16 @@ export function EvidenceExplorer() {
 
   const evidence = filtered.flatMap(row => (row.context?.evidence_records ?? []).map(record => ({ record, candidate: row.candidate }))).filter(({record,candidate}) =>
     (!activePlatform || record.source_type === activePlatform) && (!activeSkill || record.skill.toLowerCase().includes(activeSkill.toLowerCase())) && (!searchQuery.trim() || `${candidate.full_name} ${record.observation} ${record.skill}`.toLowerCase().includes(searchQuery.trim().toLowerCase())))
-  function exportEvidence() {
+  async function exportEvidence() {
+    setExportError('')
+    // Record the export first; if the audit trail cannot be written, nothing leaves the app (OI-08).
+    try { await api.recordExport({kind:'evidence',item_count:evidence.length,format:'json'}) }
+    catch { setExportError('This export could not be recorded, so it was not started. Please retry.'); return }
     const url = URL.createObjectURL(new Blob([JSON.stringify(evidence.map(({record,candidate}) => ({...record,candidate_name:candidate.full_name})),null,2)], {type:'application/json'}))
     const a = document.createElement('a'); a.href = url; a.download = 'skitrace-evidence.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url),1000)
   }
   if (!canRead) return <section className="panel"><h1>Evidence Explorer</h1><p>Raw evidence context requires recruiter access. Interview questions remain available in candidate profiles.</p></section>
-  return <section className="page-stack"><div className="page-heading"><h1>Evidence Explorer</h1><button onClick={exportEvidence} disabled={!rows || error}>Export evidence</button></div><p>Attributed observations do not automatically verify claims. Missing public evidence is unknown, not a contradiction.</p>
+  return <section className="page-stack"><div className="page-heading"><h1>Evidence Explorer</h1><button onClick={()=>void exportEvidence()} disabled={!rows || error}>Export evidence</button></div>{exportError && <p role="alert" className="access-error">{exportError}</p>}<p>Attributed observations do not automatically verify claims. Missing public evidence is unknown, not a contradiction.</p>
   <div className="panel evidence-filters"><div><label htmlFor="evidence-search">Search evidence</label><input id="evidence-search" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} /></div><div><label htmlFor="evidence-platform">Platform</label><select id="evidence-platform" value={activePlatform} onChange={e => setActivePlatform(e.target.value)}><option value="">All platforms</option>{['github','leetcode','linkedin','interview_feedback','project_submission'].map(p => <option key={p}>{p}</option>)}</select></div><div><label htmlFor="evidence-skill">Skill</label><input id="evidence-skill" value={activeSkill} onChange={e => setActiveSkill(e.target.value)} /></div></div>
   <div className="panel evidence-filters"><div><label htmlFor="evidence-tier">Evidence tier</label><select id="evidence-tier" value={tier} onChange={e => setTier(e.target.value)}><option value="">All tiers</option>{EVIDENCE_LABELS.map(t => <option key={t}>{t}</option>)}</select></div><div><label htmlFor="evidence-source">Source type</label><select id="evidence-source" value={source} onChange={e => setSource(e.target.value)}><option value="">All sources</option>{['github','leetcode','linkedin','interview_feedback','project_submission'].map(p => <option key={p}>{p}</option>)}</select></div><div><label htmlFor="evidence-min">Minimum evidence score</label><input id="evidence-min" type="number" min="0" step="0.1" value={min} onChange={e => setMin(e.target.value)} /></div><button onClick={() => {setTier('');setSource('');setMin('');setActivePlatform('');setActiveSkill('');setSearchQuery('')}}>Clear evidence filters</button></div>
   {error && <p role="alert">Evidence explorer could not load. <button onClick={retry}>Retry explorer</button></p>}

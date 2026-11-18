@@ -7,6 +7,19 @@ export type AuthUser = {
   full_name: string
   image_url?: string
   roles: string[]
+  /** `pending` until domain auto-admission or HR-admin approval (OI-05). */
+  status?: 'pending' | 'active'
+  email_verified?: boolean
+  workspace?: { id: string; name: string } | null
+}
+
+const ACCESS_ROLES = ['recruiter', 'hiring_manager', 'hr_admin']
+
+/** A signed-in user without workspace admission: no data access until approved. */
+// oxlint-disable-next-line react/only-export-components
+export function isPendingUser(user: AuthUser | null | undefined) {
+  if (!user) return false
+  return user.status === 'pending' || !user.roles.some(role => ACCESS_ROLES.includes(role))
 }
 
 type AuthValue = {
@@ -15,6 +28,8 @@ type AuthValue = {
   login: (email: string, password?: string) => Promise<void>
   logout: () => Promise<void>
   refreshToken: () => Promise<void>
+  /** Re-reads `/auth/me`, e.g. to see whether a pending account has been approved. */
+  reloadIdentity: () => Promise<void>
   isAuthenticated: boolean
   hasRole: (role: string) => boolean
   ready: boolean
@@ -161,6 +176,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try { await loadMe(access) } catch { clear() }
   }, [renewSession, loadMe, clear])
 
+  const reloadIdentity = useCallback(async () => {
+    const access = tokenRef.current
+    if (!access) return
+    try {
+      await loadMe(access)
+    } catch (error) {
+      if ((error as { status?: number }).status === 401) await refreshToken()
+      else throw error
+    }
+  }, [loadMe, refreshToken])
+
   const login = useCallback(
     async (email: string, password?: string) => {
       clear()
@@ -217,11 +243,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login,
       logout,
       refreshToken,
+      reloadIdentity,
       isAuthenticated: Boolean(user && accessToken),
       hasRole,
       ready,
     }),
-    [user, accessToken, login, logout, refreshToken, hasRole, ready]
+    [user, accessToken, login, logout, refreshToken, reloadIdentity, hasRole, ready]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
@@ -238,6 +265,7 @@ export function useAuth() {
       login: async () => {},
       logout: async () => {},
       refreshToken: async () => {},
+      reloadIdentity: async () => {},
       isAuthenticated: true,
       hasRole: (role: string) => role === 'recruiter',
       ready: true,
