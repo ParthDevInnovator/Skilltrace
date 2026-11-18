@@ -8,6 +8,8 @@ from backend.services.taxonomy import resolve_skill
 from backend.services.ranking_engine import build_match
 from backend.services.match_store import match_store
 from backend.models import CandidateSummary
+from backend.core.masking import current_role, is_restricted, mask_candidate
+from backend.core.workspace import current_workspace, in_workspace
 from .models import BuildingStatus, FailedStatus
 
 current_service = ContextVar('agent_context_builder', default=None)
@@ -15,6 +17,17 @@ current_service = ContextVar('agent_context_builder', default=None)
 
 def service():
     return current_service.get() or context_builder
+
+
+def visible(record):
+    """Tools only see records in the caller's workspace (unset = unscoped internal use)."""
+    workspace = current_workspace.get()
+    return record is not None and (workspace is None or in_workspace(record, workspace))
+
+
+def candidate(candidate_id):
+    record = service().repository.get_candidate(candidate_id)
+    return record if visible(record) else None
 
 
 def safe(handler):
@@ -57,14 +70,21 @@ async def lookup_candidate(name=None, email=None):
     name, email = (name or '').strip().casefold(), (email or '').strip().casefold()
     if not name and not email:
         return []
-    return [CandidateSummary.model_validate(c.model_dump()) for c in service().repository.all_candidate_details()
-            if (not name or name in c.full_name.casefold() or name == c.id.casefold())
-            and (not email or email == str(c.email).casefold())][:5]
+    role = current_role.get()
+    if email and is_restricted(role):
+        return {'error': 'Looking up candidates by email is not permitted for your role'}
+    matches = [c for c in service().repository.all_candidate_details()
+               if visible(c) and (not name or name in c.full_name.casefold() or name == c.id.casefold())
+               and (not email or email == str(c.email).casefold())][:5]
+    if is_restricted(role):
+        # Same policy as the REST API: managers never receive contact details.
+        return [CandidateSummary.model_validate({**c.model_dump(), 'email': 'redacted@example.com',
+                                                 'location': mask_candidate(c, role)['location']}) for c in matches]
+    return [CandidateSummary.model_validate(c.model_dump()) for c in matches]
 
 
-@safe
-async def get_candidate_context(candidate_id):
-    if not service().repository.get_candidate(candidate_id):
+async def _context(candidate_id):
+    if not candidate(candidate_id):
         return FailedStatus(error='Candidate not found')
     entry = service().registry.get(candidate_id)
     if entry is None or entry.status == 'building':
@@ -74,12 +94,21 @@ async def get_candidate_context(candidate_id):
     return entry.context
 
 
+@safe
+async def get_candidate_context(candidate_id):
+    # The raw context (resume text, contact details) is not available to hiring
+    # managers through /context, so it is not available through the assistant.
+    if is_restricted(current_role.get()):
+        return FailedStatus(error='The full candidate context is not available for your role')
+    return await _context(candidate_id)
+
+
 def match_for(candidate_id, job_id, reference_date):
     entry = service().registry.get(candidate_id)
     if not entry or entry.status != 'ready':
         raise ValueError('Context not ready')
     job = service().repository.get_job(job_id)
-    if job is None:
+    if not visible(job):
         raise ValueError('Job not found')
     result = match_store.get_result(job_id, candidate_id, reference_date, entry.revision)
     if result is None:
@@ -90,7 +119,7 @@ def match_for(candidate_id, job_id, reference_date):
 
 @safe
 async def get_jd_match(candidate_id, job_id):
-    context = await get_candidate_context(candidate_id)
+    context = await _context(candidate_id)
     if not hasattr(context, 'candidate'):
         return context
     return match_for(candidate_id, job_id, datetime.now(timezone.utc).date())
@@ -98,12 +127,12 @@ async def get_jd_match(candidate_id, job_id):
 
 @safe
 async def list_jobs():
-    return [{'id': job.id, 'title': job.title} for job in service().repository.get_jobs()]
+    return [{'id': job.id, 'title': job.title} for job in service().repository.get_jobs() if visible(job)]
 
 
 @safe
 async def get_evidence_for_skill(candidate_id, skill):
-    context = await get_candidate_context(candidate_id)
+    context = await _context(candidate_id)
     return [r for r in getattr(context, 'evidence_records', []) if resolve_skill(r.skill) == resolve_skill(skill)]
 
 

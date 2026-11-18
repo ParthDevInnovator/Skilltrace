@@ -17,6 +17,9 @@ class MatchStore:
         with self._lock:
             results = [r.model_copy(deep=True) for (j,c,d),(r,rev) in self._results.items() if j==job_id and d==reference_date]
         return sorted(results,key=lambda r:(-r.final_score,-r.evidence_strength,-r.resume_fit,r.candidate_id))
+    def clear_candidate(self, candidate_id):
+        with self._lock:
+            self._results = {k:v for k,v in self._results.items() if k[1]!=candidate_id}
     def clear_job(self, job_id):
         with self._lock:
             self._results = {k:v for k,v in self._results.items() if k[0]!=job_id}

@@ -52,6 +52,19 @@ class Neo4jClient:
             logger.warning('Graph query unavailable')
             return None
 
+    async def delete_candidate(self, candidate_id) -> bool:
+        """Remove the candidate, its candidate-scoped nodes and any skills left orphaned."""
+        rows = await self.query('''OPTIONAL MATCH (n) WHERE n.candidate_id = $candidate_id
+            DETACH DELETE n
+            WITH count(*) AS ignored
+            OPTIONAL MATCH (c:Candidate {id: $candidate_id})
+            DETACH DELETE c
+            WITH count(*) AS ignored
+            OPTIONAL MATCH (s:Skill) WHERE NOT (s)--()
+            DELETE s
+            RETURN true AS done''', candidate_id=candidate_id)
+        return rows is not None
+
     async def close(self):
         if self.driver:
             await self.driver.close()

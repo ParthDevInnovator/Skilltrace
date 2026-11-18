@@ -23,8 +23,10 @@ async def test_register_login_me_logout_and_headers():
         login=await client.post('/api/v1/auth/login',json={'email':email,'password':'StrongPass123!'})
         assert login.status_code==200; tokens=login.json(); headers={'Authorization':f"Bearer {tokens['access_token']}"}
         me=await client.get('/api/v1/auth/me',headers=headers);assert me.status_code==200 and me.json()['email']==email
-        candidates=await client.get('/api/v1/candidates',headers=headers);assert candidates.status_code==200
-        assert candidates.headers['x-content-type-options']=='nosniff' and candidates.headers['x-frame-options']=='DENY'
+        # OI-05: a new, unverified sign-up waits for admission and reads no candidate data.
+        assert me.json()['status']=='pending' and me.json()['workspace'] is None
+        candidates=await client.get('/api/v1/candidates',headers=headers);assert candidates.status_code==403
+        assert me.headers['x-content-type-options']=='nosniff' and me.headers['x-frame-options']=='DENY'
         assert (await client.post('/api/v1/auth/logout',headers=headers)).status_code==204
         assert (await client.get('/api/v1/auth/me',headers=headers)).status_code==401
 

@@ -12,6 +12,8 @@ from backend.services.resume_parser import MAX_UPLOAD_BYTES, SUPPORTED_EXTENSION
 from backend.services.context_builder import ContextBuilder, context_builder
 from backend.core.dependencies import require_role
 from backend.core.roles import Role
+from backend.core.workspace import workspace_of
+from backend.services.runtime_persistence import PersistenceError
 
 router = APIRouter(tags=["Resume ingestion"])
 
@@ -70,11 +72,14 @@ async def ingest_resume(
         extracted = ExtractedIdentity.model_validate(identity)
         if builder.store is not store:
             raise HTTPException(503, "Resume service configuration is inconsistent.")
-        candidate, updated, revision, reserved = await builder.ingest_resume(extracted, parsed, filename, bytes(data))
+        candidate, updated, revision, reserved = await builder.ingest_resume(extracted, parsed, filename, bytes(data),
+                                                                             workspace_of(user))
     except ValidationError:
         raise HTTPException(422, "Candidate identity is invalid. Check the name, email, headline and location fields.") from None
     except MissingIdentityError as exc:
         raise HTTPException(422, str(exc)) from None
+    except PersistenceError:
+        raise HTTPException(503, "The resume could not be saved. Nothing was changed; retry the upload.") from None
     background_tasks.add_task(builder.launch_background, candidate.id, reserved)
     return IngestResponse(candidate_id=candidate.id, updated_existing=updated,
                           parse_source=parsed.source, context_revision=revision)

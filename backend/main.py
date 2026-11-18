@@ -1,4 +1,5 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,7 +8,7 @@ from fastapi.responses import JSONResponse
 from backend.config import settings
 from backend.routers import candidates, health, jobs, ingest, admin, jd
 from backend.routers import agent, graph, auth
-from backend.core.database import AsyncSessionLocal, create_all_tables
+from backend.core.database import prepare_database, session_factory
 from backend.core.retention import purge_expired_evidence
 from backend.middleware.security import SecurityHeadersMiddleware
 from backend.middleware.audit import AuditMiddleware
@@ -28,29 +29,47 @@ async def lifespan(app: FastAPI):
     """Lifecycle events for backend application."""
     logger.info("Starting up Skitrace Backend Service...")
     logger.info(f"Environment: {settings.ENVIRONMENT} | Debug: {settings.DEBUG}")
-    await create_all_tables()
+    # OI-02 (decision D2): one worker only. Caches, build tasks and rate limits are process-local.
+    workers = int(os.environ.get("WEB_CONCURRENCY", "1") or 1)
+    if workers > settings.SUPPORTED_WORKERS:
+        message = (f"WEB_CONCURRENCY={workers} but Skitrace supports {settings.SUPPORTED_WORKERS} worker; "
+                   "run a single worker per database")
+        if settings.ENVIRONMENT.lower() in {"production", "prod"}:
+            raise RuntimeError(message)
+        logger.error(message)
+    await prepare_database()
+    from backend.services.admission import ensure_default_workspace
+    from backend.services.sessions import purge_expired
+    async with session_factory()() as db:
+        await ensure_default_workspace(db)
+        await purge_expired(db)
     if settings.E2E_BOOTSTRAP_USERS and settings.ENVIRONMENT == "e2e":
         from sqlalchemy import select
         from backend.core.security import hash_password
         from backend.models.db import User
-        async with AsyncSessionLocal() as db:
+        async with session_factory()() as db:
             for email, name, roles in (
                 ("recruiter@example.com", "Recruiter Test", ["recruiter"]),
                 ("manager@example.com", "Hiring Manager Test", ["hiring_manager"]),
                 ("admin@example.com", "HR Admin Test", ["hr_admin"]),
             ):
                 if not await db.scalar(select(User).where(User.email == email)):
-                    db.add(User(email=email, full_name=name, roles=roles, hashed_password=hash_password("Phase5Test!")))
+                    db.add(User(email=email, full_name=name, roles=roles, hashed_password=hash_password("Phase5Test!"),
+                                workspace_id=settings.DEFAULT_WORKSPACE_ID, email_verified=True))
             await db.commit()
-    async with AsyncSessionLocal() as db:
+    async with session_factory()() as db:
         logger.info("Purged %s expired evidence records", await purge_expired_evidence(db))
     # Initialize the runtime repository. Production starts empty; candidates and
-    # jobs enter through the ingestion and job-creation APIs.
+    # jobs enter through the ingestion and job-creation APIs, and are restored
+    # from the database after a restart (OI-01).
     seed_loader.load_all()
-    from backend.services.persisted_jobs import restore_custom_jobs
-    async with AsyncSessionLocal() as db:
-        await restore_custom_jobs(db, seed_loader)
     service = context_builder
+    if service.persistence is not None:
+        await service.persistence.restore(service)
+    else:  # Isolated builders without durable storage still see persisted jobs.
+        from backend.services.persisted_jobs import restore_custom_jobs
+        async with session_factory()() as db:
+            await restore_custom_jobs(db, seed_loader)
     app.state.context_builder = service
     service.start_all(wait_for_requests=True)
     from backend.services.llm.router import get_provider_router
@@ -59,6 +78,8 @@ async def lifespan(app: FastAPI):
         yield
     finally:
         await service.shutdown()
+        from backend.services.audit import audit_writer
+        await audit_writer.flush()
         from backend.services.graph.neo4j_client import get_graph_client
         await get_graph_client().close()
         get_graph_client.cache_clear()

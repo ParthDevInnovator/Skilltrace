@@ -11,6 +11,7 @@ async def restore_custom_jobs(db, repository):
         repository.add_job(Job(
             id=row.id, title=row.title, department=row.department, location=row.location,
             description_raw=row.description_raw, created_at=row.created_at.isoformat(),
+            workspace_id=row.workspace_id or "default",
             requirements=[{"id": r.id, "requirement_text": r.skill, "is_mandatory": r.level == "required"} for r in requirements],
             requirements_preview=[r.skill for r in requirements[:4]],
         ))

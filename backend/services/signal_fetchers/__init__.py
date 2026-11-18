@@ -31,6 +31,18 @@ class SignalCache:
         with Cache(str(self.path), timeout=1) as cache:
             cache.clear()
 
+    def delete_matching(self, fragments: list[str]) -> int:
+        """Delete entries whose key mentions any of the given profile handles."""
+        needles = [str(fragment).strip().casefold() for fragment in fragments if str(fragment).strip()]
+        if not needles:
+            return 0
+        removed = 0
+        with Cache(str(self.path), timeout=1) as cache:
+            for key in list(cache.iterkeys()):
+                if any(needle in str(key).casefold() for needle in needles):
+                    removed += int(bool(cache.delete(key)))
+        return removed
+
     def get_cached(self, key: str) -> CachedPayload | None:
         try:
             with Cache(str(self.path), timeout=1) as cache:

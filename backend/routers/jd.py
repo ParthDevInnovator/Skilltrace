@@ -10,6 +10,7 @@ from backend.services.ranking_engine import rank_with_results, build_match, find
 from backend.services.match_store import match_store
 from backend.core.dependencies import require_role
 from backend.core.roles import Role
+from backend.core.workspace import in_workspace, workspace_of
 router = APIRouter(tags=['JD matching'])
 class ExtractRequest(BaseModel):
     job_id: str | None = None
@@ -19,20 +20,22 @@ class JobRequest(BaseModel):
     reference_date: date | None = None
     def date(self):
         return self.reference_date or datetime.now(timezone.utc).date()
-def find_job(service, id):
+def find_job(service, id, workspace_id=None):
     job = service.repository.get_job(id)
-    if job is None: raise HTTPException(404,'Job not found.')
+    if job is None or (workspace_id is not None and not in_workspace(job, workspace_id)):
+        raise HTTPException(404,'Job not found.')
     return job
 @router.post('/extract', response_model=list[ExtractedRequirement])
 def extract(body: ExtractRequest, service=Depends(get_context_builder), user=Depends(require_role(Role.recruiter, Role.hr_admin))):
     # Never re-extract an existing structured job, even if jd_text is supplied.
-    if body.job_id is not None: return requirements_for_job(find_job(service,body.job_id))
+    if body.job_id is not None: return requirements_for_job(find_job(service,body.job_id,workspace_of(user)))
     if not body.jd_text or len(body.jd_text.strip()) < 50: raise HTTPException(422,'Provide a job_id or at least 50 characters of jd_text.')
     return extract_requirements(body.jd_text,'CUSTOM')
 @router.post('/rank', response_model=list[RankedCandidate])
 def rank(body: JobRequest, service=Depends(get_context_builder), user=Depends(require_role(Role.recruiter, Role.hr_admin))):
-    job = find_job(service,body.job_id)
-    candidates = {c.id:c for c in service.repository.all_candidate_details()}
+    workspace = workspace_of(user)
+    job = find_job(service,body.job_id,workspace)
+    candidates = {c.id:c for c in service.repository.all_candidate_details() if in_workspace(c, workspace)}
     entries = {id:service.registry.get(id) for id in candidates}
     rows, results = rank_with_results(job,entries,body.date(),candidates)
     for result in results:
@@ -43,11 +46,14 @@ def rank(body: JobRequest, service=Depends(get_context_builder), user=Depends(re
     return rows
 @router.post('/similar', response_model=list[SimilarJob])
 def similar(body: JobRequest, service=Depends(get_context_builder), user=Depends(require_role(Role.recruiter, Role.hr_admin))):
-    return find_similar_jobs(find_job(service,body.job_id),service.repository.get_jobs())
-async def candidate_match(candidate_id, body, service):
+    workspace = workspace_of(user)
+    return find_similar_jobs(find_job(service,body.job_id,workspace),
+                             [job for job in service.repository.get_jobs() if in_workspace(job, workspace)])
+async def candidate_match(candidate_id, body, service, workspace_id=None):
     candidate = service.repository.get_candidate(candidate_id)
-    if candidate is None: raise HTTPException(404,'Candidate not found.')
-    job = find_job(service,body.job_id)
+    if candidate is None or (workspace_id is not None and not in_workspace(candidate, workspace_id)):
+        raise HTTPException(404,'Candidate not found.')
+    job = find_job(service,body.job_id,workspace_id)
     entry = service.registry.get(candidate.id)
     if entry is None:
         revision = service.reserve(candidate.id)
