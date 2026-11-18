@@ -1,13 +1,16 @@
 import { useAuth as useClerkAuth, useUser } from '@clerk/react'
 import { useEffect, useLayoutEffect, useState, type ReactNode } from 'react'
 import { AuthContext, type AuthUser } from './AuthContext'
-import { setTokenProvider } from '@/services/authToken'
+import { setSessionRenewer, setTokenProvider } from '@/services/authToken'
 
 export function ClerkIdentity({ children }: { children: ReactNode }) {
   const { isLoaded, isSignedIn, sessionId, userId, getToken, signOut } = useClerkAuth()
   const { isLoaded: profileLoaded, user: clerkUser } = useUser()
   const [identity, setIdentity] = useState<{ session: string | null | undefined; user: AuthUser | null } | null>(null)
   useLayoutEffect(() => setTokenProvider(getToken), [getToken])
+  useLayoutEffect(() => setSessionRenewer(async () => {
+    try { return await getToken({ skipCache: true }) } catch { return null }
+  }), [getToken])
   useEffect(() => {
     if (!isLoaded) return
     let live = true
@@ -37,7 +40,7 @@ export function ClerkIdentity({ children }: { children: ReactNode }) {
     ready: Boolean(isLoaded && profileLoaded && identity?.session === sessionId), isAuthenticated: Boolean(isSignedIn && user),
     hasRole: role => Boolean(user?.roles.includes('hr_admin') || user?.roles.includes(role)),
     login: async () => { throw new Error('Use Clerk sign in') },
-    logout: async () => { setIdentity(null); await signOut() },
+    logout: async () => { setIdentity(null); await signOut({ redirectUrl: '/login' }) },
     refreshToken: async () => { await getToken({ skipCache: true }) },
   }}>{children}</AuthContext.Provider>
 }

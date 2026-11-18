@@ -1,220 +1,245 @@
 ﻿# Knowledge Base — Skitrace
 
-> Internal project knowledge base. Captures the project gist, the status of every
-> work item (open / backlog / planned / completed), and the dates work landed.
+> One-stop project gist + work-item status (completed / open / backlog / planned) with dates.
 >
-> **Last compiled:** 2026-10-31
-> **Source of truth:** `PRD.md`, `README.md`, `PHASE_1_TASKS.md` … `PHASE_5_TASKS.md`
+> **Last compiled:** 2026-11-18 · **Branch at compile:** `redesign/ui-complete-functional-audit` (`98c3aae`)
+> **Sources of truth:** `PRD.md`, `PHASE_1..5_TASKS.md`, `PRODUCT_DESIGN_AUDIT.md`,
+> `REDESIGN_REPAIR_STATUS.md`, **`open-issues.md` (current backlog)**, git history.
+>
+> There is no external ticket tracker. Work was tracked as phase checklists (Oct) and then as
+> audit issue lists (Nov). Issue IDs below (`OI-xx`) refer to `open-issues.md`.
 
 ---
 
-## 1. Project Gist (the one-paragraph version)
+## 1. Project gist
 
-**Skitrace** ("Trace Skills to Evidence") is an
-AI-powered candidate intelligence platform for recruiters, talent acquisition
-teams, and hiring managers. It pulls fragmented candidate signals — resumes, ATS
-history, interview feedback, GitHub, LeetCode, LinkedIn — into a single
-evidence-backed **CandidateContext**, scores that evidence with a **deterministic**
-(non-LLM) math engine, matches candidates against job-description requirements, and
-surfaces it all in a React recruiter workspace. An LLM layer adds grounded chat,
-executive briefs, and interview questions, plus a Neo4j knowledge graph.
+**Skitrace — "Trace Skills to Evidence"** is an AI-powered candidate-intelligence platform for
+recruiters, TA teams and hiring managers. It merges fragmented candidate signals (resume, GitHub,
+LeetCode, synthetic LinkedIn, interview notes) into one evidence-backed **CandidateContext**. A
+**deterministic, non-LLM scoring engine** scores that evidence and matches it to job-description
+requirements. Results appear in a React recruiter workspace. An LLM layer adds grounded chat,
+executive briefs and gap-targeted interview questions. A Neo4j knowledge graph is also included.
 
-**Foundational principle:** Skitrace *informs* human hiring decisions with
-transparent, verifiable evidence. It never automates hiring or rejection, and LLMs
-explain evidence but never compute scores.
+**Core principle:** Skitrace *supports* human hiring decisions and never automates them. LLMs explain
+evidence but never compute scores. Missing public evidence is shown as *Unassessed* and is never
+penalised.
 
-### The five questions the product answers
-1. What does the candidate claim? (resume + projects)
-2. What evidence supports the claim? (GitHub / LeetCode / interview notes)
-3. How does that evidence map to the target role? (JD requirement coverage)
-4. What is still unverified or unknown? (gaps, without assuming dishonesty)
-5. What should the interviewer validate next? (gap-targeted questions)
+**The five questions it answers:**
+1. What does the candidate claim?
+2. What evidence supports it?
+3. How does it map to the role?
+4. What is still unverified?
+5. What should the interviewer check next?
 
 ### Tech stack
-| Layer | Technology |
-|:---|:---|
-| Frontend | React 19, TypeScript, Vite, CSS design tokens + build-time Tailwind |
+| Layer | Tech |
+|:--|:--|
+| Frontend | React 19, TypeScript, Vite, CSS tokens + Tailwind; carbon/champagne redesign (15 screens) |
 | Backend | Python 3.12, FastAPI, Pydantic v2, Uvicorn |
-| AI providers | Google Gemini (primary), Groq (fallback), Ollama (local dev) |
-| Graph | Neo4j Aura + Cognee (async background seeding) |
-| Persistence | SQLAlchemy + Alembic migrations (prototype started on in-memory/JSON seeds) |
-| Auth | JWT / OAuth2, role-based access control |
+| Persistence | SQLAlchemy + Alembic (SQLite `mosaic.db` locally); **candidates/contexts still in-memory** (OI-01) |
+| Auth | Clerk **Google-only** login (production UI); native JWT login for dev/tests; RBAC Recruiter → Hiring Manager (masked PII) → HR Admin |
+| AI | Gemini (primary), Groq (fallback), Ollama (local) |
+| Graph | Neo4j (+ background seeding behind `GRAPH_SEEDING_ENABLED`) |
 
-### Key architectural rules
-- **Deterministic scoring is isolated from the LLM.** Scores are reproducible math.
-- **Fail-soft everywhere.** Missing GitHub/LeetCode/LinkedIn or a dead Neo4j never
-  crashes the pipeline; core context + scoring keep working.
-- **No silent verification.** Finding an evidence record never flips a resume claim
-  to "verified." Missing public signals are labeled *Unassessed / Needs validation*,
-  never penalized.
-- **LinkedIn is synthetic only** — local stub fixtures, no live scraping.
-
----
-
-## 2. Status Summary (at a glance)
-
-All five phases are **complete and verified**. Every task checkbox across the five
-phase task files is checked `[x]`; there are **no open `[ ]` items** remaining.
-
-| Phase | Theme | Status | Completed / Verified |
-|:---:|:---|:---|:---|
-| 1 | Recruiter workspace & foundation | ✅ Complete | 2026-10-26 |
-| 2 | Candidate ingestion & evidence scoring | ✅ Complete | 2026-10-26 |
-| 3 | JD matching, extraction & ranking | ✅ Complete | 2026-10-28 |
-| 4 | Conversational AI & knowledge graph | ✅ Complete | 2026-10-29 |
-| 5 | Production readiness, security & compliance | ✅ Complete | 2026-10-29 |
-
-**Interpretation of issue buckets for this project:** work was tracked as
-phase → milestone → task checklists rather than a ticket tracker. So:
-- **Completed** = everything below (all phases).
-- **Open / In-progress** = none at time of compile.
-- **Backlog / Planned** = the explicitly deferred scope-decisions in §4.
-
----
-
-## 3. Completed Work — by phase (with dates)
-
-### Phase 1 — Skitrace Recruiter Workspace & Foundation
-**Completed/verified 2026-10-26.**
-Delivered the light-mode recruiter workspace backed by seeded APIs.
-- Backend scaffolding: FastAPI, CORS, lifespan seed loading, Pydantic settings.
-- Seed data: 5 jobs + 6 candidates; synchronous in-memory seed loader with search/filters.
-- Implemented endpoints: `GET /health`, `GET /api/v1/jobs`, `/jobs/{id}`,
-  `/api/v1/candidates`, `/candidates/{id}` (plus unprefixed aliases).
-- Frontend shell: fixed 240px sidebar, 56px header, Overview / Jobs / Candidates
-  views, searchable job selector, custom JD modal (session-only), candidate grid
-  with filters, candidate profile tabs, TXT/MD/PDF/DOCX upload UI.
-- Accessibility: focus trap, Escape/arrow-key nav, Ctrl/Cmd+K search, Axe WCAG A/AA.
-- **Verification:** 37 backend tests, 5 frontend tests, 8 Playwright checks, build + lint pass.
-
-### Phase 2 — Candidate Ingestion & Evidence Scoring Engine
-**Created 2026-10-26, completed/verified 2026-10-26.** Tasks 1.1–8.4.
-- Resume ingestion `POST /api/v1/ingest/resume` (PDF/DOCX/TXT, ≤5 MB, scanned-PDF reject, 202 building).
-- Services: resume parser, identity extractor, deduplicator (email-based), claim extractor (≤20 claims).
-- Signal fetchers: GitHub (REST, 30-repo cap, fork rules, real commit dates),
-  LeetCode (public GraphQL, undated weight-1 records), LinkedIn (synthetic stub only).
-- Disk cache layer with 6-hour TTL; synthetic fixtures bypass cache.
-- **Deterministic scoring engine** (`scoring_engine.py`): explicit reference date,
-  recency multipliers (1.0 / 0.7 / 0.4 / 0.2; undated/future = 0.7), continuous
-  label tiers (No public evidence / Limited / Some / Good / Strong).
-- Background context builder with building/ready/failed states, ≤3 concurrent builds.
-- New endpoints: `/context`, `/resume`, `/resolve`, `POST /seed/rebuild` (admin-key gated).
-- Evidence Explorer UI, EvidenceBar/EvidenceCard, ResumeViewer.
-- **Verification:** 196 backend tests, 27 frontend tests, 18 browser checks, build + lint pass.
-
-### Phase 3 — JD Matching, Requirement Extraction & Candidate Ranking
-**Created 2026-10-26, completed/verified 2026-10-28.** Tasks 1.1–7.5.
-- Requirement models + configurable skill taxonomy (longest-alias matching, e.g. React.js vs React).
-- Rule-based requirement extractor (≤10 deduped requirements, mandatory/preferred).
-- Requirement matcher + coverage classifier (Matched / Partial / Insufficient / Unassessed).
-- **Dual-axis ranking:** `Final = 0.5 × Resume Fit + 0.5 × Evidence Strength`; 100% reproducible.
-- Match store keyed by job + candidate + reference date, scoped to context revision.
-- Endpoints: `/jd/extract`, `/jd/rank`, `/candidates/{id}/jd-match`, `/jd/similar`,
-  `POST /api/v1/jobs` (process-local custom requisition creation).
-- Frontend: LiveJDMatchingView, JDMatchTab, RequirementFilter, "Rank by fit".
-- **Verification:** 253 backend tests, 37 frontend tests, 26 browser checks, build + lint pass.
-
-### Phase 4 — Conversational AI Intelligence & Knowledge Graph
-**Created 2026-10-28, completed/verified 2026-10-29.**
-- LLM provider abstraction: Gemini primary, Groq fallback, configurable models/timeouts.
-- Agent orchestrator with tool-calling loop (max 5 iterations); strict source-grounding.
-- Grounded recruiter chat, four-section executive briefs, gap-targeted interview questions
-  (citations validated against claim/evidence/requirement IDs before return).
-- Neo4j client + background graph seeding (`GRAPH_SEEDING_ENABLED`); degrades gracefully.
-- Endpoints: `/agent/chat`, `/candidates/{id}/brief`, `/interview-questions`, `/graph`, `/graph-evidence`.
-- Frontend: ChatDrawer, BriefQuestionsTab, GraphVisualization.
-- **Verification:** full backend/frontend/build/lint/Playwright suite (final counts in `PHASE_4_TASKS.md`).
-
-### Phase 5 — Production Readiness, Security & Compliance
-**Created 2026-10-29, completed/verified 2026-10-29.** Tasks 1.1–7.x.
-- Persistence: SQLAlchemy ORM + Alembic migrations (`alembic upgrade head` / `make migrate`),
-  connection pooling, idempotent seed script.
-- Auth: JWT + refresh tokens, password hashing, OAuth2 entry points.
-- **RBAC (cumulative roles):** Recruiter → Hiring Manager (masked PII) → HR Admin.
-- Privacy/GDPR: `DELETE /api/v1/candidates/{id}` atomic erasure (204 success / 500 rollback);
-  independent deletion-event audit; retention windows for cached signals.
-- Security headers on every response: CSP, `X-Content-Type-Options`, `X-Frame-Options`.
-- Evaluation suite: ranking-stability benchmark (100 identical results, p99 < 200 ms),
-  extraction precision/recall, 50-user load check.
-- **Verification (2026-10-29):** 355 backend tests, 65 frontend tests, 5 Playwright/axe
-  scenarios. Load run: 1,103 req/endpoint, candidate-list p95 1,636.58 ms, ranking p95
-  1,776.84 ms, 0% errors. Bundle scan found no leaked secrets or seeded emails.
-
----
-
-## 4. Backlog / Planned / Deferred (open scope decisions)
-
-No active tickets are open. The items below were **explicitly deferred** during the
-build and remain the known backlog / future-scope list:
-
-| Item | Origin | Status |
-|:---|:---|:---|
-| **Dark mode + persistent theme preference** | Phase 1 (ThemeContext/ThemeToggle retired) | Backlog — needs a scope decision; current UI is light-only |
-| **OCR for scanned PDFs** | Phase 2 ingestion | Not planned — scanned PDFs with <50 chars are rejected |
-| **Live LinkedIn retrieval** | Phase 2 signal fetchers | Not planned — LinkedIn stays synthetic stub only |
-| **Role-based evidence weighting overrides** | PRD §7 risk mitigation (bias) | Planned mitigation, not yet an implemented control |
-| **Managed/production deployment hardening & asset/font delivery** | Phase 5 | Partially addressed; production delivery verification is ongoing |
-| **Multi-worker / horizontally-scaled ingestion** | Phase 2 note | Deferred — prototype expects a single backend worker |
-
-> The Phase 1 "Follow-on Phase Tasks" table (resume parsing, external signals,
-> JD extraction/ranking, brief/chat/graph, auth/RBAC/persistence) was the original
-> backlog. **All of those items have since been delivered** in Phases 2–5.
-
----
-
-## 5. Timeline (when things completed)
-
-```
-2026-10-26  Phase 1 complete & verified   (workspace, seeded APIs)
-2026-10-26  Phase 2 complete & verified   (ingestion + deterministic scoring)
-2026-10-28  Phase 3 complete & verified   (JD matching + dual-axis ranking)
-2026-10-29  Phase 4 complete & verified   (LLM chat/brief/questions + graph)
-2026-10-29  Phase 5 complete & verified   (persistence, auth, RBAC, GDPR, benchmarks)
-```
-
-PRD v1.2 reviewed 2026-10-26 ("implementation-aligned roadmap").
-
----
-
-## 6. Quick Reference
-
-### Run locally
-```powershell
-# setup
-python -m venv .venv
-.\.venv\Scripts\pip install -r backend\requirements.txt
-npm install; npm --prefix frontend install
-
-# run both servers
-npm run dev            # or .\dev.ps1
-```
-- Frontend: http://localhost:5173
-- API docs (Swagger): http://localhost:8000/docs
-- Health: http://localhost:8000/health
-
-### Test & verify
-```powershell
-npm run test:backend                 # pytest backend/tests
-npm --prefix frontend test           # vitest
-npm --prefix frontend run lint
-npm --prefix frontend run build
-npm --prefix frontend run test:e2e   # Playwright (Edge), offline controlled-adapter backend
-pytest backend/tests/benchmarks/     # ranking/extraction benchmarks
-alembic upgrade head                 # apply DB schema (or: make migrate)
-python -m backend.scripts.seed_db    # idempotent demo seed
-```
-
-### Config notes
-- Secrets stay backend-only — never expose DB / JWT / OAuth / AI-provider / Neo4j
-  values through a `VITE_` variable.
-- `ADMIN_KEY` gates `POST /seed/rebuild` (sent via `X-Admin-Key`); unset ⇒ 403.
-- AI features need `GEMINI_API_KEY` and/or `GROQ_API_KEY`; graph needs `NEO4J_*`.
+### Key flows
+`Login (Google/Clerk)` → `Overview dashboard` → `Jobs` → `Create job wizard (JD → requirements)` →
+`Add candidates (resume upload → /ingest/resume, 202 building)` → `Pipeline analysis (poll context)` →
+`Candidate results / ranking (Final = 0.5·Resume Fit + 0.5·Evidence Strength)` →
+`Candidate dossier (overview, JD match, resume, brief & questions, graph, chat)` → `Comparison (≤3)`.
+Also: Talent Pool, Evidence Explorer, Talent Discovery (unavailable).
 
 ### Repo map
 ```
-backend/     FastAPI app, models, routers, services, repositories, migrations, tests
-frontend/    React 19 + Vite workspace (components, context, services, types)
-PRD.md       Product requirements & five-phase roadmap
-PHASE_*.md   Per-phase task checklists + verification sign-offs
-README.md    Setup, scripts, per-phase operational notes
+backend/    FastAPI app: routers (admin, agent, auth, candidates, graph, health, ingest, jd, jobs),
+            services (ingestion, scoring, matching, ranking, agent, llm, graph, signal_fetchers),
+            models, repositories, migrations, tests (356)
+frontend/   React app: components/{dashboard,profile,evidence,graph,agent,layout,cards,common},
+            context, services, hooks, e2e (Playwright)
+*.md        PRD, phase task lists, audits, open-issues backlog, API test report
 ```
+
+---
+
+## 2. Status at a glance (as of 2026-11-18)
+
+| Bucket | Count | Notes |
+|:--|:--:|:--|
+| ✅ **Completed** | 5 phases + redesign + repair + 15 design-audit findings | Oct 17 → Nov 7, 2026 |
+| 🔴 **Open (P1, production blockers)** | **10** | OI-01…OI-09, OI-35 |
+| 🟠 **Open (P2, before functional sign-off)** | **37** | Matching, async/recovery, graph, product gaps, ops, tests |
+| 🟡 **Open (P3, maintenance)** | **1** | OI-44 docs/legacy cleanup |
+| 📋 **Planned** | 5 fix waves | Order defined in `open-issues.md`; **no dates committed** |
+| 🗂️ **Backlog / deferred / not planned** | ~12 items | Dark mode, OCR, live LinkedIn, Microsoft SSO, magic link, etc. |
+
+**Health signals (audit 2026-11-07):**
+- Backend pytest: 356 passed.
+- Frontend Vitest: 81 passed, **5 failed**.
+- Playwright repair suite: **3 passed / 11 failed**, mostly stale locators.
+- Build: passes.
+- Lint: 5 warnings.
+
+**Activity:** no commits since 2026-11-07 (11 days). Nothing from the 48-issue backlog has been
+closed yet. `.test-tmp/` is untracked.
+
+---
+
+## 3. Timeline — what was completed when
+
+| Date | Commit(s) | Milestone |
+|:--|:--|:--|
+| 2026-10-17 | `96ca4f6` | Repo created |
+| 2026-10-25 | `ce64116`, `96ca54a` | Phase 1 foundation; mock data + seed loader |
+| 2026-10-26 | `1463761`, `597526c` | ✅ **Phase 1** — recruiter workspace, seeded APIs (37 BE / 5 FE tests) |
+| 2026-10-26 | `8b39029`, `3d706fe`, `22712ed` | ✅ **Phase 2** — resume ingestion, GitHub/LeetCode/LinkedIn-stub signals, deterministic scoring, evidence explorer (196 BE / 27 FE) |
+| 2026-10-28 | `6660cee` | ✅ **Phase 3** — taxonomy, requirement extraction, coverage, dual-axis ranking (253 BE / 37 FE) |
+| 2026-10-28 | `fe0e8bf` | ✅ **Phase 4** — LLM provider abstraction, agent, grounded chat, briefs, interview Qs, Neo4j graph |
+| 2026-10-29 | `82f6d20` | ✅ **Phase 5** — SQLAlchemy/Alembic, JWT/OAuth, RBAC, GDPR erasure, security headers, benchmarks (355 BE / 65 FE) |
+| 2026-10-31 | `8e88a34` | Renamed product to **Skitrace**; first KB |
+| 2026-11-06 | `e603230`, `db5246c` | Bug-fix passes |
+| 2026-11-06 | `0a1f1aa` | 15-screen UI redesign (mockup-matched). Audit found it relied on mock data |
+| 2026-11-06 | — | `PRODUCT_DESIGN_AUDIT.md`: 15 findings (1 P0, 10 P1, 4 P2) |
+| 2026-11-07 | `2ba2163` | ✅ **Redesign repair**: all 15 audit findings addressed (see §4.2) |
+| 2026-11-07 | `dba5f96` | ✅ Google-only login (Clerk) + protected dashboard routes |
+| 2026-11-07 | `7b3dc57`, `cdf86e4`, `d1191e5`, `98c3aae` | ✅ Redesigned overview/jobs, job creation, workspace, upload, analysis, results, intelligence screens |
+| 2026-11-07 | `98c3aae` | 🔎 Full functional audit: **`open-issues.md` — 48 open issues** |
+
+---
+
+## 4. Completed work
+
+### 4.1 Phases 1–5 (all checklist items `[x]`)
+| Phase | Theme | Done |
+|:--:|:--|:--|
+| 1 | Recruiter workspace & foundation | 2026-10-26 |
+| 2 | Ingestion & deterministic evidence scoring | 2026-10-26 |
+| 3 | JD matching, extraction & ranking | 2026-10-28 |
+| 4 | Conversational AI & knowledge graph | 2026-10-28/29 |
+| 5 | Production readiness, security & compliance | 2026-10-29 |
+
+Detail for each phase is in `PHASE_n_TASKS.md` and the `README.md` phase sections.
+
+### 4.2 Redesign repair — closed 2026-11-07 (`PRODUCT_DESIGN_AUDIT.md` → `REDESIGN_REPAIR_STATUS.md`)
+| # | Pri | Finding (06 Nov) | Resolution (07 Nov) |
+|:--|:--|:--|:--|
+| 01 | P0 | Default admin/demo session on login failure | Server-verified sessions; failed login stays signed out |
+| 02 | P1 | Add Candidates never uploaded the file | Wired to multipart `/ingest/resume` + returned candidate ID |
+| 03 | P1 | Pipeline progress was a timer | Polls actual context status; ready/error/retry |
+| 04–07 | P1 | Hard-coded job workspace, Talent Pool, evidence and dossier data | Replaced with API-backed data |
+| 08 | P1 | Comparison was fixed (Maya/Jonas) | Real comparison of up to 3 candidates |
+| 09 | P1 | Fake discovery results | Marked unavailable |
+| 10 | P1 | Wizard dropped structured fields | Skills persisted as requirements; other fields kept in JD text |
+| 11 | P1 | "Request Evidence" did nothing | Marked unavailable |
+| 12–15 | P2 | Fixed dashboard numbers, dead controls, SOC 2 claim, export naming | Removed or disabled; renamed to "Export brief" |
+
+Verified at the time: 356 BE, 67 FE and 14/14 Playwright tests passed. This baseline no longer holds; see §2.
+
+### 4.3 Mockup-gap items now done (BL items in `open-issues.md`)
+- Google SSO, through Clerk (`pages/GoogleLogin.tsx`).
+- Side-by-side comparison of up to 3 candidates. Persistence and recovery gaps remain: OI-14, OI-15, OI-16.
+- Real resume upload and pipeline status polling. Per-stage telemetry remains open: OI-28.
+
+---
+
+## 5. Open issues (48) — audit 2026-11-07, all still open
+
+Priority meanings: **P1** = fix before real candidate data. **P2** = fix before functional sign-off.
+**P3** = maintenance.
+
+### 🔴 P1 — production blockers (10)
+| ID | Issue | Area |
+|:--|:--|:--|
+| OI-01 | Uploaded candidates/contexts lost on backend restart (in-memory) | Persistence |
+| OI-02 | Multiple workers see inconsistent state (process-local stores) | Persistence / scale |
+| OI-03 | Delete (GDPR) misses ingestion, context, match and graph stores; 404 for uploaded candidates | Privacy |
+| OI-04 | Hiring-manager masking bypassable via `/resolve`, `/resume`, agent tools | RBAC |
+| OI-05 | New sign-ups auto-get recruiter role; no workspace scoping | Access policy |
+| OI-06 | Logout leaves refresh token valid; blacklist not persisted | Auth |
+| OI-07 | Immediate reload after Sign out keeps user signed in | Auth (FE) |
+| OI-08 | Clerk requests not audited; audit writes fail silently | Audit |
+| OI-09 | Frontend/backend requirement IDs differ for new jobs, so comparison shows 0 matched | Matching |
+| OI-35 | Native OAuth state not bound to the browser; `email_verified` not checked | Auth |
+
+### 🟠 P2 — before functional sign-off (37)
+| Group | IDs | Gist |
+|:--|:--|:--|
+| Matching & intelligence | OI-10, 11, 12, 18, 19 | Overview coverage math differs from JD Match. Unrelated claims downgrade coverage. Aliases (Kafka/Apache Kafka) not unified. Re-upload keeps stale skills and links. Source outages look like "no evidence" |
+| Async refresh & comparison | OI-13, 14, 15, 16, 17 | Rankings never refresh after builds. Comparison contexts stay pending, retry is broken, and selections are lost. Brief belongs to the previously selected job |
+| Knowledge graph | OI-20, 21, 22, 23 | Stale nodes after re-upload. Graph claims "contributed to" without proof. View modes are not real. Race between skill selections |
+| Uploads & processing | OI-24, 25, 26, 27, 28, 29 | Batch shows "Complete" at HTTP 202. Queue keyed by filename. No in-place identity fix. Retry doesn't rebuild. Pipeline stages are inferred. No claim verification/contradiction engine |
+| Unfinished product features | OI-30, 31, 32, 33 | No job↔candidate membership. No job status/edit/activity, and Jobs ID search is broken. NL discovery and evidence requests missing. No notifications/settings/admin UI |
+| Auth, retention & ops | OI-34, 36, 37, 38, 39, 40, 41 | No automatic token refresh. Retention doesn't cover runtime stores. Synthetic filter not enforced. No rate or input limits. No URL state for reload/back. Dashboard hides partial failures. Export is incomplete |
+| Verification & config | OI-42, 43, 45, 46, 47, 48 | 5 FE tests failing. 11 E2E tests failing and 5 lint warnings. File-size and requirement contracts mismatch (10 MB vs 5 MB). No deployment config or live smoke test. Admin rebuild drops custom jobs. Passwords over 72 bytes cause HTTP 500 |
+
+### 🟡 P3 (1)
+| OI-44 | Docs, legacy components and encoding mojibake disagree with the current product (README phase sections, old `CandidateGrid`/`LoginPage`) |
+|:--|:--|
+
+Full repro, sources and completion criteria for each issue are in `open-issues.md`.
+
+---
+
+## 6. Planned — fix order (from `open-issues.md`, no dates assigned)
+
+| Wave | Scope | Issues |
+|:--:|:--|:--|
+| 1 | Persistence + permissions; decide single- vs multi-workspace access model | OI-01…08, OI-35 |
+| 2 | Canonical requirement IDs, unified matching and skill state | OI-09…12, OI-18, OI-19 |
+| 3 | Async recovery, batch tracking, comparison/brief state | OI-13…17, OI-24…29 |
+| 4 | Graph attribution, revisions, job scope | OI-20…23 |
+| 5 | Agreed product gaps + ops contracts, then a green test/doc baseline and live integration sign-off | OI-30…34, 36…48 |
+
+> ⚠️ **No target dates or owners are recorded anywhere in the repo.** Add them here when agreed.
+> Product decisions are needed before work starts on OI-05 (enrollment and workspace model), OI-11
+> (coverage scoring policy), OI-32 (discovery and evidence-request scope) and OI-33 (in-app vs
+> external admin).
+
+---
+
+## 7. Backlog / deferred / not planned
+
+| Item | Origin | Status |
+|:--|:--|:--|
+| Dark mode + persisted theme | Phase 1 | Backlog; UI is light-only (redesign uses carbon/champagne) |
+| OCR for scanned PDFs | Phase 2 | Not planned; scanned PDFs are rejected |
+| Live LinkedIn retrieval | Phase 2 | Not planned; synthetic stub only |
+| Role-based evidence-weight overrides (bias mitigation) | PRD §7 | Planned mitigation, not built |
+| Microsoft / Azure AD SSO | Mockups | Not planned; login is Google-only |
+| Passwordless magic-link email login | Mockups | Not planned |
+| SOC 2 badge / legal pages | Mockups | Badge removed; Terms/Privacy pages still needed |
+| Timeframe deltas + durable activity feed | Mockups (dashboard) | Backlog (related to OI-40) |
+| Semantic/RAG talent discovery (vector search) | Mockups | Backlog (OI-32) |
+| Request-evidence portal for candidates | Mockups | Backlog (OI-32) |
+| Global evidence search + bulk export endpoint | Mockups | Backlog (OI-38, OI-41) |
+| Scheduled profile re-crawl worker | Mockups (Talent Pool) | Backlog (OI-36) |
+| SSE/WebSocket 8-stage pipeline + PDF preview | Mockups | Backlog (OI-28) |
+| Batch ingestion queue (async worker) | Mockups | Partially built in the UI; backend queue missing (OI-24…26) |
+
+---
+
+## 8. Quick reference
+
+```powershell
+# setup
+python -m venv .venv; .\.venv\Scripts\pip install -r backend\requirements.txt
+npm install; npm --prefix frontend install
+# run (FE http://localhost:5173, API docs http://localhost:8000/docs)
+npm run dev            # or .\dev.ps1
+# verify
+.\.venv\Scripts\python.exe -c "import os,pytest; os.environ['DEBUG']='false'; raise SystemExit(pytest.main(['backend/tests','-q','-p','no:cacheprovider']))"
+npm --prefix frontend test; npm --prefix frontend run lint; npm --prefix frontend run build
+npm --prefix frontend run test:e2e:repair
+alembic upgrade head   # or: make migrate
+```
+- Secrets stay on the backend only; never put them in `VITE_*` variables.
+- AI features need `GEMINI_API_KEY` / `GROQ_API_KEY`. The graph needs `NEO4J_*` and
+  `GRAPH_SEEDING_ENABLED`. `ADMIN_KEY` gates `/seed/rebuild`.
+- The API walkthrough is in `API_FEATURE_TEST_REPORT.md`.
+
+### Which document is current?
+| Doc | Status |
+|:--|:--|
+| `open-issues.md` | ✅ **The single open-issues file**: tracker for OI-01…48 plus feature backlog BL-01…33 |
+| `KB.md` (this file) | ✅ Current summary (2026-11-18) |
+| `REDESIGN_REPAIR_STATUS.md` | Historical sign-off (Nov 7, before the audit); its test numbers are outdated |
+| `PRODUCT_DESIGN_AUDIT.md` | Historical; all findings closed in `2ba2163` |
+| `PRD.md`, `PHASE_*_TASKS.md` | Original spec and completed phase checklists |

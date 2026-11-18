@@ -58,6 +58,29 @@ class Settings(BaseSettings):
     CLERK_SECRET_KEY: SecretStr | None = None
     CLERK_AUTHORIZED_PARTIES: List[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
+    # Fix Phase 1: schema upgrades, workspaces/admission, sessions and delivery.
+    DATABASE_AUTO_MIGRATE: bool = True
+    # Only one backend worker is supported (OI-02, decision D2): in-memory caches,
+    # build tasks and rate limits are process-local. SQL is the durable source.
+    SUPPORTED_WORKERS: int = Field(default=1, ge=1, le=1)
+    DEFAULT_WORKSPACE_ID: str = "default"
+    DEFAULT_WORKSPACE_NAME: str = "Default workspace"
+    # Seeded only when the default workspace is first created; afterwards HR
+    # admins manage domains through the API.
+    DEFAULT_WORKSPACE_DOMAINS: List[str] = []
+    ALLOW_NATIVE_REGISTRATION: bool = True
+    REGISTER_RATE_LIMIT_PER_HOUR: int = Field(default=10, ge=1)
+    EMAIL_VERIFICATION_TTL_HOURS: int = Field(default=24, gt=0)
+    OAUTH_STATE_TTL_SECONDS: int = Field(default=600, gt=0)
+    OAUTH_LINK_TTL_MINUTES: int = Field(default=15, gt=0)
+    APP_BASE_URL: str = "http://localhost:5173"
+    SMTP_HOST: str | None = None
+    SMTP_PORT: int = 587
+    SMTP_USER: str | None = None
+    SMTP_PASSWORD: SecretStr | None = None
+    SMTP_FROM: str | None = None
+    SMTP_STARTTLS: bool = True
+
     @field_validator("DEBUG", mode="before")
     @classmethod
     def parse_debug_mode(cls, value):

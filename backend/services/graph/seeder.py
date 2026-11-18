@@ -15,10 +15,11 @@ async def seed_candidate_graph(candidate_id, context, job_id=None, *, repository
         skills = sorted({resolve_skill(r.skill) for r in [*context.claims, *context.evidence_records] if r.skill})
         records = [{'id': candidate_id + ':' + str(r.source_url), 'url': str(r.source_url),
                     'skill': resolve_skill(r.skill)} for r in context.evidence_records]
-        rows = await client.query('''MERGE (c:Candidate {id:$candidate_id}) SET c.name=$name
+        rows = await client.query('''MERGE (c:Candidate {id:$candidate_id}) SET c.name=$name, c.workspace_id=$workspace_id
             WITH c UNWIND $skills AS skill
             MERGE (s:Skill {id:skill}) SET s.name=skill MERGE (c)-[:HAS_SKILL]->(s)
-            RETURN c.id AS id''', candidate_id=candidate_id, name=context.candidate.full_name, skills=skills)
+            RETURN c.id AS id''', candidate_id=candidate_id, name=context.candidate.full_name, skills=skills,
+            workspace_id=context.candidate.workspace_id or 'default')
         if rows is None:
             return False
         rows = await client.query('''MATCH (c:Candidate {id:$candidate_id}) UNWIND $records AS record

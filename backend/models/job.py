@@ -29,6 +29,7 @@ class Job(JobBase):
         default_factory=lambda: datetime.now(timezone.utc).isoformat(),
         description="ISO 8601 creation timestamp",
     )
+    workspace_id: Optional[str] = Field(default=None, description="Owning workspace; None means the default workspace")
 
 
 class JobFilterParams(BaseModel):

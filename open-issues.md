@@ -6,7 +6,64 @@ Backlog: **48 issues: 10 P1, 37 P2, 1 P3.** The highest-impact items are candida
 
 The redesigned screens are treated as the accepted UI. This backlog concerns behavior, data correctness, permissions, integration, persistence, and verification. It does not propose another visual redesign. No application fixes were made during this audit.
 
-This is the current audit; `open issue.md`, `PRODUCT_DESIGN_AUDIT.md`, and `REDESIGN_REPAIR_STATUS.md` contain historical findings and sign-offs that do not all describe the present code.
+**This is the single open-issues file for the project.** The former mockup-gap list (`open issue.md`, 2026-11-06) has been merged into [Feature backlog](#feature-backlog-from-the-redesign-mockups) below and removed. `PRODUCT_DESIGN_AUDIT.md` and `REDESIGN_REPAIR_STATUS.md` are historical findings and sign-offs that do not all describe the present code.
+
+Last status review: 2026-11-18. No issue has been closed since the audit. Update the **Status** and **Closed** columns as fixes land.
+
+## Issue tracker
+
+Status values: `Open`, `In progress`, `Fixed`, `Won't fix`. Wave = the planned fix order in [Suggested implementation order](#suggested-implementation-order). No owners or target dates have been agreed yet.
+
+| ID | Title | Pri | Area | Wave | Status | Opened | Closed |
+| --- | --- | --- | --- | :-: | --- | --- | --- |
+| OI-01 | Uploaded candidate data disappears on backend restart | P1 | Persistence | 1 | Open | 2026-11-07 | |
+| OI-02 | Multiple backend workers have inconsistent records | P1 | Persistence | 1 | Open | 2026-11-07 | |
+| OI-03 | Deletion does not cover ingestion and graph stores | P1 | Privacy | 1 | Open | 2026-11-07 | |
+| OI-04 | Hiring-manager masking/raw-context restrictions bypassable | P1 | RBAC | 1 | Open | 2026-11-07 | |
+| OI-05 | New accounts get recruiter access without workspace admission | P1 | Access policy | 1 | Open — decided 2026-11-18: multi-workspace, domain + admin approval (see FIX_PHASE_1_TASKS.md) | 2026-11-07 | |
+| OI-06 | Native logout leaves refresh credentials valid | P1 | Auth | 1 | Open | 2026-11-07 | |
+| OI-07 | Immediate reload can interrupt sign-out | P1 | Auth (FE) | 1 | Open | 2026-11-07 | |
+| OI-08 | Clerk requests produce no access audit records | P1 | Audit | 1 | Open | 2026-11-07 | |
+| OI-09 | New jobs use different requirement IDs in FE and BE | P1 | Matching | 2 | Open | 2026-11-07 | |
+| OI-10 | Overview coverage differs from JD Match calculation | P2 | Matching | 2 | Open | 2026-11-07 | |
+| OI-11 | Unrelated resume claims downgrade requirement coverage | P2 | Scoring | 2 | Open — needs policy decision | 2026-11-07 | |
+| OI-12 | Skill labels don't resolve aliases or conflicts consistently | P2 | Matching | 2 | Open | 2026-11-07 | |
+| OI-13 | Rankings stay pending after background analysis finishes | P2 | Async | 3 | Open | 2026-11-07 | |
+| OI-14 | Comparison context requests can remain pending forever | P2 | Comparison | 3 | Open | 2026-11-07 | |
+| OI-15 | Comparison retry doesn't recover several failure states | P2 | Comparison | 3 | Open | 2026-11-07 | |
+| OI-16 | Comparison selections disappear during profile inspection | P2 | Comparison | 3 | Open | 2026-11-07 | |
+| OI-17 | Briefs/questions can belong to the previously selected job | P2 | Agent | 3 | Open | 2026-11-07 | |
+| OI-18 | Replacing a resume retains stale skills and profile links | P2 | Ingestion | 2 | Open | 2026-11-07 | |
+| OI-19 | Source outages look like a successful lack of evidence | P2 | Signals | 2 | Open | 2026-11-07 | |
+| OI-20 | Graph retains obsolete nodes/edges after resume replacement | P2 | Graph | 4 | Open | 2026-11-07 | |
+| OI-21 | Graph labels imply unproven contributions | P2 | Graph | 4 | Open | 2026-11-07 | |
+| OI-22 | Graph view filters are not the full projects/sources experience | P2 | Graph | 4 | Open | 2026-11-07 | |
+| OI-23 | Slow graph evidence responses overwrite newer selection | P2 | Graph | 4 | Open | 2026-11-07 | |
+| OI-24 | Batch upload declares completion at HTTP 202 | P2 | Uploads | 3 | Open | 2026-11-07 | |
+| OI-25 | Batch queue identity/retry keyed by filename | P2 | Uploads | 3 | Open | 2026-11-07 | |
+| OI-26 | Batch identity failures can't be corrected in place | P2 | Uploads | 3 | Open | 2026-11-07 | |
+| OI-27 | Retry evidence doesn't restart a failed context build | P2 | Processing | 3 | Open | 2026-11-07 | |
+| OI-28 | Pipeline stages are inferred rather than measured | P2 | Processing | 3 | Open | 2026-11-07 | |
+| OI-29 | Claim verification/contradiction assessment not implemented | P2 | Intelligence | 3 | Open | 2026-11-07 | |
+| OI-30 | Candidates not associated with the job used for upload | P2 | Product gap | 5 | Open | 2026-11-07 | |
+| OI-31 | Job lifecycle, editing, activity unavailable; job ID search broken | P2 | Product gap | 5 | Open | 2026-11-07 | |
+| OI-32 | Discovery and candidate evidence collection have no workflow | P2 | Product gap | 5 | Open — needs scope decision | 2026-11-07 | |
+| OI-33 | Notifications, settings and admin UI absent | P2 | Product gap | 5 | Open — needs scope decision | 2026-11-07 | |
+| OI-34 | Native sessions don't refresh automatically | P2 | Auth | 5 | Open | 2026-11-07 | |
+| OI-35 | Native OAuth state/email handling needs hardening | P1 | Auth | 1 | Open | 2026-11-07 | |
+| OI-36 | Retention doesn't govern runtime evidence and resumes | P2 | Privacy | 5 | Open | 2026-11-07 | |
+| OI-37 | Synthetic-data filtering not enforced on runtime route | P2 | Data policy | 5 | Open | 2026-11-07 | |
+| OI-38 | Resource limits missing on expensive API paths | P2 | Ops | 5 | Open | 2026-11-07 | |
+| OI-39 | Refresh/back navigation doesn't restore workspace | P2 | FE routing | 5 | Open | 2026-11-07 | |
+| OI-40 | Dashboard summaries can hide partial failures | P2 | Dashboard | 5 | Open | 2026-11-07 | |
+| OI-41 | Export scope and provenance incomplete | P2 | Export | 5 | Open | 2026-11-07 | |
+| OI-42 | Full frontend regression suite failing (5/86) | P2 | Tests | 5 | Open | 2026-11-07 | |
+| OI-43 | Browser acceptance (11/14 failing) and lint warnings | P2 | Tests | 5 | Open | 2026-11-07 | |
+| OI-44 | Docs and duplicate legacy components describe different products | P3 | Docs | 5 | Open (partly: issue lists consolidated 2026-11-18) | 2026-11-07 | |
+| OI-45 | Document/requirement contracts differ between layers | P2 | Jobs | 5 | Open | 2026-11-07 | |
+| OI-46 | Deployment and live integration sign-off outstanding | P2 | Ops | 5 | Open | 2026-11-07 | |
+| OI-47 | Admin rebuild clears restored custom jobs from matching | P2 | Admin | 5 | Open | 2026-11-07 | |
+| OI-48 | Native registration passwords > 72 bytes fail hashing (500) | P2 | Auth | 5 | Open | 2026-11-07 | |
 
 ## Scope and evidence
 
@@ -424,7 +481,7 @@ Lint reports five warnings: three `react(set-state-in-effect)` warnings and one 
 
 ### OI-44 - Documentation and duplicate legacy components describe different products
 
-**P3 | Code-confirmed.** `open issue.md` references removed login controls, obsolete API paths and features now implemented; README phase sections conflict with newer persistence/auth behavior. `REDESIGN_REPAIR_STATUS.md` records 67 passing frontend tests and 14 passing browser tests from an earlier state, not this audit. Old `CandidateGrid`/`CandidateCard`, `LoginPage`, `DashboardOverview` alias and other legacy paths coexist with new screens. Some user-facing strings also contain literal `?` substitutions or mojibake after encoding changes.
+**P3 | Code-confirmed.** The former `open issue.md` (now merged into this file) referenced removed login controls, obsolete API paths and features now implemented; README phase sections conflict with newer persistence/auth behavior. `REDESIGN_REPAIR_STATUS.md` records 67 passing frontend tests and 14 passing browser tests from an earlier state, not this audit. Old `CandidateGrid`/`CandidateCard`, `LoginPage`, `DashboardOverview` alias and other legacy paths coexist with new screens. Some user-facing strings also contain literal `?` substitutions or mojibake after encoding changes.
 
 **Completion:** designate current architecture/API/backlog documents, label historical sign-offs with their scope, remove or clearly isolate unused components, and normalize source text encoding without redesigning the UI.
 
@@ -468,6 +525,51 @@ Sources: `backend/routers/auth.py::RegisterRequest/register`, `backend/core/secu
 4. Reconcile graph attribution/revisions and job scope: OI-20 through OI-23.
 5. Implement the agreed product gaps and operational contracts, then update the complete test/documentation baseline and perform live integration sign-off.
 
+## Feature backlog (from the redesign mockups)
+
+These items come from the former `open issue.md`, written 2026-11-06 against the 15 redesign mockups. They are features, not defects. Items already delivered or covered by an OI above are linked rather than repeated. None are scheduled.
+
+| ID | Feature | Mockup screen | Status | Related |
+| --- | --- | --- | --- | --- |
+| BL-01 | Passwordless work-email magic link | Login | Not planned (login is Google-only via Clerk) | — |
+| BL-02 | Google SSO | Login | **Done** 2026-11-07 (`dba5f96`) | OI-34, OI-35 |
+| BL-03 | Microsoft / Azure AD SSO | Login | Not planned | — |
+| BL-04 | Terms / Privacy pages; SOC 2 badge | Login | Badge removed 2026-11-07; legal pages still needed | — |
+| BL-05 | Structured job fields (employment type, experience range, hiring manager) as DB columns | Job wizard | Backlog: currently kept in JD text | OI-31, OI-45 |
+| BL-06 | Extract years of experience and work-permit/language requirements | Job wizard | Backlog | — |
+| BL-07 | Dashboard timeframe picker with period deltas | Overview | Backlog | OI-40 |
+| BL-08 | Durable intelligence activity feed / event log | Overview | Backlog | OI-40, OI-08 |
+| BL-09 | Top-fit previews on job cards | Overview, Jobs | Backlog | OI-38 |
+| BL-10 | Job lifecycle status (draft/active/archived/closed) | Jobs | Backlog | OI-31 |
+| BL-11 | Per-job ingested/analyzed/processing counters | Jobs | Backlog | OI-30 |
+| BL-12 | Advanced requisition filter (department, seniority, recruiter, location) | Jobs | Backlog | — |
+| BL-13 | Full intelligence dossier export (PDF/Markdown) | Dossier | Backlog | OI-41 |
+| BL-14 | "Request evidence" candidate portal | Dossier | Backlog: marked unavailable | OI-32 |
+| BL-15 | Contradiction detection engine | Dossier | Backlog | OI-29 |
+| BL-16 | Async multi-file batch ingestion queue | Add candidates | Partial: UI exists, no backend queue | OI-24, OI-25, OI-26 |
+| BL-17 | Resume metadata (size, pages, OCR confidence) | Add candidates | Backlog | — |
+| BL-18 | Live 8-stage pipeline via SSE/WebSocket | Pipeline | Backlog | OI-28 |
+| BL-19 | PDF preview with extraction highlights | Pipeline | Backlog | — |
+| BL-20 | Job workspace sub-tab deep links (`/jobs/:id/...`) | Job workspace | Backlog | OI-39 |
+| BL-21 | Server-side candidate facets (fit, evidence, status, source) | Job workspace | Backlog | OI-38 |
+| BL-22 | Side-by-side comparison of up to 3 candidates | Comparison | **Done** 2026-11-07 (`2ba2163`), client-side | OI-14, OI-15, OI-16 |
+| BL-23 | Server comparison/diff endpoint | Comparison | Backlog | OI-09 |
+| BL-24 | Job-scoped graph with real projects/sources views | Graph | Backlog | OI-22 |
+| BL-25 | External profile metadata on graph nodes | Graph | Backlog | OI-21 |
+| BL-26 | Global evidence search endpoint + bulk CSV/JSON export | Evidence Explorer | Backlog | OI-38, OI-41 |
+| BL-27 | Org-wide talent pool search/aggregation endpoint | Talent Pool | Backlog | OI-38 |
+| BL-28 | Scheduled profile refresh / re-crawl worker | Talent Pool | Backlog | OI-36 |
+| BL-29 | Natural-language / semantic (RAG) proof discovery | Talent Discovery | Backlog: marked unavailable | OI-32 |
+
+Longer-standing deferred scope, carried from the phase plans:
+
+| ID | Item | Status |
+| --- | --- | --- |
+| BL-30 | Dark mode + persisted theme | Backlog |
+| BL-31 | OCR for scanned PDFs | Not planned: scanned PDFs are rejected |
+| BL-32 | Live LinkedIn retrieval | Not planned: synthetic stub only |
+| BL-33 | Role-based evidence-weight overrides (PRD §7 bias mitigation) | Planned mitigation, not built |
+
 ## Final audit execution status
 
 All audit commands have completed. Build passed, backend tests passed, and frontend/browser verification is not green. The earlier per-screen passing test runs were narrower than this full-repository audit.
@@ -484,4 +586,4 @@ Browser acceptance classification:
 | Job-specific rankings/comparison | Failed | Failed | Search `JOB-001` produced no Open workspace button; OI-31 |
 | Evidence filters/export/provider unavailability/accessibility scenario | Passed | Passed | No failure in this scenario; its accessibility check is not coverage of every redesigned screen |
 
-Failure context and retained traces are under `frontend/test-results/`. Backend and browser tests used isolated fixtures/test configuration. No live identity/provider/graph readiness claim is made. The audit added this file only; existing application changes and the historical `open issue.md` were left intact.
+Failure context and retained traces are under `frontend/test-results/`. Backend and browser tests used isolated fixtures/test configuration. No live identity/provider/graph readiness claim is made. The audit added this file only; existing application changes were left intact. (The historical mockup-gap list was later merged into this file on 2026-11-18.)

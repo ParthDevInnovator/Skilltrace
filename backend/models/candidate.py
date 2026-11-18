@@ -34,6 +34,7 @@ class CandidateSummary(CandidateBase):
         default=None,
         description="Phase 1 placeholder / Phase 3 calculated match score",
     )
+    workspace_id: Optional[str] = Field(default=None, description="Owning workspace; None means the default workspace")
 
 
 class ExternalIdentifiers(BaseModel):

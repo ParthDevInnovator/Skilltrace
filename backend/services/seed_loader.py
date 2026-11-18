@@ -158,6 +158,7 @@ class SeedLoader:
                 top_skills=c.top_skills,
                 resume_path=c.resume_path,
                 match_preview=c.match_preview,
+                workspace_id=c.workspace_id,
             )
             for c in self.all_candidate_details()
         ]
@@ -215,6 +216,11 @@ class SeedLoader:
         self.ensure_loaded()
         with self.candidate_lock:
             self._candidates[candidate.id] = candidate
+
+    def delete_candidate(self, candidate_id: str) -> CandidateDetail | None:
+        self.ensure_loaded()
+        with self.candidate_lock:
+            return self._candidates.pop(candidate_id, None)
 
     def reload(self) -> None:
         """Forces cache rebuild from disk."""

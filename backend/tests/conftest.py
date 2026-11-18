@@ -19,11 +19,21 @@ def isolated_test_environment(tmp_path_factory):
     from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
     directory = tmp_path_factory.mktemp("database")
     engine = create_async_engine(f"sqlite+aiosqlite:///{(directory / 'tests.db').as_posix()}")
+    from backend.core.database import configure_sqlite
+    configure_sqlite(engine)
     sessions = async_sessionmaker(engine, expire_on_commit=False)
     async def prepare():
         async with engine.begin() as connection:
             await connection.run_sync(Base.metadata.create_all)
+        from backend.services.admission import ensure_default_workspace
+        async with sessions() as session:
+            await ensure_default_workspace(session)
     asyncio.run(prepare())
+    # Background writers (runtime persistence, audit, startup) use this factory.
+    from backend.core.database import set_session_factory
+    previous_factory = set_session_factory(sessions)
+    old_migrate = settings.DATABASE_AUTO_MIGRATE
+    settings.DATABASE_AUTO_MIGRATE = False
     async def test_db():
         async with sessions() as session:
             yield session
@@ -40,6 +50,8 @@ def isolated_test_environment(tmp_path_factory):
     app.dependency_overrides[get_db] = test_db
     yield test_db
     settings.CLERK_SECRET_KEY = old_clerk
+    settings.DATABASE_AUTO_MIGRATE = old_migrate
+    set_session_factory(previous_factory)
     seed_loader.load_demo_data = old_demo
     seed_loader.data_dir = old_data
     settings.DATA_DIR = old_settings_data
@@ -57,6 +69,8 @@ def isolated_database_per_test(isolated_test_environment):
     from backend.core.database import get_db
     previous = dict(app.dependency_overrides)
     app.dependency_overrides[get_db] = isolated_test_environment
+    from backend.routers.auth import register_limiter
+    register_limiter.reset()
     yield
     app.dependency_overrides.clear()
     app.dependency_overrides.update(previous)

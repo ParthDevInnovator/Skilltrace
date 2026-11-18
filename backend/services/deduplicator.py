@@ -14,6 +14,7 @@ from backend.services.claim_extractor import DEFAULT_SKILLS
 from backend.services.identity_extractor import ExtractedIdentity
 from backend.services.resume_parser import ParsedResume
 from backend.services.seed_loader import SeedLoader, seed_loader
+from backend.core.workspace import default_workspace_id, record_workspace
 import re
 
 logger = logging.getLogger(__name__)
@@ -39,18 +40,23 @@ class ResumeIngestionStore:
     def __init__(self, repository: SeedLoader):
         self.repository = repository
         self.pending_builds: dict[str, PendingContextBuild] = {}
+        # Pre-upload state per candidate, so a failed durable write can be undone.
+        self.previous_versions: dict[str, tuple[CandidateDetail | None, PendingContextBuild | None]] = {}
 
     def upsert(self, identity: ExtractedIdentity, parsed: ParsedResume,
-               filename: str, raw_bytes: bytes) -> tuple[CandidateDetail, bool, str]:
+               filename: str, raw_bytes: bytes, workspace_id: str | None = None) -> tuple[CandidateDetail, bool, str]:
         # Lock email lookup, sequential-ID allocation, write, and queue publication
         # together so parallel uploads cannot allocate the same ID or email twice.
         self.repository.ensure_loaded()
         with self.repository.candidate_lock:
             candidates = self.repository.all_candidate_details()
+            workspace = workspace_id or default_workspace_id()
             email = str(identity.email).strip().casefold() if identity.email else None
             if not email:
                 raise MissingIdentityError("An email is required. Supply the email form field if extraction missed it.")
-            existing = next((candidate for candidate in candidates if str(candidate.email).strip().casefold() == email), None)
+            # De-duplicate within the uploader's workspace only; IDs stay globally unique.
+            existing = next((candidate for candidate in candidates if record_workspace(candidate) == workspace
+                             and str(candidate.email).strip().casefold() == email), None)
             if not existing and not identity.full_name:
                 raise MissingIdentityError("A full name is required. Supply the full_name form field if extraction missed it.")
             skills = [skill for skill in DEFAULT_SKILLS if re.search(rf"(?<!\w){re.escape(skill)}(?!\w)", parsed.raw_text, re.I)]
@@ -65,7 +71,7 @@ class ResumeIngestionStore:
                 values.update(email=email, external_identifiers=links, top_skills=skills or existing.top_skills)
             else:
                 number = max((int(c.id[5:]) for c in candidates if c.id.startswith("CAND-") and c.id[5:].isdigit()), default=0) + 1
-                values = dict(id=f"CAND-{number:03d}", full_name=identity.full_name, email=email,
+                values = dict(id=f"CAND-{number:03d}", full_name=identity.full_name, email=email, workspace_id=workspace,
                               headline=identity.headline or "Not provided", location=identity.location or "Not provided",
                               experience_years=identity.experience_years, top_skills=skills,
                               external_identifiers=ExternalIdentifiers(**{key: getattr(identity, key) for key in ("github", "linkedin", "leetcode")}))
@@ -74,11 +80,29 @@ class ResumeIngestionStore:
             values.update(resume_path=None, resume_text_stub=None, claims_preview=[], match_preview=None)
             candidate = CandidateDetail.model_validate(values)
             revision = str(uuid4())
+            self.previous_versions[candidate.id] = (existing, self.pending_builds.get(candidate.id))
             self.pending_builds[candidate.id] = PendingContextBuild(revision, Path(filename).name, raw_bytes, parsed)
             self.repository.save_candidate(candidate)
             logger.info("Resume ingestion candidate=%s decision=%s", candidate.id, "duplicate" if existing else "new")
             return candidate, existing is not None, revision
 
+    def undo(self, candidate_id: str) -> None:
+        """Restore the pre-upload state after a failed durable write."""
+        with self.repository.candidate_lock:
+            previous, pending = self.previous_versions.pop(candidate_id, (None, None))
+            if previous is None:
+                self.repository.delete_candidate(candidate_id)
+            else:
+                self.repository.save_candidate(previous)
+            if pending is None:
+                self.pending_builds.pop(candidate_id, None)
+            else:
+                self.pending_builds[candidate_id] = pending
+
+    def forget(self, candidate_id: str) -> None:
+        with self.repository.candidate_lock:
+            self.pending_builds.pop(candidate_id, None)
+            self.previous_versions.pop(candidate_id, None)
 
 
 ingestion_store = ResumeIngestionStore(seed_loader)

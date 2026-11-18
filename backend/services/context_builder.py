@@ -49,6 +49,17 @@ class ContextBuildRegistry:
             entry = self._entries.get(candidate_id)
             return replace(entry, context=entry.context.model_copy(deep=True)) if entry and entry.context else entry
 
+    def restore(self, candidate_id: str, revision: str, status: str, *, context=None, error=None,
+                unavailable_sources=()) -> None:
+        """Reinstate a durable build result after a restart."""
+        with self._lock:
+            self._entries[candidate_id] = ContextBuildState(candidate_id, revision, status,
+                context.model_copy(deep=True) if context else None, error, tuple(unavailable_sources))
+
+    def remove(self, candidate_id: str) -> None:
+        with self._lock:
+            self._entries.pop(candidate_id, None)
+
     def finish(self, candidate_id: str, revision: str, *, context=None, error=None, unavailable_sources=()) -> bool:
         if context is None and not error:
             raise ValueError("A completed build needs a context or an error")
@@ -64,10 +75,12 @@ class ContextBuildRegistry:
 
 class ContextBuilder:
     def __init__(self, store: ResumeIngestionStore, *, registry=None, fetchers=None,
-                 clock=None, concurrency: int = 3):
+                 clock=None, concurrency: int = 3, persistence=None):
         if concurrency < 1:
             raise ValueError("Context build concurrency must be positive")
         self.store = store
+        # Optional durable store (RuntimePersistence). Isolated tests run without one.
+        self.persistence = persistence
         self.repository = store.repository
         self.registry = registry if registry is not None else ContextBuildRegistry()
         self.fetchers = fetchers if fetchers is not None else {
@@ -96,18 +109,44 @@ class ContextBuilder:
                 self.repository.reload()
                 self.store.pending_builds.clear()
                 self.registry.clear()
+            if self.persistence is not None:
+                # Reload empties the cache; durable jobs and candidates come back (OI-47).
+                await self.persistence.restore(self, include_contexts=False)
             self.start_all()
             return {"rebuilt_at": datetime.now(timezone.utc).isoformat(),
                     "candidate_count": self.repository.stats()["total_candidates"],
                     "job_count": self.repository.stats()["total_jobs"]}
 
-    async def ingest_resume(self, identity, parsed, filename, raw_bytes):
-        """Serialize candidate mutation with admin rebuilds."""
+    async def ingest_resume(self, identity, parsed, filename, raw_bytes, workspace_id=None):
+        """Serialize candidate mutation with admin rebuilds; durable before it is reported."""
         async with self._rebuild_lock:
             candidate, updated, revision = await asyncio.to_thread(
-                self.store.upsert, identity, parsed, filename, raw_bytes,
+                self.store.upsert, identity, parsed, filename, raw_bytes, workspace_id,
             )
+            if self.persistence is not None:
+                try:
+                    pending = self.store.pending_builds[candidate.id]
+                    await self.persistence.save_ingest(candidate, revision=revision, filename=pending.filename,
+                                                       raw_bytes=raw_bytes, parsed=parsed)
+                except Exception:
+                    self.store.undo(candidate.id)
+                    raise
+            self.store.previous_versions.pop(candidate.id, None)
             return candidate, updated, revision, self.reserve(candidate.id, revision)
+
+    async def forget(self, candidate_id: str) -> None:
+        """Stop work for a deleted candidate and drop every cached copy of it."""
+        tasks = [task for task, key in self._task_keys.items() if key[0] == candidate_id]
+        with self.repository.candidate_lock:
+            # Remove the registry entry first: a task finishing late fails its revision check.
+            self.registry.remove(candidate_id)
+            self.store.forget(candidate_id)
+            self.repository.delete_candidate(candidate_id)
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        from backend.services.match_store import match_store
+        match_store.clear_candidate(candidate_id)
 
     def reserve(self, candidate_id: str, revision: str | None = None) -> str | None:
         with self.repository.candidate_lock:
@@ -143,8 +182,11 @@ class ContextBuilder:
         self._semaphore = asyncio.Semaphore(self._concurrency)
         self._startup_gate = asyncio.Event() if wait_for_requests else None
         candidates = self.repository.all_candidate_details()
+        # Results restored from durable storage are current; do not rebuild them.
+        current = {c.id for c in candidates if (entry := self.registry.get(c.id)) is not None
+                   and entry.status in ("ready", "failed")}
         # Publish every building state before scheduling even the first worker.
-        reservations = [(candidate.id, self.reserve(candidate.id)) for candidate in candidates]
+        reservations = [(candidate.id, self.reserve(candidate.id)) for candidate in candidates if candidate.id not in current]
         for candidate_id, revision in reservations:
             self.launch(candidate_id, revision)
 
@@ -264,6 +306,7 @@ class ContextBuilder:
                         current.stage = "ready"
                         current.error = None
                 logger.info("Context ready candidate=%s unavailable_sources=%s", candidate_id, unavailable)
+                await self._persist(candidate, revision, "ready", context=context, unavailable=unavailable)
                 from backend.config import settings
                 if settings.GRAPH_SEEDING_ENABLED:
                     task = asyncio.create_task(self._seed_graph(candidate_id, context))
@@ -275,8 +318,19 @@ class ContextBuilder:
             raise
         except Exception as error:
             logger.error("Context build failed candidate=%s error_type=%s", candidate_id, type(error).__name__)
-            self._fail(candidate_id, revision, "Candidate context build failed. Retry the build.", unavailable)
+            message = "Candidate context build failed. Retry the build."
+            self._fail(candidate_id, revision, message, unavailable)
+            candidate = self.repository.get_candidate(candidate_id)
+            if candidate is not None:
+                await self._persist(candidate, revision, "failed", error=message, unavailable=unavailable)
             return None
+
+    async def _persist(self, candidate, revision, status, *, context=None, error=None, unavailable=()):
+        # Only uploaded candidates are durable; bundled fixtures are rebuilt from disk.
+        if self.persistence is None or candidate.id not in self.store.pending_builds:
+            return
+        await self.persistence.save_build(candidate, revision, status=status, context=context,
+                                          error=error, unavailable_sources=unavailable)
 
     async def _seed_graph(self, candidate_id, context):
         try:
@@ -295,7 +349,9 @@ class ContextBuilder:
                     pending.error = message
 
 
-context_builder = ContextBuilder(ingestion_store)
+from backend.services.runtime_persistence import runtime_persistence  # noqa: E402
+
+context_builder = ContextBuilder(ingestion_store, persistence=runtime_persistence)
 
 
 async def build_context(candidate: CandidateDetail) -> CandidateContext | None:

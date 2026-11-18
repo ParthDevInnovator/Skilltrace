@@ -39,8 +39,11 @@ async def test_model_crud_and_candidate_cascades(db):
     loaded=await db.get(Candidate,'CAND-DB');loaded.headline='Principal Engineer';await db.commit()
     assert (await db.get(Candidate,'CAND-DB')).headline=='Principal Engineer'
     await db.delete(loaded);await db.commit()
-    for model in (ResumeClaim,EvidenceRecord,MatchResult,ApplicationHistory,InterviewFeedback,ChatHistory,AuditLog):
+    for model in (ResumeClaim,EvidenceRecord,MatchResult,ApplicationHistory,InterviewFeedback,ChatHistory):
         assert await db.scalar(select(func.count()).select_from(model))==0
+    # Audit rows are not foreign-keyed to candidates (OI-08): the erasure workflow
+    # removes them explicitly, and runtime/erased candidates stay auditable.
+    assert await db.scalar(select(func.count()).select_from(AuditLog))==1
     assert await db.get(Job,'JOB-DB') is not None and await db.get(User,user.id) is not None
 
 

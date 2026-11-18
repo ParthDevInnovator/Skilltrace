@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 from backend.config import settings
 from backend.services.seed_loader import seed_loader
+from backend.services.audit import audit_writer
 
 router = APIRouter(tags=["Health"])
 
@@ -15,4 +16,6 @@ async def health_check():
         "environment": settings.ENVIRONMENT,
         "debug": settings.DEBUG,
         "record_counts": seed_loader.stats(),
+        "audit": audit_writer.stats(),
+        "workers_supported": settings.SUPPORTED_WORKERS,
     }

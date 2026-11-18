@@ -9,6 +9,23 @@ from backend.core.dependencies import require_role
 from backend.core.roles import Role
 from backend.core.database import get_db
 from backend.models.db import Job as DBJob, JobRequirement as DBJobRequirement
+from backend.core.workspace import default_workspace_id, in_workspace, workspace_of
+from sqlalchemy import or_
+
+
+def _workspace_filter(workspace: str):
+    # Rows written before workspaces existed belong to the default workspace.
+    if workspace == default_workspace_id():
+        return or_(DBJob.workspace_id == workspace, DBJob.workspace_id.is_(None))
+    return DBJob.workspace_id == workspace
+
+
+def _from_row(row, requirements) -> Job:
+    return Job(id=row.id, title=row.title, department=row.department, location=row.location,
+               description_raw=row.description_raw, workspace_id=row.workspace_id or default_workspace_id(),
+               requirements=[{'id': item.id, 'requirement_text': item.skill, 'category': None,
+                              'is_mandatory': item.level == 'required'} for item in requirements],
+               requirements_preview=[item.skill for item in requirements[:4]], created_at=row.created_at.isoformat())
 
 router = APIRouter(tags=["Jobs"])
 
@@ -37,14 +54,13 @@ async def list_jobs(
 ) -> List[Job]:
     """Retrieve the filtered list of persisted jobs."""
     params = JobFilterParams(search=search, department=department, location=location)
-    jobs=seed_loader.get_jobs(params=params)
-    custom=(await db.scalars(select(DBJob).where(DBJob.is_custom.is_(True)).order_by(DBJob.created_at.desc()))).all()
+    workspace = workspace_of(user)
+    jobs=[job for job in seed_loader.get_jobs(params=params) if in_workspace(job, workspace)]
+    custom=(await db.scalars(select(DBJob).where(DBJob.is_custom.is_(True), _workspace_filter(workspace)).order_by(DBJob.created_at.desc()))).all()
     for row in custom:
         if any(job.id==row.id for job in jobs):continue
-        requirements=(await db.scalars(select(DBJobRequirement).where(DBJobRequirement.job_id==row.id))).all()
-        candidate=Job(id=row.id,title=row.title,department=row.department,location=row.location,description_raw=row.description_raw,
-            requirements=[{'id':item.id,'requirement_text':item.skill,'category':None,'is_mandatory':item.level=='required'} for item in requirements],
-            requirements_preview=[item.skill for item in requirements[:4]],created_at=row.created_at.isoformat())
+        requirements=(await db.scalars(select(DBJobRequirement).where(DBJobRequirement.job_id==row.id).order_by(DBJobRequirement.id))).all()
+        candidate=_from_row(row, requirements)
         if (not search or search.casefold() in str(candidate.model_dump()).casefold()) and (not department or department.casefold() in candidate.department.casefold()) and (not location or location.casefold() in candidate.location.casefold()):jobs.append(candidate)
     return jobs
 
@@ -71,10 +87,9 @@ async def get_job(job_id: str, user=Depends(require_role(Role.recruiter, Role.hi
     if not job:
         row=await db.get(DBJob,job_id)
         if row:
-            requirements=(await db.scalars(select(DBJobRequirement).where(DBJobRequirement.job_id==row.id))).all()
-            job=Job(id=row.id,title=row.title,department=row.department,location=row.location,description_raw=row.description_raw,
-                requirements=[{'id':item.id,'requirement_text':item.skill,'category':None,'is_mandatory':item.level=='required'} for item in requirements],requirements_preview=[item.skill for item in requirements[:4]],created_at=row.created_at.isoformat())
-    if not job:
+            requirements=(await db.scalars(select(DBJobRequirement).where(DBJobRequirement.job_id==row.id).order_by(DBJobRequirement.id))).all()
+            job=_from_row(row, requirements)
+    if not job or not in_workspace(job, workspace_of(user)):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Job with ID '{job_id}' not found",
@@ -91,7 +106,8 @@ async def create_job(body: JobCreate, service=Depends(get_context_builder), user
     requirements = body.requirements or extract_requirements(body.description_raw,id)
     # Requirement IDs are primary keys, and must be unique across persisted jobs.
     requirements = [r.model_copy(update={"id": f"{id}-REQ-{i:03d}"}) for i, r in enumerate(requirements, 1)]
-    job = Job(id=id,**body.model_dump(exclude={'requirements'}),requirements=[{'id':r.id,'requirement_text':r.requirement_text,'category':r.category,'is_mandatory':r.is_mandatory} for r in requirements],requirements_preview=[r.requirement_text for r in requirements[:4]])
-    db.add(DBJob(id=id,title=body.title,department=body.department,location=body.location,description_raw=body.description_raw,is_custom=True,created_by=getattr(user,'id',None) if hasattr(getattr(user,'id',None),'hex') else None))
+    workspace = workspace_of(user)
+    job = Job(id=id,workspace_id=workspace,**body.model_dump(exclude={'requirements'}),requirements=[{'id':r.id,'requirement_text':r.requirement_text,'category':r.category,'is_mandatory':r.is_mandatory} for r in requirements],requirements_preview=[r.requirement_text for r in requirements[:4]])
+    db.add(DBJob(id=id,title=body.title,department=body.department,location=body.location,description_raw=body.description_raw,is_custom=True,workspace_id=workspace,created_by=getattr(user,'id',None) if hasattr(getattr(user,'id',None),'hex') else None))
     db.add_all([DBJobRequirement(id=r.id,job_id=id,skill=r.requirement_text,level='required' if r.is_mandatory else 'preferred',weight=1.0) for r in requirements]);await db.commit()
     return service.repository.add_job(job)

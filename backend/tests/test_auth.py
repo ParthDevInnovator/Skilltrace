@@ -60,7 +60,7 @@ async def test_google_oauth_authorize_callback_upserts_user(auth_client,monkeypa
   async def __aenter__(self):return self
   async def __aexit__(self,*_):return None
   async def post(self,*_,**__):return Reply({'access_token':'provider-token'})
-  async def get(self,*_,**__):return Reply({'email':'oauth.user@example.com','name':'OAuth User'})
+  async def get(self,*_,**__):return Reply({'sub':'google-sub-1','email':'oauth.user@example.com','email_verified':True,'name':'OAuth User'})
  monkeypatch.setattr('backend.routers.auth.httpx.AsyncClient',lambda **_:Client())
  callback=await auth_client.get('/api/v1/auth/oauth/callback',params={'code':'valid-code','state':state});assert callback.status_code==200 and callback.json()['access_token']
 
