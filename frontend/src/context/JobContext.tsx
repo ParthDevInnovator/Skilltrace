@@ -14,8 +14,8 @@ interface JobContextType {
   setSearchQuery: (q: string) => void
   selectedSkill: string
   setSelectedSkill: (skill: string) => void
-  activeView: 'overview' | 'jobs' | 'candidates' | 'candidate-detail' | 'evidence' | 'graph' | 'job-detail' | 'add-candidates' | 'pipeline' | 'talent-pool' | 'talent-discovery' | 'comparison'
-  setActiveView: (view: 'overview' | 'jobs' | 'candidates' | 'candidate-detail' | 'evidence' | 'graph' | 'job-detail' | 'add-candidates' | 'pipeline' | 'talent-pool' | 'talent-discovery' | 'comparison') => void
+  activeView: 'overview' | 'jobs' | 'candidates' | 'candidate-detail' | 'evidence' | 'graph' | 'job-detail' | 'add-candidates' | 'pipeline' | 'talent-pool' | 'talent-discovery' | 'comparison' | 'admin-access'
+  setActiveView: (view: 'overview' | 'jobs' | 'candidates' | 'candidate-detail' | 'evidence' | 'graph' | 'job-detail' | 'add-candidates' | 'pipeline' | 'talent-pool' | 'talent-discovery' | 'comparison' | 'admin-access') => void
   startPipeline: (candidateId: string) => void
   selectedCandidateId: string | null
   openCandidateDetail: (candidateId: string) => void
@@ -36,7 +36,7 @@ export function JobProvider({ children }: { children: ReactNode }) {
   const [customJD, setCustomJD] = useState<string>('')
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [selectedSkill, setSelectedSkill] = useState<string>('')
-  const [activeView, setActiveView] = useState<'overview' | 'jobs' | 'candidates' | 'candidate-detail' | 'evidence' | 'graph' | 'job-detail' | 'add-candidates' | 'pipeline' | 'talent-pool' | 'talent-discovery' | 'comparison'>(() => window.location.pathname.startsWith('/candidates') ? 'talent-pool' : 'overview')
+  const [activeView, setActiveView] = useState<'overview' | 'jobs' | 'candidates' | 'candidate-detail' | 'evidence' | 'graph' | 'job-detail' | 'add-candidates' | 'pipeline' | 'talent-pool' | 'talent-discovery' | 'comparison' | 'admin-access'>(() => window.location.pathname.startsWith('/candidates') ? 'talent-pool' : 'overview')
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null)
   const [jobWorkspaceTab, setJobWorkspaceTab] = useState<'overview' | 'candidates' | 'requirements' | 'comparison' | 'activity'>('overview')
   const [isLoadingJobs, setIsLoadingJobs] = useState<boolean>(true)

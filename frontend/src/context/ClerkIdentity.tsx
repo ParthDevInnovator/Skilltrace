@@ -7,6 +7,7 @@ export function ClerkIdentity({ children }: { children: ReactNode }) {
   const { isLoaded, isSignedIn, sessionId, userId, getToken, signOut } = useClerkAuth()
   const { isLoaded: profileLoaded, user: clerkUser } = useUser()
   const [identity, setIdentity] = useState<{ session: string | null | undefined; user: AuthUser | null } | null>(null)
+  const [reloads, setReloads] = useState(0)
   useLayoutEffect(() => setTokenProvider(getToken), [getToken])
   useLayoutEffect(() => setSessionRenewer(async () => {
     try { return await getToken({ skipCache: true }) } catch { return null }
@@ -26,7 +27,7 @@ export function ClerkIdentity({ children }: { children: ReactNode }) {
       } catch { if (live) setIdentity({ session: sessionId, user: null }) }
     })()
     return () => { live = false }
-  }, [isLoaded, sessionId, getToken])
+  }, [isLoaded, sessionId, getToken, reloads])
   const serverUser = identity?.session === sessionId ? identity?.user ?? null : null
   const profile = isSignedIn && clerkUser?.id === userId ? clerkUser : null
   const user = serverUser && profile ? {
@@ -42,5 +43,6 @@ export function ClerkIdentity({ children }: { children: ReactNode }) {
     login: async () => { throw new Error('Use Clerk sign in') },
     logout: async () => { setIdentity(null); await signOut({ redirectUrl: '/login' }) },
     refreshToken: async () => { await getToken({ skipCache: true }) },
+    reloadIdentity: async () => { setReloads(count => count + 1) },
   }}>{children}</AuthContext.Provider>
 }

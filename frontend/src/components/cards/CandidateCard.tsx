@@ -5,6 +5,7 @@ import { provenanceSummary } from '@/types/context'
 import type { CandidateSummary } from '@/types'
 import { useJob } from '@/context/JobContext'
 import { useAuth } from '@/context/AuthContext'
+import { locationLabel } from '@/services/masking'
 
 interface CandidateCardProps {
   ranking?: RankedCandidate
@@ -58,7 +59,7 @@ export function CandidateCard({ candidate, ranking }: CandidateCardProps) {
           <span aria-hidden="true" className="material-symbols-outlined text-[15px] text-[var(--text-muted)]">
             location_on
           </span>
-          <span className="truncate">{candidate.location}</span>
+          <span className="truncate">{locationLabel(candidate)}</span>
           <span>•</span>
           <span className="font-mono text-[11px] text-[var(--text-tertiary)]">#{candidate.id}</span>
         </div>

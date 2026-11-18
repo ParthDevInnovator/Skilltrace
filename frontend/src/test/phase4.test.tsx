@@ -9,7 +9,7 @@ import type { CandidateBrief, InterviewQuestionSet } from '@/types'
 
 const openCandidateDetail = vi.fn()
 vi.mock('@/context/JobContext', () => ({useJob: () => ({selectedJob:{id:'JOB-001'}, openCandidateDetail})}))
-vi.mock('@/services/api', () => ({api:{sendChatMessage:vi.fn(),generateBrief:vi.fn(),generateInterviewQuestions:vi.fn(),getCandidateGraph:vi.fn(),getGraphEvidence:vi.fn()}}))
+vi.mock('@/services/api', () => ({api:{recordExport:vi.fn(),sendChatMessage:vi.fn(),generateBrief:vi.fn(),generateInterviewQuestions:vi.fn(),getCandidateGraph:vi.fn(),getGraphEvidence:vi.fn()}}))
 
 const brief:CandidateBrief={candidate_id:'CAND-001',job_id:'JOB-001',generated_at:'2026-10-29T00:00:00Z',provider_used:'gemini',strengths:'Strong Python [OBS-1]',evidence_summary:'Repository evidence.',application_history_notes:'No prior applications.',identified_gaps:'Validate CLAIM-1.',grounding_ids:['OBS-1','CLAIM-1']}
 const questions:InterviewQuestionSet={candidate_id:'CAND-001',job_id:'JOB-001',generated_at:'2026-10-29T00:00:00Z',provider_used:'groq',grounding_ids:['CLAIM-1','REQ-1','CLAIM-2'],questions:[

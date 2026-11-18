@@ -13,6 +13,7 @@ import { ContextFeedback } from '@/components/evidence/ContextFeedback'
 import { EvidenceBar } from '@/components/evidence/EvidenceBar'
 import { labelForScore, provenanceSummary } from '@/types/context'
 import { useAuth } from '@/context/AuthContext'
+import { locationLabel } from '@/services/masking'
 
 export function CandidateProfileShell() {
   const { hasRole } = useAuth()
@@ -133,7 +134,7 @@ export function CandidateProfileShell() {
             </div>
 
             <p className="text-xs sm:text-sm text-[#59616b] mb-3">
-              {displayCandidate.headline} · {displayCandidate.location || 'Location unknown'} ·{' '}
+              {displayCandidate.headline} · {locationLabel(displayCandidate) || 'Location unknown'} ·{' '}
               {displayCandidate.experience_years != null ? `${displayCandidate.experience_years} yrs reported` : 'Experience unknown'}
             </p>
 
@@ -453,7 +454,11 @@ export function CandidateProfileShell() {
       {/* TAB 4: RAW RESUME */}
       {activeTab === 'resume' && (
         <section className="p-6 rounded-2xl bg-white border border-[#e7e2d9] shadow-card">
-          <ResumeViewer key={displayCandidate.id} candidateId={displayCandidate.id} />
+          {hasRole('recruiter') ? (
+            <ResumeViewer key={displayCandidate.id} candidateId={displayCandidate.id} />
+          ) : (
+            <div className="panel"><h2>Resume Reference</h2><p>The original resume contains contact details and is available to recruiters only.</p></div>
+          )}
         </section>
       )}
 

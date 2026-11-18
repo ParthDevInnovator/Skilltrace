@@ -24,6 +24,51 @@ export interface HealthResponse {
   }
 }
 
+export type MembershipStatus = 'pending' | 'approved' | 'rejected'
+export type WorkspaceRole = 'recruiter' | 'hiring_manager' | 'hr_admin'
+export interface MembershipRequest {
+  id: string
+  user_id: string
+  email: string
+  full_name: string
+  email_verified: boolean
+  auth_provider: string | null
+  status: MembershipStatus
+  requested_at: string | null
+  decided_at: string | null
+}
+export interface WorkspaceSettings { id: string; name: string; allowed_domains: string[] }
+/** Data leaving the app through a download or the clipboard; recorded before the export starts (OI-08). */
+export interface ExportEvent {
+  kind: 'brief' | 'evidence' | 'questions'
+  candidate_id?: string
+  job_id?: string
+  item_count?: number
+  format?: 'txt' | 'json' | 'clipboard'
+}
+
+/** A failed API call. `detail` is the server's human-readable reason, when it sent one. */
+export class ApiError extends Error {
+  readonly status: number
+  readonly endpoint: string
+  readonly body: string
+  constructor(status: number, endpoint: string, body: string) {
+    super(`API error ${status} on ${endpoint}: ${body}`)
+    this.name = 'ApiError'
+    this.status = status
+    this.endpoint = endpoint
+    this.body = body
+  }
+  get detail(): string | undefined {
+    try {
+      const detail = JSON.parse(this.body)?.detail
+      return typeof detail === 'string' ? detail : undefined
+    } catch {
+      return undefined
+    }
+  }
+}
+
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE}${endpoint}`
   const response = await authFetch(url, {
@@ -36,7 +81,7 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const errorBody = await response.text().catch(() => '')
-    throw new Error(`API error ${response.status} on ${endpoint}: ${errorBody}`)
+    throw new ApiError(response.status, endpoint, errorBody)
   }
 
   if (response.status === 204) return null as T
@@ -99,6 +144,19 @@ export const api = {
     request('/api/v1/ingest/resume', { method: 'POST', body: data }),
   getCandidateById: (id: string): Promise<CandidateDetail> =>
     request<CandidateDetail>(`/api/v1/candidates/${id}`),
+
+  // Workspace admission (OI-05). HR admins only; the server limits them to their own workspace.
+  getMembershipRequests: (status: MembershipStatus = 'pending'): Promise<MembershipRequest[]> =>
+    request(`/api/v1/admin/membership-requests?status=${status}`),
+  approveMembershipRequest: (id: string, role: WorkspaceRole): Promise<{ id: string; status: 'approved'; roles: string[] }> =>
+    request(`/api/v1/admin/membership-requests/${encodeURIComponent(id)}/approve`, { method: 'POST', body: JSON.stringify({ role }) }),
+  rejectMembershipRequest: (id: string): Promise<{ id: string; status: 'rejected' }> =>
+    request(`/api/v1/admin/membership-requests/${encodeURIComponent(id)}/reject`, { method: 'POST' }),
+  getWorkspaceSettings: (): Promise<WorkspaceSettings> => request('/api/v1/admin/workspace'),
+  recordExport: (event: ExportEvent): Promise<{ recorded: true }> =>
+    request('/api/v1/audit/export', { method: 'POST', body: JSON.stringify(event) }),
+  updateWorkspaceDomains: (workspaceId: string, allowed_domains: string[]): Promise<WorkspaceSettings> =>
+    request(`/api/v1/admin/workspaces/${encodeURIComponent(workspaceId)}/domains`, { method: 'PATCH', body: JSON.stringify({ allowed_domains }) }),
 }
 
 async function generationRequest<T>(id:string, action:string, params:object): Promise<GenerationResult<T>> {
