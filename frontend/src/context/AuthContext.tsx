@@ -1,5 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from 'react'
-import { setTokenProvider } from '@/services/authToken'
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { setSessionRenewer, setTokenProvider } from '@/services/authToken'
 
 export type AuthUser = {
   user_id: string
@@ -60,17 +60,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   })
 
   const [ready, setReady] = useState<boolean>(testMode)
+  // Read synchronously by API calls, so a renewed token is used before React re-renders.
+  const tokenRef = useRef<string | null>(accessToken)
+  const renewal = useRef<Promise<string | null> | null>(null)
 
-  useLayoutEffect(() => {
-    return setTokenProvider(async () => accessToken)
-  }, [accessToken])
+  const applyToken = useCallback((token: string | null) => {
+    tokenRef.current = token
+    setAccessToken(token)
+  }, [])
+
+  useLayoutEffect(() => setTokenProvider(async () => tokenRef.current), [])
 
   const clear = useCallback(() => {
     sessionStorage.removeItem(ACCESS)
     sessionStorage.removeItem(REFRESH)
-    setAccessToken(null)
+    renewal.current = null
+    applyToken(null)
     setUser(null)
-  }, [])
+  }, [applyToken])
+
+  /**
+   * Exchanges the refresh token for a new pair. The server rotates refresh tokens and revokes
+   * the whole session if one is reused, so concurrent callers share a single request.
+   */
+  const renewSession = useCallback((): Promise<string | null> => {
+    if (renewal.current) return renewal.current
+    const attempt = (async () => {
+      try {
+        const refresh = sessionStorage.getItem(REFRESH)
+        if (!refresh) throw new Error('No refresh token')
+        const data = await json(
+          await fetch('/api/v1/auth/refresh', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh_token: refresh }),
+          })
+        )
+        if (!data?.access_token || !data?.refresh_token) throw new Error('Invalid refresh response')
+        sessionStorage.setItem(ACCESS, data.access_token)
+        sessionStorage.setItem(REFRESH, data.refresh_token)
+        applyToken(data.access_token)
+        return data.access_token as string
+      } catch {
+        clear()
+        return null
+      }
+    })().finally(() => {
+      if (renewal.current === attempt) renewal.current = null
+    })
+    renewal.current = attempt
+    return attempt
+  }, [applyToken, clear])
+
+  useLayoutEffect(() => (testMode ? undefined : setSessionRenewer(renewSession)), [testMode, renewSession])
 
   const loadMe = useCallback(async (token: string) => {
     const data = await json(await fetch('/api/v1/auth/me', { headers: { Authorization: `Bearer ${token}` } }))
@@ -84,34 +127,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false
     const token = sessionStorage.getItem(ACCESS)
     if (!token) { void Promise.resolve().then(() => { if (!cancelled) setReady(true) }); return () => { cancelled = true } }
-    fetch('/api/v1/auth/me', { headers: { Authorization: `Bearer ${token}` } })
-      .then(json).then(data => {
-        if (!data?.user_id || !Array.isArray(data.roles)) throw new Error('Invalid identity')
-        if (!cancelled) { setUser(data); setAccessToken(token) }
-      }).catch(() => { if (!cancelled) clear() })
-      .finally(() => { if (!cancelled) setReady(true) })
+    const identify = async (access: string) => {
+      const data = await json(await fetch('/api/v1/auth/me', { headers: { Authorization: `Bearer ${access}` } }))
+      if (!data?.user_id || !Array.isArray(data.roles)) throw new Error('Invalid identity')
+      return data as AuthUser
+    }
+    void (async () => {
+      try {
+        let access: string | null = token
+        let data: AuthUser
+        try {
+          data = await identify(access)
+        } catch (error) {
+          // An access token that expired while the tab was closed is renewed once.
+          if ((error as { status?: number }).status !== 401) throw error
+          access = await renewSession()
+          if (!access) throw error
+          data = await identify(access)
+        }
+        if (!cancelled) { setUser(data); applyToken(access) }
+      } catch {
+        if (!cancelled) clear()
+      } finally {
+        if (!cancelled) setReady(true)
+      }
+    })()
     return () => { cancelled = true }
-  }, [testMode, clear])
+  }, [testMode, clear, renewSession, applyToken])
 
   const refreshToken = useCallback(async () => {
-    try {
-      const refresh = sessionStorage.getItem(REFRESH)
-      if (!refresh) throw new Error('No refresh token')
-      const data = await json(
-        await fetch('/api/v1/auth/refresh', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refresh_token: refresh }),
-        })
-      )
-      sessionStorage.setItem(ACCESS, data.access_token)
-      setAccessToken(data.access_token)
-      await loadMe(data.access_token)
-    } catch {
-      clear()
-    }
-  }, [clear, loadMe])
+    const access = await renewSession()
+    if (!access) return
+    try { await loadMe(access) } catch { clear() }
+  }, [renewSession, loadMe, clear])
 
   const login = useCallback(
     async (email: string, password?: string) => {
@@ -127,28 +175,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         )
         sessionStorage.setItem(ACCESS, data.access_token)
         if (data.refresh_token) sessionStorage.setItem(REFRESH, data.refresh_token)
-        setAccessToken(data.access_token)
+        applyToken(data.access_token)
         await loadMe(data.access_token)
       } catch (error) {
         clear()
         throw error
       }
     },
-    [loadMe, clear]
+    [loadMe, clear, applyToken]
   )
 
   const logout = useCallback(async () => {
+    // Clear local credentials first, in the same tick, so an immediate reload cannot restore
+    // the session (OI-07). The server revocation is best-effort and survives page unload.
+    const access = tokenRef.current ?? sessionStorage.getItem(ACCESS)
+    const refresh = sessionStorage.getItem(REFRESH)
+    clear()
+    if (!access && !refresh) return
     try {
-      if (accessToken) {
-        await fetch('/api/v1/auth/logout', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${accessToken}` },
-        })
-      }
-    } finally {
-      clear()
+      await fetch('/api/v1/auth/logout', {
+        method: 'POST',
+        keepalive: true,
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...(access ? { Authorization: `Bearer ${access}` } : {}) },
+        body: JSON.stringify({ refresh_token: refresh }),
+      })
+    } catch {
+      // Offline or unloading: the server session expires on its own; local state is already gone.
     }
-  }, [accessToken, clear])
+  }, [clear])
 
   const hasRole = useCallback(
     (role: string) => Boolean(user?.roles.includes('hr_admin') || user?.roles.includes(role)),

@@ -58,8 +58,10 @@ export function JobProvider({ children }: { children: ReactNode }) {
 
   const createCustomJob = async (title: string, description: string, department = 'Custom Requisition', location = 'Remote', requirements: ExtractedRequirement[] = [], extractionFailed = false) => {
     const saved = await api.createJob({title,description_raw:description,department,location,requirements})
-    const newJob: Job = {...saved, requirements: extractionFailed ? [] : requirements.length ? requirements : saved.requirements, extraction_failed:extractionFailed,
-      requirements_preview: description.split('\n').filter(l => l.trim().length > 5).slice(0,4)}
+    // The server's requirement IDs (e.g. CUSTOM-…-REQ-001) are the ones matching and comparison
+    // join on, so the client-side extraction is only used for the extraction-failed flag (OI-09).
+    const newJob: Job = {...saved, requirements: saved.requirements ?? [], extraction_failed:extractionFailed,
+      requirements_preview: saved.requirements_preview?.length ? saved.requirements_preview : description.split('\n').filter(l => l.trim().length > 5).slice(0,4)}
     setJobs(prev => [newJob,...prev]); setSelectedJob(newJob); setCustomJD(description)
   }
 
