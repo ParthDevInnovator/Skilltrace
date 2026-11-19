@@ -62,7 +62,7 @@ describe('pending accounts (OI-05)', () => {
 describe('workspace shell', () => {
   it('shows the current workspace name in the header', async () => {
     signIn(() => active(['recruiter']))
-    expect(await screen.findByLabelText('Workspace: Acme Hiring')).toBeVisible()
+    expect(await screen.findByTitle('Workspace: Acme Hiring')).toHaveTextContent('Workspace: Acme Hiring')
   })
 
   it('offers Team access to HR admins only', async () => {
