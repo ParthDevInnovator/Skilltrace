@@ -9,6 +9,7 @@ from backend.config import settings
 from backend.routers import candidates, health, jobs, ingest, admin, jd
 from backend.routers import agent, graph, auth
 from backend.core.database import prepare_database, session_factory
+from backend.core.openapi import install_openapi
 from backend.core.retention import purge_expired_evidence
 from backend.middleware.security import SecurityHeadersMiddleware
 from backend.middleware.audit import AuditMiddleware
@@ -133,21 +134,24 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
-# Mount routers
+# Mount routers. Unprefixed aliases keep serving requests but are hidden from
+# Swagger so each operation is documented once, under /api/v1.
 app.include_router(jd.router, prefix="/api/v1/jd")
-app.include_router(jd.router, prefix="/jd")
+app.include_router(jd.router, prefix="/jd", include_in_schema=False)
 app.include_router(health.router)
 app.include_router(health.router, prefix=settings.API_V1_PREFIX)
 app.include_router(candidates.router, prefix=f"{settings.API_V1_PREFIX}/candidates")
-app.include_router(candidates.router, prefix="/candidates")
+app.include_router(candidates.router, prefix="/candidates", include_in_schema=False)
 app.include_router(jobs.router, prefix=f"{settings.API_V1_PREFIX}/jobs")
-app.include_router(jobs.router, prefix="/jobs")
+app.include_router(jobs.router, prefix="/jobs", include_in_schema=False)
 app.include_router(ingest.router, prefix=f"{settings.API_V1_PREFIX}/ingest")
 app.include_router(admin.router)
 app.include_router(auth.router, prefix=settings.API_V1_PREFIX)
 for feature in (agent.router, graph.router):
     app.include_router(feature, prefix=settings.API_V1_PREFIX)
-    app.include_router(feature)
+    app.include_router(feature, include_in_schema=False)
+
+install_openapi(app)
 
 
 @app.get("/", tags=["Root"])
