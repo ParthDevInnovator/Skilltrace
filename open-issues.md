@@ -8,7 +8,7 @@ The redesigned screens are treated as the accepted UI. This backlog concerns beh
 
 **This is the single open-issues file for the project.** The former mockup-gap list (`open issue.md`, 2026-11-06) has been merged into [Feature backlog](#feature-backlog-from-the-redesign-mockups) below and removed. `PRODUCT_DESIGN_AUDIT.md` and `REDESIGN_REPAIR_STATUS.md` are historical findings and sign-offs that do not all describe the present code.
 
-Last status review: 2026-11-19. Fix Phase 1 (`FIX_PHASE_1_TASKS.md`) closed all 10 P1 issues (OI-02 mitigated) plus OI-34, OI-42 and OI-48. The fixes are on branch `fix/phase1-frontend-access` and are **not merged to `main` yet**. Update the **Status** and **Closed** columns as fixes land.
+Last status review: 2026-11-19. Fix Phase 1 (`FIX_PHASE_1_TASKS.md`) closed all 10 P1 issues (OI-02 mitigated) plus OI-34, OI-42 and OI-48 on branch `fix/phase1-frontend-access`. Follow-up branch `fix/phase1-followups` closes OI-47 (regression test) and Wave 2 issues OI-10, OI-12, OI-18 and OI-19. OI-11 still needs a scoring-policy decision. Update the **Status** and **Closed** columns as fixes land.
 
 ## Issue tracker
 
@@ -25,16 +25,16 @@ Status values: `Open`, `In progress`, `Fixed`, `Mitigated`, `Won't fix`. Wave = 
 | OI-07 | Immediate reload can interrupt sign-out | P1 | Auth (FE) | 1 | Fixed | 2026-11-07 | 2026-11-19 |
 | OI-08 | Clerk requests produce no access audit records | P1 | Audit | 1 | Fixed | 2026-11-07 | 2026-11-19 |
 | OI-09 | New jobs use different requirement IDs in FE and BE | P1 | Matching | 2 | Fixed | 2026-11-07 | 2026-11-19 |
-| OI-10 | Overview coverage differs from JD Match calculation | P2 | Matching | 2 | Open | 2026-11-07 | |
+| OI-10 | Overview coverage differs from JD Match calculation | P2 | Matching | 2 | Fixed — Overview reads the same backend match as JD Match (`useJdMatch`) | 2026-11-07 | 2026-11-19 |
 | OI-11 | Unrelated resume claims downgrade requirement coverage | P2 | Scoring | 2 | Open — needs policy decision | 2026-11-07 | |
-| OI-12 | Skill labels don't resolve aliases or conflicts consistently | P2 | Matching | 2 | Open | 2026-11-07 | |
+| OI-12 | Skill labels don't resolve aliases or conflicts consistently | P2 | Matching | 2 | Fixed — `canonical_skill` on claims/evidence; Overview and Comparison share `assessSkills` | 2026-11-07 | 2026-11-19 |
 | OI-13 | Rankings stay pending after background analysis finishes | P2 | Async | 3 | Open | 2026-11-07 | |
 | OI-14 | Comparison context requests can remain pending forever | P2 | Comparison | 3 | Open | 2026-11-07 | |
 | OI-15 | Comparison retry doesn't recover several failure states | P2 | Comparison | 3 | Open | 2026-11-07 | |
 | OI-16 | Comparison selections disappear during profile inspection | P2 | Comparison | 3 | Open | 2026-11-07 | |
 | OI-17 | Briefs/questions can belong to the previously selected job | P2 | Agent | 3 | Open | 2026-11-07 | |
-| OI-18 | Replacing a resume retains stale skills and profile links | P2 | Ingestion | 2 | Open | 2026-11-07 | |
-| OI-19 | Source outages look like a successful lack of evidence | P2 | Signals | 2 | Open | 2026-11-07 | |
+| OI-18 | Replacing a resume retains stale skills and profile links | P2 | Ingestion | 2 | Fixed — replacement is authoritative for skills and links (graph side is OI-20) | 2026-11-07 | 2026-11-19 |
+| OI-19 | Source outages look like a successful lack of evidence | P2 | Signals | 2 | Fixed — `SourceUnavailable`, `unavailable_sources` on the context and in the UI | 2026-11-07 | 2026-11-19 |
 | OI-20 | Graph retains obsolete nodes/edges after resume replacement | P2 | Graph | 4 | Open | 2026-11-07 | |
 | OI-21 | Graph labels imply unproven contributions | P2 | Graph | 4 | Open | 2026-11-07 | |
 | OI-22 | Graph view filters are not the full projects/sources experience | P2 | Graph | 4 | Open | 2026-11-07 | |
@@ -58,11 +58,11 @@ Status values: `Open`, `In progress`, `Fixed`, `Mitigated`, `Won't fix`. Wave = 
 | OI-40 | Dashboard summaries can hide partial failures | P2 | Dashboard | 5 | Open | 2026-11-07 | |
 | OI-41 | Export scope and provenance incomplete | P2 | Export | 5 | Open | 2026-11-07 | |
 | OI-42 | Full frontend regression suite failing (5/86) | P2 | Tests | 5 | Fixed (5 stale tests updated to the redesigned UI) | 2026-11-07 | 2026-11-19 |
-| OI-43 | Browser acceptance (11/14 failing) and lint warnings | P2 | Tests | 5 | Open (partly: browser server now uses its own migrated DB and native sign-in; older specs still stale) | 2026-11-07 |  |
+| OI-43 | Browser acceptance (22/30 desktop failing) and lint warnings | P2 | Tests | 5 | Open (partly: browser server uses its own migrated DB and native sign-in; header axe violation fixed. Older specs target pre-redesign screens and need rewriting; ESLint has no flat config) | 2026-11-07 |  |
 | OI-44 | Docs and duplicate legacy components describe different products | P3 | Docs | 5 | Open (partly: issue lists consolidated 2026-11-18) | 2026-11-07 | |
 | OI-45 | Document/requirement contracts differ between layers | P2 | Jobs | 5 | Open | 2026-11-07 | |
 | OI-46 | Deployment and live integration sign-off outstanding | P2 | Ops | 5 | Open | 2026-11-07 | |
-| OI-47 | Admin rebuild clears restored custom jobs from matching | P2 | Admin | 5 | In progress — backend change in `24345f6`, no regression test yet | 2026-11-07 |  |
+| OI-47 | Admin rebuild clears restored custom jobs from matching | P2 | Admin | 5 | Fixed — backend change in `24345f6`; regression test `test_admin_rebuild_keeps_custom_jobs_and_uploads_matchable` | 2026-11-07 | 2026-11-19 |
 | OI-48 | Native registration passwords > 72 bytes fail hashing (500) | P2 | Auth | 5 | Fixed | 2026-11-07 | 2026-11-19 |
 
 ## Scope and evidence
