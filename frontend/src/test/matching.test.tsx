@@ -2,6 +2,8 @@ import { beforeEach, afterEach, expect, it, vi } from 'vitest'
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from '@/App'
+import { JobProvider, useJob } from '@/context/JobContext'
+import { CandidateResultsView } from '@/components/dashboard/CandidateResultsView'
 import { api } from '@/services/api'
 import { JDMatchTab } from '@/components/profile/JDMatchTab'
 import { exampleContext } from './evidenceFixtures'
@@ -15,22 +17,32 @@ const ranked:RankedCandidate[]=[{candidate_id:'CAND-003',full_name:'Casey Ready'
 const match:CandidateMatchResult={candidate_id:'CAND-001',job_id:'J',reference_date:'2026-10-26',result_built_at:'2026-10-26T00:00:00Z',resume_fit:.5,evidence_strength:.3,final_score:.4,coverage:[cover('r1','matched'),cover('r2','not_assessed')]}
 beforeEach(()=>{history.replaceState({}, '', '/candidates');vi.resetAllMocks();vi.mocked(api.getJobs).mockResolvedValue([job]);vi.mocked(api.getCandidates).mockResolvedValue(candidates);vi.mocked(api.getCandidateContext).mockResolvedValue(exampleContext);vi.mocked(api.getCandidateById).mockResolvedValue(exampleContext.candidate);vi.mocked(api.extractRequirements).mockResolvedValue(requirements);vi.mocked(api.rankCandidates).mockResolvedValue(ranked);vi.mocked(api.getCandidateJdMatch).mockResolvedValue(match);vi.mocked(api.createJob).mockImplementation(async body=>({...body,id:'CUSTOM-test',requirements}));vi.mocked(api.getSimilarJobs).mockResolvedValue([])})
 afterEach(()=>vi.useRealTimers())
-it('ranks, intersects requirement filters, clears them and restores API order',async()=>{
- const user=userEvent.setup();render(<App/>);await screen.findByText('Alex Chen')
- expect(screen.getAllByText('Unassessed')).toHaveLength(3)
- await user.click(screen.getByRole('button',{name:'Rank by fit'}))
- expect(await screen.findByText('Final 90%')).toBeVisible();expect(screen.getByText('Context building')).toBeVisible()
- const names=()=>screen.getAllByText(/^(Alex Chen|Bea Builder|Casey Ready)$/).map(n=>n.textContent)
- expect(names()).toEqual(['Casey Ready','Alex Chen','Bea Builder'])
- const filters=screen.getByLabelText('Filter by requirement')
- await user.click(within(filters).getByRole('button',{name:'Python services'}));expect(names()).toEqual(['Casey Ready','Alex Chen'])
- await user.click(within(filters).getByRole('button',{name:'React interfaces'}));expect(names()).toEqual(['Casey Ready'])
- await user.click(within(filters).getByRole('button',{name:'Clear filters'}));expect(names()).toHaveLength(3)
- await user.click(screen.getByRole('button',{name:'Back to default order'}));expect(names()).toEqual(['Alex Chen','Bea Builder','Casey Ready']);expect(screen.queryByTestId('match-score')).not.toBeInTheDocument()
+// The redesigned results table ranks automatically; CandidateGrid's "Rank by fit" flow was removed.
+function ResultsHarness() {
+ const { setSelectedJob } = useJob()
+ return <><button onClick={() => setSelectedJob(null)}>Remove active job</button><CandidateResultsView /></>
+}
+const rowNames = () => screen.getAllByRole('row').slice(1).map(row => row.querySelector('.results-person strong')?.textContent)
+it('ranks by job fit, filters by fit and status, and clears the filters',async()=>{
+ const user=userEvent.setup();render(<JobProvider><ResultsHarness/></JobProvider>)
+ await waitFor(()=>expect(rowNames()).toEqual(['Casey Ready','Alex Chen','Bea Builder']))
+ expect(api.rankCandidates).toHaveBeenCalledWith({job_id:'J'})
+ const casey=screen.getAllByRole('row')[1]
+ expect(within(casey).getByText('90')).toBeVisible();expect(within(casey).getByText('1/1')).toBeVisible()
+ expect(within(screen.getAllByRole('row')[3]).getByText('—',{selector:'.results-fit'})).toBeVisible()
+ await user.selectOptions(screen.getByLabelText('Minimum job fit'),'70');expect(rowNames()).toEqual(['Casey Ready'])
+ await user.selectOptions(screen.getByLabelText('Minimum job fit'),'all')
+ await user.selectOptions(screen.getByLabelText('Analysis status'),'building');expect(rowNames()).toEqual(['Bea Builder'])
+ await user.click(screen.getByRole('button',{name:'Filters'}));await user.click(screen.getByRole('button',{name:'Clear filters'}))
+ expect(rowNames()).toEqual(['Casey Ready','Alex Chen','Bea Builder'])
 })
 it('clears ranking when the active job is removed',async()=>{
- const user=userEvent.setup();render(<App/>);await screen.findByText('Alex Chen');await user.click(screen.getByRole('button',{name:'Rank by fit'}));await screen.findByText('Final 90%')
- await user.click(screen.getByRole('button',{name:/Engineer role/}));await user.click(screen.getByRole('button',{name:'Clear selection'}));expect(screen.queryByText('Final 90%')).not.toBeInTheDocument();expect(screen.queryByRole('button',{name:'Rank by fit'})).not.toBeInTheDocument()
+ const user=userEvent.setup();render(<JobProvider><ResultsHarness/></JobProvider>)
+ await waitFor(()=>expect(rowNames()[0]).toBe('Casey Ready'))
+ await user.click(screen.getByRole('button',{name:'Remove active job'}))
+ await waitFor(()=>expect(screen.queryByText('90')).not.toBeInTheDocument())
+ expect(screen.getByText(/Select a job to assess fit/)).toBeVisible()
+ expect(api.rankCandidates).toHaveBeenCalledTimes(1)
 })
 it.each([false,true])('custom extraction chips and fallback (failure=%s)',async(failure)=>{
  if(failure)vi.mocked(api.extractRequirements).mockRejectedValue(new Error('offline'))

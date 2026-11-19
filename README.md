@@ -52,6 +52,11 @@ npm run dev
 - **FastAPI Documentation (Swagger):** [http://localhost:8000/docs](http://localhost:8000/docs)
 - **Service Health Check:** [http://localhost:8000/health](http://localhost:8000/health)
 
+> **Run exactly one backend worker per database.** Caches, background context builds and rate
+> limits are process-local (OI-02, decision D2). The scripts above start one worker. Do not pass
+> `--workers` or set `WEB_CONCURRENCY` above 1: startup logs an error, and in production it refuses
+> to start.
+
 ---
 
 ## Available Scripts

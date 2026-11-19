@@ -8,23 +8,23 @@ The redesigned screens are treated as the accepted UI. This backlog concerns beh
 
 **This is the single open-issues file for the project.** The former mockup-gap list (`open issue.md`, 2026-11-06) has been merged into [Feature backlog](#feature-backlog-from-the-redesign-mockups) below and removed. `PRODUCT_DESIGN_AUDIT.md` and `REDESIGN_REPAIR_STATUS.md` are historical findings and sign-offs that do not all describe the present code.
 
-Last status review: 2026-11-18. No issue has been closed since the audit. Update the **Status** and **Closed** columns as fixes land.
+Last status review: 2026-11-19. Fix Phase 1 (`FIX_PHASE_1_TASKS.md`) closed all 10 P1 issues (OI-02 mitigated) plus OI-34, OI-42 and OI-48. The fixes are on branch `fix/phase1-frontend-access` and are **not merged to `main` yet**. Update the **Status** and **Closed** columns as fixes land.
 
 ## Issue tracker
 
-Status values: `Open`, `In progress`, `Fixed`, `Won't fix`. Wave = the planned fix order in [Suggested implementation order](#suggested-implementation-order). No owners or target dates have been agreed yet.
+Status values: `Open`, `In progress`, `Fixed`, `Mitigated`, `Won't fix`. Wave = the planned fix order in [Suggested implementation order](#suggested-implementation-order). No owners or target dates have been agreed yet.
 
 | ID | Title | Pri | Area | Wave | Status | Opened | Closed |
 | --- | --- | --- | --- | :-: | --- | --- | --- |
-| OI-01 | Uploaded candidate data disappears on backend restart | P1 | Persistence | 1 | Open | 2026-11-07 | |
-| OI-02 | Multiple backend workers have inconsistent records | P1 | Persistence | 1 | Open | 2026-11-07 | |
-| OI-03 | Deletion does not cover ingestion and graph stores | P1 | Privacy | 1 | Open | 2026-11-07 | |
-| OI-04 | Hiring-manager masking/raw-context restrictions bypassable | P1 | RBAC | 1 | Open | 2026-11-07 | |
-| OI-05 | New accounts get recruiter access without workspace admission | P1 | Access policy | 1 | Open — decided 2026-11-18: multi-workspace, domain + admin approval (see FIX_PHASE_1_TASKS.md) | 2026-11-07 | |
-| OI-06 | Native logout leaves refresh credentials valid | P1 | Auth | 1 | Open | 2026-11-07 | |
-| OI-07 | Immediate reload can interrupt sign-out | P1 | Auth (FE) | 1 | Open | 2026-11-07 | |
-| OI-08 | Clerk requests produce no access audit records | P1 | Audit | 1 | Open | 2026-11-07 | |
-| OI-09 | New jobs use different requirement IDs in FE and BE | P1 | Matching | 2 | Open | 2026-11-07 | |
+| OI-01 | Uploaded candidate data disappears on backend restart | P1 | Persistence | 1 | Fixed | 2026-11-07 | 2026-11-19 |
+| OI-02 | Multiple backend workers have inconsistent records | P1 | Persistence | 1 | Mitigated — one worker enforced (D2) | 2026-11-07 | 2026-11-19 |
+| OI-03 | Deletion does not cover ingestion and graph stores | P1 | Privacy | 1 | Fixed | 2026-11-07 | 2026-11-19 |
+| OI-04 | Hiring-manager masking/raw-context restrictions bypassable | P1 | RBAC | 1 | Fixed | 2026-11-07 | 2026-11-19 |
+| OI-05 | New accounts get recruiter access without workspace admission | P1 | Access policy | 1 | Fixed | 2026-11-07 | 2026-11-19 |
+| OI-06 | Native logout leaves refresh credentials valid | P1 | Auth | 1 | Fixed | 2026-11-07 | 2026-11-19 |
+| OI-07 | Immediate reload can interrupt sign-out | P1 | Auth (FE) | 1 | Fixed | 2026-11-07 | 2026-11-19 |
+| OI-08 | Clerk requests produce no access audit records | P1 | Audit | 1 | Fixed | 2026-11-07 | 2026-11-19 |
+| OI-09 | New jobs use different requirement IDs in FE and BE | P1 | Matching | 2 | Fixed | 2026-11-07 | 2026-11-19 |
 | OI-10 | Overview coverage differs from JD Match calculation | P2 | Matching | 2 | Open | 2026-11-07 | |
 | OI-11 | Unrelated resume claims downgrade requirement coverage | P2 | Scoring | 2 | Open — needs policy decision | 2026-11-07 | |
 | OI-12 | Skill labels don't resolve aliases or conflicts consistently | P2 | Matching | 2 | Open | 2026-11-07 | |
@@ -48,22 +48,22 @@ Status values: `Open`, `In progress`, `Fixed`, `Won't fix`. Wave = the planned f
 | OI-30 | Candidates not associated with the job used for upload | P2 | Product gap | 5 | Open | 2026-11-07 | |
 | OI-31 | Job lifecycle, editing, activity unavailable; job ID search broken | P2 | Product gap | 5 | Open | 2026-11-07 | |
 | OI-32 | Discovery and candidate evidence collection have no workflow | P2 | Product gap | 5 | Open — needs scope decision | 2026-11-07 | |
-| OI-33 | Notifications, settings and admin UI absent | P2 | Product gap | 5 | Open — needs scope decision | 2026-11-07 | |
-| OI-34 | Native sessions don't refresh automatically | P2 | Auth | 5 | Open | 2026-11-07 | |
-| OI-35 | Native OAuth state/email handling needs hardening | P1 | Auth | 1 | Open | 2026-11-07 | |
+| OI-33 | Notifications, settings and admin UI absent | P2 | Product gap | 5 | Open — needs scope decision (partly: HR-admin Team access page added 2026-11-19) | 2026-11-07 |  |
+| OI-34 | Native sessions don't refresh automatically | P2 | Auth | 5 | Fixed (renew once on 401, rotated refresh token kept) | 2026-11-07 | 2026-11-19 |
+| OI-35 | Native OAuth state/email handling needs hardening | P1 | Auth | 1 | Fixed | 2026-11-07 | 2026-11-19 |
 | OI-36 | Retention doesn't govern runtime evidence and resumes | P2 | Privacy | 5 | Open | 2026-11-07 | |
 | OI-37 | Synthetic-data filtering not enforced on runtime route | P2 | Data policy | 5 | Open | 2026-11-07 | |
 | OI-38 | Resource limits missing on expensive API paths | P2 | Ops | 5 | Open | 2026-11-07 | |
 | OI-39 | Refresh/back navigation doesn't restore workspace | P2 | FE routing | 5 | Open | 2026-11-07 | |
 | OI-40 | Dashboard summaries can hide partial failures | P2 | Dashboard | 5 | Open | 2026-11-07 | |
 | OI-41 | Export scope and provenance incomplete | P2 | Export | 5 | Open | 2026-11-07 | |
-| OI-42 | Full frontend regression suite failing (5/86) | P2 | Tests | 5 | Open | 2026-11-07 | |
-| OI-43 | Browser acceptance (11/14 failing) and lint warnings | P2 | Tests | 5 | Open | 2026-11-07 | |
+| OI-42 | Full frontend regression suite failing (5/86) | P2 | Tests | 5 | Fixed (5 stale tests updated to the redesigned UI) | 2026-11-07 | 2026-11-19 |
+| OI-43 | Browser acceptance (11/14 failing) and lint warnings | P2 | Tests | 5 | Open (partly: browser server now uses its own migrated DB and native sign-in; older specs still stale) | 2026-11-07 |  |
 | OI-44 | Docs and duplicate legacy components describe different products | P3 | Docs | 5 | Open (partly: issue lists consolidated 2026-11-18) | 2026-11-07 | |
 | OI-45 | Document/requirement contracts differ between layers | P2 | Jobs | 5 | Open | 2026-11-07 | |
 | OI-46 | Deployment and live integration sign-off outstanding | P2 | Ops | 5 | Open | 2026-11-07 | |
-| OI-47 | Admin rebuild clears restored custom jobs from matching | P2 | Admin | 5 | Open | 2026-11-07 | |
-| OI-48 | Native registration passwords > 72 bytes fail hashing (500) | P2 | Auth | 5 | Open | 2026-11-07 | |
+| OI-47 | Admin rebuild clears restored custom jobs from matching | P2 | Admin | 5 | In progress — backend change in `24345f6`, no regression test yet | 2026-11-07 |  |
+| OI-48 | Native registration passwords > 72 bytes fail hashing (500) | P2 | Auth | 5 | Fixed | 2026-11-07 | 2026-11-19 |
 
 ## Scope and evidence
 

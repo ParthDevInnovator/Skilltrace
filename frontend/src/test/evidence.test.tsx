@@ -73,6 +73,8 @@ it('shows context-building, retries an error, and keeps claims unverified beside
   await user.click(screen.getByRole('button', { name: 'Open candidate' }))
   expect(await screen.findByRole('alert')).toHaveTextContent('Evidence could not be loaded')
   await user.click(screen.getByRole('button', { name: 'Retry evidence' }))
+  // Claims moved from the overview to the "Evidence & Claims" tab in the redesign.
+  await user.click(screen.getByRole('button', { name: 'Evidence & Claims' }))
   expect(await screen.findByText('Built Python services')).toBeVisible()
   expect(screen.getByText('unverified')).toBeVisible()
   expect(screen.queryByText('supported')).not.toBeInTheDocument()

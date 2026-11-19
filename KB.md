@@ -60,26 +60,26 @@ frontend/   React app: components/{dashboard,profile,evidence,graph,agent,layout
 
 ---
 
-## 2. Status at a glance (as of 2026-11-18)
+## 2. Status at a glance (as of 2026-11-19)
 
 | Bucket | Count | Notes |
 |:--|:--:|:--|
-| ✅ **Completed** | 5 phases + redesign + repair + 15 design-audit findings | Oct 17 → Nov 7, 2026 |
-| 🔴 **Open (P1, production blockers)** | **10** | OI-01…OI-09, OI-35 |
-| 🟠 **Open (P2, before functional sign-off)** | **37** | Matching, async/recovery, graph, product gaps, ops, tests |
+| ✅ **Completed** | 5 phases + redesign + repair + 15 design-audit findings + **Fix Phase 1** | Oct 17 → Nov 19, 2026 |
+| ✅ **P1 production blockers** | **10 of 10 closed** | OI-01, 03–09, 35 fixed; OI-02 mitigated (one worker). On `fix/phase1-frontend-access`, **not merged to `main`** |
+| 🟠 **Open (P2, before functional sign-off)** | **33** | 37 minus OI-34, OI-42, OI-48 (fixed) and OI-47 (in progress) |
 | 🟡 **Open (P3, maintenance)** | **1** | OI-44 docs/legacy cleanup |
-| 📋 **Planned** | 5 fix waves | Order defined in `open-issues.md`; **no dates committed** |
+| 📋 **Planned** | Waves 2–5 | Order defined in `open-issues.md`; **no dates committed** |
 | 🗂️ **Backlog / deferred / not planned** | ~12 items | Dark mode, OCR, live LinkedIn, Microsoft SSO, magic link, etc. |
 
-**Health signals (audit 2026-11-07):**
-- Backend pytest: 356 passed.
-- Frontend Vitest: 81 passed, **5 failed**.
-- Playwright repair suite: **3 passed / 11 failed**, mostly stale locators.
-- Build: passes.
-- Lint: 5 warnings.
+**Health signals (2026-11-19, branch `fix/phase1-frontend-access`):**
+- Backend pytest: **379 passed**.
+- Frontend Vitest: **114 passed**, 0 failed.
+- Playwright `e2e/fix-phase1.spec.ts` (desktop): **3 passed** (sign-out + reload, sign-out offline, create job → compare → reload).
+  The older specs (`phase5`, `workspace`, `redesign-repair`, …) still target pre-redesign UI (OI-43).
+- Build: passes. Lint: 5 warnings (unchanged; `TalentPoolView.tsx`, `e2e/phase5.spec.ts`).
 
-**Activity:** no commits since 2026-11-07 (11 days). Nothing from the 48-issue backlog has been
-closed yet. `.test-tmp/` is untracked.
+**Still open for Fix Phase 1:** the manual run-through (upload → restart → view → hiring-manager view →
+delete → audit log) and merging the branches to `main`. `.test-tmp/` is untracked.
 
 ---
 
@@ -140,24 +140,24 @@ Verified at the time: 356 BE, 67 FE and 14/14 Playwright tests passed. This base
 
 ---
 
-## 5. Open issues (48) — audit 2026-11-07, all still open
+## 5. Open issues (48) — audit 2026-11-07, status as of 2026-11-19
 
 Priority meanings: **P1** = fix before real candidate data. **P2** = fix before functional sign-off.
 **P3** = maintenance.
 
-### 🔴 P1 — production blockers (10)
-| ID | Issue | Area |
-|:--|:--|:--|
-| OI-01 | Uploaded candidates/contexts lost on backend restart (in-memory) | Persistence |
-| OI-02 | Multiple workers see inconsistent state (process-local stores) | Persistence / scale |
-| OI-03 | Delete (GDPR) misses ingestion, context, match and graph stores; 404 for uploaded candidates | Privacy |
-| OI-04 | Hiring-manager masking bypassable via `/resolve`, `/resume`, agent tools | RBAC |
-| OI-05 | New sign-ups auto-get recruiter role; no workspace scoping | Access policy |
-| OI-06 | Logout leaves refresh token valid; blacklist not persisted | Auth |
-| OI-07 | Immediate reload after Sign out keeps user signed in | Auth (FE) |
-| OI-08 | Clerk requests not audited; audit writes fail silently | Audit |
-| OI-09 | Frontend/backend requirement IDs differ for new jobs, so comparison shows 0 matched | Matching |
-| OI-35 | Native OAuth state not bound to the browser; `email_verified` not checked | Auth |
+### ✅ P1 — production blockers (10, all closed 2026-11-19 on `fix/phase1-frontend-access`; not merged)
+| ID | Issue | Area | Status |
+|:--|:--|:--|:--|
+| OI-01 | Uploaded candidates/contexts lost on backend restart (in-memory) | Persistence | Fixed |
+| OI-02 | Multiple workers see inconsistent state (process-local stores) | Persistence / scale | Mitigated (one worker) |
+| OI-03 | Delete (GDPR) misses ingestion, context, match and graph stores; 404 for uploaded candidates | Privacy | Fixed |
+| OI-04 | Hiring-manager masking bypassable via `/resolve`, `/resume`, agent tools | RBAC | Fixed |
+| OI-05 | New sign-ups auto-get recruiter role; no workspace scoping | Access policy | Fixed |
+| OI-06 | Logout leaves refresh token valid; blacklist not persisted | Auth | Fixed |
+| OI-07 | Immediate reload after Sign out keeps user signed in | Auth (FE) | Fixed |
+| OI-08 | Clerk requests not audited; audit writes fail silently | Audit | Fixed |
+| OI-09 | Frontend/backend requirement IDs differ for new jobs, so comparison shows 0 matched | Matching | Fixed |
+| OI-35 | Native OAuth state not bound to the browser; `email_verified` not checked | Auth | Fixed |
 
 ### 🟠 P2 — before functional sign-off (37)
 | Group | IDs | Gist |
@@ -167,8 +167,8 @@ Priority meanings: **P1** = fix before real candidate data. **P2** = fix before 
 | Knowledge graph | OI-20, 21, 22, 23 | Stale nodes after re-upload. Graph claims "contributed to" without proof. View modes are not real. Race between skill selections |
 | Uploads & processing | OI-24, 25, 26, 27, 28, 29 | Batch shows "Complete" at HTTP 202. Queue keyed by filename. No in-place identity fix. Retry doesn't rebuild. Pipeline stages are inferred. No claim verification/contradiction engine |
 | Unfinished product features | OI-30, 31, 32, 33 | No job↔candidate membership. No job status/edit/activity, and Jobs ID search is broken. NL discovery and evidence requests missing. No notifications/settings/admin UI |
-| Auth, retention & ops | OI-34, 36, 37, 38, 39, 40, 41 | No automatic token refresh. Retention doesn't cover runtime stores. Synthetic filter not enforced. No rate or input limits. No URL state for reload/back. Dashboard hides partial failures. Export is incomplete |
-| Verification & config | OI-42, 43, 45, 46, 47, 48 | 5 FE tests failing. 11 E2E tests failing and 5 lint warnings. File-size and requirement contracts mismatch (10 MB vs 5 MB). No deployment config or live smoke test. Admin rebuild drops custom jobs. Passwords over 72 bytes cause HTTP 500 |
+| Auth, retention & ops | ~~OI-34~~, 36, 37, 38, 39, 40, 41 | ~~No automatic token refresh~~ (fixed). Retention doesn't cover runtime stores. Synthetic filter not enforced. No rate or input limits. No URL state for reload/back. Dashboard hides partial failures. Export is incomplete |
+| Verification & config | ~~OI-42~~, 43, 45, 46, 47, ~~48~~ | ~~5 FE tests failing~~ (fixed). 11 E2E tests failing and 5 lint warnings. File-size and requirement contracts mismatch (10 MB vs 5 MB). No deployment config or live smoke test. Admin rebuild drops custom jobs (in progress). ~~Passwords over 72 bytes cause HTTP 500~~ (fixed) |
 
 ### 🟡 P3 (1)
 | OI-44 | Docs, legacy components and encoding mojibake disagree with the current product (README phase sections, old `CandidateGrid`/`LoginPage`) |
