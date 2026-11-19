@@ -66,9 +66,11 @@ class ResumeIngestionStore:
                     value = getattr(identity, key)
                     if value is not None:
                         values[key] = value
-                links = existing.external_identifiers.model_dump() if existing.external_identifiers else {}
-                links.update({key: getattr(identity, key) for key in ("github", "linkedin", "leetcode") if getattr(identity, key)})
-                values.update(email=email, external_identifiers=links, top_skills=skills or existing.top_skills)
+                # Profile links and skills come only from the document, so the replacement is
+                # authoritative: an old GitHub handle or skill must not survive and keep being
+                # enriched (OI-18). Identity fields above fall back because extraction can miss them.
+                links = {key: getattr(identity, key) for key in ("github", "linkedin", "leetcode")}
+                values.update(email=email, external_identifiers=links, top_skills=skills)
             else:
                 number = max((int(c.id[5:]) for c in candidates if c.id.startswith("CAND-") and c.id[5:].isdigit()), default=0) + 1
                 values = dict(id=f"CAND-{number:03d}", full_name=identity.full_name, email=email, workspace_id=workspace,

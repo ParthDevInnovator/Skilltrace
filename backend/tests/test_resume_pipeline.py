@@ -152,6 +152,23 @@ async def test_email_dedup_and_updates_preserve_missing_metadata(store):
     assert len(store.repository.get_candidate(first.id).claims_preview) == 4
 
 
+def test_replacement_resume_drops_stale_skills_and_profile_links(store):
+    """OI-18: links and skills come from the document, so a replacement removes old ones."""
+    old_text = ("Name: Riley Replace\nEmail: riley@example.com\nhttps://github.com/riley-old\n"
+                "https://leetcode.com/u/riley-old\nExperience\n- Built Kafka pipelines in Java.\n")
+    new_text = "Name: Riley Replace\nEmail: riley@example.com\nExperience\n- Wrote documentation.\n"
+    first, _, _ = store.upsert(extract_identity(old_text), ParsedResume(raw_text=old_text, source="txt"),
+                               "old.txt", old_text.encode())
+    assert first.external_identifiers.github and first.external_identifiers.leetcode
+    assert "Java" in first.top_skills
+    second, updated, _ = store.upsert(extract_identity(new_text), ParsedResume(raw_text=new_text, source="txt"),
+                                      "new.txt", new_text.encode())
+    assert updated and second.id == first.id
+    assert second.top_skills == []
+    assert second.external_identifiers.github is None and second.external_identifiers.leetcode is None
+    assert second.full_name == first.full_name  # Identity metadata still falls back.
+
+
 def test_parallel_uploads_are_atomic(store):
     parsed = ParsedResume(raw_text=TEXT, source="txt")
     def upload(index):
@@ -232,6 +249,7 @@ async def test_docx_upload_and_existing_seed_update(api_store):
     assert response.json()["updated_existing"] and response.json()["parse_source"] == "docx"
     candidate = api_store.repository.get_candidate("CAND-001")
     assert candidate.full_name == "Alex Rivera"
-    assert candidate.external_identifiers.github == "https://github.com/alexrivera-eng"
+    # The replacement has no profile link, so the seeded one is not kept (OI-18).
+    assert candidate.external_identifiers.github is None
     assert candidate.resume_path is None and candidate.resume_text_stub is None
     assert candidate.match_preview is None

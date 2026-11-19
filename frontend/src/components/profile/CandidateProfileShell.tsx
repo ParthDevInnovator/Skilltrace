@@ -11,7 +11,7 @@ import { ChatDrawer } from '@/components/agent/ChatDrawer'
 import { EvidenceCard } from '@/components/evidence/EvidenceCard'
 import { ContextFeedback } from '@/components/evidence/ContextFeedback'
 import { EvidenceBar } from '@/components/evidence/EvidenceBar'
-import { labelForScore, provenanceSummary } from '@/types/context'
+import { displayEvidenceLabel, labelForScore, provenanceSummary, sourceNames } from '@/types/context'
 import { useAuth } from '@/context/AuthContext'
 import { locationLabel } from '@/services/masking'
 
@@ -209,7 +209,7 @@ export function CandidateProfileShell() {
             </button>
 
             <button type="button" onClick={() => setActiveTab('evidence')} disabled={!hasRole('recruiter')} aria-label="View candidate evidence" className="profile-score-card profile-score-evidence">
-              <span className="text-sm font-bold">{context?.evidence_label ?? 'Pending'}</span>
+              <span className="text-sm font-bold">{context ? displayEvidenceLabel(context) : 'Pending'}</span>
               <span className="text-[10px] text-[#745723]/80 uppercase tracking-wider font-semibold mt-1">
                 Evidence
               </span>
@@ -328,7 +328,7 @@ export function CandidateProfileShell() {
       </nav>
 
       {/* TAB 1: DOSSIER OVERVIEW (Exact match to Image 1) */}
-      {activeTab === 'overview' && <IntelligenceOverview candidate={displayCandidate} context={context} job={selectedJob} inspectClaims={() => setActiveTab('claims')} />}
+      {activeTab === 'overview' && <IntelligenceOverview candidate={displayCandidate} context={context} job={selectedJob} canMatch={hasRole('recruiter')} inspectClaims={() => setActiveTab('claims')} />}
 
       {/* TAB: CLAIMS & EVIDENCE */}
       {activeTab === 'claims' && (
@@ -338,7 +338,7 @@ export function CandidateProfileShell() {
             {context && (
               <>
                 <p className="text-xs text-[#59616b] italic mb-3">
-                  {provenanceSummary(context.evidence_records ?? [])}
+                  {provenanceSummary(context.evidence_records ?? [], context.unavailable_sources)}
                 </p>
                 {!context.claims.length && (
                   <p className="text-xs text-[#59616b]">
@@ -365,7 +365,13 @@ export function CandidateProfileShell() {
                 <h2 className="text-lg font-bold text-[#141618] mt-6 pt-6 border-t border-[#e7e2d9]">
                   Evidence observations
                 </h2>
-                {!context.evidence_records.length && (
+                {!!context.unavailable_sources?.length && (
+                  <p role="status" className="text-xs text-[#8a5a12]">
+                    {sourceNames(context.unavailable_sources)} could not be reached when this profile was built.
+                    Missing observations from {context.unavailable_sources.length === 1 ? 'this source' : 'these sources'} are an outage, not a lack of evidence. Retry evidence later.
+                  </p>
+                )}
+                {!context.evidence_records.length && !context.unavailable_sources?.length && (
                   <p className="text-xs text-[#59616b]">
                     No public evidence available. Absence of public signals is not a finding about competence.
                   </p>

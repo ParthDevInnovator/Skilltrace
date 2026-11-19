@@ -620,3 +620,42 @@ async def test_oauth_never_links_an_existing_account_by_email_alone(google, monk
         assert (await http.post("/api/v1/auth/oauth/link", headers=headers, json={"link_token": link_token})).json()["linked"] == "google"
         state = await start(http)
         assert (await http.get("/api/v1/auth/oauth/callback", params={"code": "c", "state": state})).status_code == 200
+
+
+# --- OI-47: admin rebuild keeps durable jobs and candidates ----------------------
+
+@pytest.mark.asyncio
+async def test_admin_rebuild_keeps_custom_jobs_and_uploads_matchable(pipeline, monkeypatch):
+    from pydantic import SecretStr
+    from backend.routers import jobs as job_routes
+    monkeypatch.setattr(settings, "ADMIN_KEY", SecretStr("rebuild-key"))
+    monkeypatch.setattr(job_routes, "seed_loader", pipeline.repository)
+    app.dependency_overrides[admin_routes.get_signal_cache] = lambda: SimpleNamespace(clear=lambda: None)
+    try:
+        as_user(principal())
+        async with client() as http:
+            created = await http.post("/api/v1/jobs", json={"title": "Rebuild Survivor", "department": "Eng",
+                      "location": "Pune", "description_raw": "Build Python services on Kubernetes.",
+                      "requirements": [{"id": "R-1", "requirement_text": "Python", "is_mandatory": True},
+                                       {"id": "R-2", "requirement_text": "Kubernetes", "is_mandatory": False}]})
+            assert created.status_code == 201, created.text
+            job = created.json()
+            candidate_id, _ = await upload(http)
+            await pipeline.drain()
+
+            as_user(principal("hr_admin"))
+            rebuilt = await http.post("/seed/rebuild", headers={"X-Admin-Key": "rebuild-key"})
+            assert rebuilt.status_code == 200, rebuilt.text
+            await pipeline.drain()
+
+            as_user(principal())
+            listed = (await http.get("/api/v1/jobs")).json()
+            assert job["id"] in {j["id"] for j in listed}
+            extracted = await http.post("/api/v1/jd/extract", json={"job_id": job["id"]})
+            assert extracted.status_code == 200, extracted.text
+            assert [r["id"] for r in extracted.json()] == [r["id"] for r in job["requirements"]]
+            ranked = await http.post("/api/v1/jd/rank", json={"job_id": job["id"]})
+            assert ranked.status_code == 200, ranked.text
+            assert candidate_id in {row["candidate_id"] for row in ranked.json()}
+    finally:
+        app.dependency_overrides.pop(admin_routes.get_signal_cache, None)

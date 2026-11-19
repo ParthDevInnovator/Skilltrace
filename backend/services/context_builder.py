@@ -12,6 +12,7 @@ from backend.services.claim_extractor import extract_claims
 from backend.services.deduplicator import ResumeIngestionStore, ingestion_store
 from backend.services.resume_parser import parse_resume
 from backend.services.scoring_engine import compute_recency_multiplier, score_evidence
+from backend.services.signal_fetchers.common import SourceUnavailable
 from backend.services.signal_fetchers.github import fetch_github
 from backend.services.signal_fetchers.leetcode import fetch_leetcode
 from backend.services.signal_fetchers.linkedin import fetch_linkedin
@@ -277,9 +278,9 @@ class ContextBuilder:
                 sources = ("github", "leetcode", "linkedin")
                 results = await asyncio.gather(*(collect(source) for source in sources))
                 unavailable = [source for source, result in zip(sources, results) if isinstance(result, Exception)]
-                # Expected network failures are already [] from adapters. Three
-                # unexpected adapter failures indicate an unrecoverable build.
-                if len(unavailable) == len(sources):
+                # Source outages are reported on the context. Only when every adapter fails
+                # with an unexpected error is the build itself treated as broken.
+                if len(unavailable) == len(sources) and not any(isinstance(r, SourceUnavailable) for r in results):
                     raise RuntimeError("All signal adapters failed unexpectedly")
                 evidence = {}
                 for result in results:
@@ -291,7 +292,8 @@ class ContextBuilder:
                 candidate = candidate.model_copy(update={"claims_preview": [claim.claim_text for claim in claims]})
                 context = CandidateContext(candidate=candidate, claims=claims, evidence_records=records,
                     evidence_score=score, evidence_label=label, resume_text=parsed.raw_text,
-                    parse_source=parsed.source, reference_date=reference_date, context_built_at=self.clock())
+                    parse_source=parsed.source, reference_date=reference_date, context_built_at=self.clock(),
+                    unavailable_sources=unavailable)
                 with self.repository.candidate_lock:
                     current = self.store.pending_builds.get(candidate_id)
                     if current and current.revision != revision:

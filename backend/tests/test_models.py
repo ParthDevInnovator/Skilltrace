@@ -77,3 +77,21 @@ def test_candidate_detail_instantiation():
     assert detail.experience_years == 6.5
     assert len(detail.claims_preview) == 1
     assert detail.match_preview is None
+
+
+def test_claims_and_evidence_publish_canonical_skill_names():
+    """OI-12: screens join skills on the taxonomy name, not the raw label."""
+    from datetime import date
+    from backend.models.context import EvidenceRecord, ResumeClaim
+    def record(skill):
+        return EvidenceRecord(candidate_id="CAND-001", skill=skill, source_type="github", source_url="https://github.com/a/b",
+                              observation=f"topic {skill}", base_weight=2, recency_multiplier=1, computed_weight=2,
+                              reference_date=date(2026, 1, 1), provenance="live")
+    assert {record(s).canonical_skill for s in ("Kafka", "apache-kafka", "Apache Kafka")} == {"Apache Kafka"}
+    assert record("k8s").canonical_skill == "Kubernetes"
+    assert record("some-unknown-topic").canonical_skill is None
+    stored = record("Kafka")
+    assert EvidenceRecord.model_validate(stored.model_dump()).id == stored.id  # IDs unchanged.
+    claim = ResumeClaim(candidate_id="CAND-001", claim_text="Built Kafka pipelines", extraction_trigger="Built",
+                        section="Experience", skill="Kafka", provenance="resume")
+    assert claim.canonical_skill == "Apache Kafka"

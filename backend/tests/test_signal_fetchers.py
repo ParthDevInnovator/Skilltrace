@@ -12,6 +12,7 @@ from backend.config import settings
 from backend.models import EvidenceProvenance
 from backend.services.signal_fetchers import SignalCache
 from backend.services.signal_fetchers.common import recency_multiplier
+from backend.services.signal_fetchers.common import SourceUnavailable
 from backend.services.signal_fetchers.github import fetch_github
 from backend.services.signal_fetchers.leetcode import fetch_leetcode
 from backend.services.signal_fetchers.linkedin import fetch_linkedin
@@ -120,9 +121,17 @@ async def test_github_repo_cap_empty_dates_no_token(cache, monkeypatch):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("status", [403, 404, 429, 500])
-async def test_github_http_failures_are_not_cached(cache, status):
+@pytest.mark.parametrize("status", [403, 429, 500])
+async def test_github_http_failures_are_outages_and_not_cached(cache, status):
     async with httpx.AsyncClient(transport=httpx.MockTransport(lambda request: httpx.Response(status, json={}))) as client:
+        with pytest.raises(SourceUnavailable):
+            await fetch_github("user", candidate_id="CAND-001", reference_date=REFERENCE, client=client, cache=cache)
+    assert cache.get_cached("github:v1:user") is None
+
+
+@pytest.mark.asyncio
+async def test_github_unknown_account_is_an_evidence_gap_not_an_outage(cache):
+    async with httpx.AsyncClient(transport=httpx.MockTransport(lambda request: httpx.Response(404, json={}))) as client:
         assert await fetch_github("user", candidate_id="CAND-001", reference_date=REFERENCE, client=client, cache=cache) == []
     assert cache.get_cached("github:v1:user") is None
 
@@ -137,17 +146,28 @@ async def test_fetcher_timeouts_and_invalid_profiles(cache):
         for fetcher in [fetch_github, fetch_leetcode]:
             assert await fetcher("https://evil.test/user", candidate_id="CAND-001", reference_date=REFERENCE, client=client, cache=cache) == []
             assert not calls
-        assert await fetch_github("user", candidate_id="CAND-001", reference_date=REFERENCE, client=client, cache=cache) == []
-        assert await fetch_leetcode("user", candidate_id="CAND-001", reference_date=REFERENCE, client=client, cache=cache) == []
+        for fetcher in [fetch_github, fetch_leetcode]:
+            with pytest.raises(SourceUnavailable):
+                await fetcher("user", candidate_id="CAND-001", reference_date=REFERENCE, client=client, cache=cache)
     assert len(calls) == 2
 
 
 @pytest.mark.asyncio
-async def test_commit_failure_does_not_cache_partial_observations(cache):
+async def test_one_commit_failure_keeps_other_repositories_and_is_not_cached(cache):
     def handler(request):
-        return httpx.Response(200, json=[repo()]) if request.url.path.endswith("/repos") else httpx.Response(500)
+        if request.url.path.endswith("/repos"):
+            return httpx.Response(200, json=[repo("user/good"), repo("user/broken")])
+        if "user/broken" in request.url.path:
+            return httpx.Response(500)
+        return httpx.Response(200, json=[{"commit": {"committer": {"date": "2026-01-01T00:00:00Z"}}}])
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
-        assert await fetch_github("user", candidate_id="CAND-001", reference_date=REFERENCE, client=client, cache=cache) == []
+        records = await fetch_github("user", candidate_id="CAND-001", reference_date=REFERENCE, client=client, cache=cache)
+    by_repo = {}
+    for record in records:
+        by_repo.setdefault(str(record.source_url).rstrip("/").rsplit("/", 1)[-1], []).append(record)
+    assert set(by_repo) == {"good", "broken"}
+    assert all(r.observation_date is not None for r in by_repo["good"])
+    assert all(r.observation_date is None for r in by_repo["broken"])  # Kept, but undated.
     assert cache.get_cached("github:v1:user") is None
 
 
@@ -175,9 +195,10 @@ async def test_leetcode_language_weights_and_cached_result(cache):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("payload", [{"errors": [{"message": "mock error"}]}, {}, {"data": {"matchedUser": {"languageProblemCount": "invalid"}}}])
-async def test_leetcode_graphql_errors_are_soft(cache, payload):
+async def test_leetcode_graphql_errors_are_outages(cache, payload):
     async with httpx.AsyncClient(transport=httpx.MockTransport(lambda request: httpx.Response(200, json=payload))) as client:
-        assert await fetch_leetcode("user", candidate_id="CAND-001", reference_date=REFERENCE, client=client, cache=cache) == []
+        with pytest.raises(SourceUnavailable):
+            await fetch_leetcode("user", candidate_id="CAND-001", reference_date=REFERENCE, client=client, cache=cache)
     assert cache.get_cached("leetcode:v1:user") is None
 
 
@@ -210,9 +231,10 @@ async def test_linkedin_synthetic_fixture_and_missing_file(tmp_path):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("status", [403, 429, 500])
-async def test_leetcode_http_failure_is_soft_and_not_cached(cache, status):
+async def test_leetcode_http_failure_is_an_outage_and_not_cached(cache, status):
     async with httpx.AsyncClient(transport=httpx.MockTransport(lambda request: httpx.Response(status))) as client:
-        assert await fetch_leetcode("user", candidate_id="CAND-001", reference_date=REFERENCE, client=client, cache=cache) == []
+        with pytest.raises(SourceUnavailable):
+            await fetch_leetcode("user", candidate_id="CAND-001", reference_date=REFERENCE, client=client, cache=cache)
     assert cache.get_cached("leetcode:v1:user") is None
 
 
@@ -238,14 +260,16 @@ async def test_expired_cache_fetches_again_and_io_cache_failure_still_returns_si
 
 
 @pytest.mark.asyncio
-async def test_malformed_repository_json_and_profile_redirects_fail_soft(cache):
+async def test_malformed_repository_json_and_profile_redirects_are_outages(cache):
     async with httpx.AsyncClient(transport=httpx.MockTransport(lambda request: httpx.Response(200, json={"wrong": "shape"}))) as client:
-        assert await fetch_github("user", candidate_id="CAND-001", reference_date=REFERENCE, client=client, cache=cache) == []
+        with pytest.raises(SourceUnavailable):
+            await fetch_github("user", candidate_id="CAND-001", reference_date=REFERENCE, client=client, cache=cache)
     calls = []
     def redirect(request):
         calls.append(request)
         return httpx.Response(302, headers={"Location": "https://example.test/other"})
     async with httpx.AsyncClient(transport=httpx.MockTransport(redirect), follow_redirects=True) as client:
-        assert await fetch_github("user", candidate_id="CAND-001", reference_date=REFERENCE, client=client, cache=cache) == []
-        assert await fetch_leetcode("user", candidate_id="CAND-001", reference_date=REFERENCE, client=client, cache=cache) == []
+        for fetcher in [fetch_github, fetch_leetcode]:
+            with pytest.raises(SourceUnavailable):
+                await fetcher("user", candidate_id="CAND-001", reference_date=REFERENCE, client=client, cache=cache)
     assert len(calls) == 2

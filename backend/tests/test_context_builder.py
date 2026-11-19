@@ -105,6 +105,18 @@ async def test_all_unexpected_source_failures_mark_failed(service):
 
 
 @pytest.mark.asyncio
+async def test_all_sources_down_is_ready_with_every_outage_reported(service):
+    from backend.services.signal_fetchers.common import SourceUnavailable
+    async def down(*args, **kwargs):
+        raise SourceUnavailable("down")
+    service.fetchers = {source: down for source in SOURCES}
+    context = await service.build_context(service.repository.get_candidate("CAND-001"))
+    assert context is not None and context.evidence_records == []
+    assert context.unavailable_sources == list(SOURCES)
+    assert service.registry.get("CAND-001").status == "ready"
+
+
+@pytest.mark.asyncio
 async def test_expected_network_unavailability_can_produce_empty_ready_context(service):
     async def no_public_evidence(*args, **kwargs):
         return []
@@ -248,3 +260,6 @@ async def test_real_adapter_http_500_preserves_other_fixture_signals(service, tm
     assert service.registry.get("CAND-004").status == "ready"
     assert context.evidence_score == .7
     assert [record.source_type for record in context.evidence_records] == ["leetcode"]
+    # The outage is reported, not presented as "no GitHub evidence" (OI-19).
+    assert context.unavailable_sources == ["github"]
+    assert service.registry.get("CAND-004").unavailable_sources == ("github",)

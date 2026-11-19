@@ -64,9 +64,10 @@ export function Header({
       {/* Right Controls */}
       <div className="flex items-center gap-3">
         {user?.workspace?.name && (
-          <span className="workspace-name" title={`Workspace: ${user.workspace.name}`} aria-label={`Workspace: ${user.workspace.name}`}>
+          <span className="workspace-name" title={`Workspace: ${user.workspace.name}`}>
             <span aria-hidden="true" className="material-symbols-outlined text-[16px] text-[#a9874e]">apartment</span>
-            <span aria-hidden="true">{user.workspace.name}</span>
+            <span className="sr-only">Workspace: </span>
+            <span>{user.workspace.name}</span>
           </span>
         )}
 
