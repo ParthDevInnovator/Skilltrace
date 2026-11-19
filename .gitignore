@@ -36,3 +36,8 @@ mosaic.db
 phase5-verification.db
 phase5-migration-check.db
 .pytest-redesign-*/
+
+# Local test scratch and SQLite WAL side files
+.test-tmp/
+*.db-shm
+*.db-wal
