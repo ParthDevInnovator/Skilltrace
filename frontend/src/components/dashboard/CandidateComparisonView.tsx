@@ -6,6 +6,7 @@ import type { CandidateSummary } from '@/types'
 import type { MatchResponse } from '@/types/matching'
 import { useJob } from '@/context/JobContext'
 import { useAuth } from '@/context/AuthContext'
+import { assessSkills, skillStatus } from '@/types/skills'
 export function CandidateComparisonView({ onBack }: { onBack?: () => void }) {
   const { selectedJob, selectedCandidateId, openCandidateDetail, setActiveView } = useJob()
   const { hasRole } = useAuth()
@@ -46,7 +47,9 @@ export function CandidateComparisonView({ onBack }: { onBack?: () => void }) {
     return () => { live = false }
   }, [ids, canCompare, attempt])
   if (!canCompare) return <section className="panel"><h1>Candidate Comparison</h1><p>Role-fit comparison requires recruiter access. Interview questions and candidate profiles remain available.</p></section>
-  const skills = [...new Set(ids.flatMap(id => candidates.find(candidate => candidate.id === id)?.top_skills ?? []))]
+  const reportedOf = (id: string) => candidates.find(candidate => candidate.id === id)?.top_skills ?? []
+  const assessed = Object.fromEntries(ids.map(id => [id, assessSkills(reportedOf(id), contexts[id] ?? null)]))
+  const skills = [...new Map(ids.flatMap(id => assessed[id].filter(skill => skill.reported)).map(skill => [skill.name.toLowerCase(), skill.name])).values()]
   const readyMatch = (id: string) => { const result = results[id]; return result && !('status' in result) ? result : null }
   const rows = [
     { label: 'Job Fit', values: ids.map(id => readyMatch(id) ? `${Math.round(readyMatch(id)!.final_score * 100)} / 100` : results[id] && 'status' in results[id] ? results[id].status === 'failed' ? 'Assessment unavailable' : 'Building assessment' : selectedJob ? 'Loading...' : 'Select a job') },
@@ -57,14 +60,19 @@ export function CandidateComparisonView({ onBack }: { onBack?: () => void }) {
     }) },
     { label: 'Evidence Strength', values: ids.map(id => readyMatch(id) ? `${Math.round(readyMatch(id)!.evidence_strength * 100)}%` : 'Pending') },
     ...skills.map(skill => ({ label: skill, values: ids.map(id => {
-      const context = contexts[id]
-      if (!context) return 'Evidence pending'
-      const evidence = context.evidence_records.filter(record => record.skill.toLowerCase() === skill.toLowerCase())
-      if (evidence.length) return `Demonstrated ? ${evidence.length} observation${evidence.length === 1 ? '' : 's'}`
-      return candidates.find(candidate => candidate.id === id)?.top_skills.some(item => item.toLowerCase() === skill.toLowerCase()) ? 'Unverified ? reported skill' : 'Not reported'
+      if (!contexts[id]) return 'Evidence pending'
+      const found = assessed[id].find(item => item.name.toLowerCase() === skill.toLowerCase())
+      if (!found) return 'Not reported'
+      const status = skillStatus(found)
+      const n = found.observations.length
+      const seen = n ? `${n} observation${n === 1 ? '' : 's'}` : 'no public observations'
+      return status === 'Contradicted' ? `Contradicted · claim conflicts with evidence (${seen})`
+        : status === 'Supported' ? `Supported · ${seen}`
+        : status === 'Demonstrated' ? `Demonstrated · ${seen}`
+        : found.reported ? 'Unverified · reported skill' : `Not reported · ${seen}`
     }) })),
     { label: 'Top Project', values: ids.map(id => contexts[id]?.evidence_records.find(record => record.source_type === 'github' || record.source_type === 'project_submission')?.observation ?? 'No project evidence available') },
-    { label: 'Experience', values: ids.map(id => contexts[id]?.candidate.experience_years != null ? `${contexts[id].candidate.experience_years} yrs ? reported` : 'Not available') },
+    { label: 'Experience', values: ids.map(id => contexts[id]?.candidate.experience_years != null ? `${contexts[id].candidate.experience_years} yrs · reported` : 'Not available') },
   ]
   return <section className="candidate-comparison">
     <nav aria-label="Breadcrumb" className="comparison-breadcrumb"><button onClick={() => setActiveView('jobs')}>Jobs</button><span>/</span><button onClick={() => setActiveView('job-detail')}>{selectedJob?.title ?? 'Select a job'}</button><span>/</span><span>Comparison</span></nav>
@@ -73,7 +81,7 @@ export function CandidateComparisonView({ onBack }: { onBack?: () => void }) {
     {pickerOpen && <fieldset id="comparison-picker" className="panel comparison-picker"><legend>Comparison candidates ? select up to 3</legend>{listLoading && <p role="status">Loading candidates...</p>}{!listLoading && !candidates.length && <p>No candidates available.</p>}{candidates.map(candidate => <label key={candidate.id}><input type="checkbox" checked={ids.includes(candidate.id)} disabled={!ids.includes(candidate.id) && ids.length >= 3} onChange={event => setIds(previous => event.target.checked ? [...previous, candidate.id] : previous.filter(id => id !== candidate.id))}/>{candidate.full_name}</label>)}<button className="secondary-button" onClick={() => setPickerOpen(false)}>Done</button></fieldset>}
     {error && <div role="alert" className="panel">{error}<button className="secondary-button" onClick={() => setAttempt(value => value + 1)}>Retry comparison</button></div>}
     {!selectedJob && <p>Select a job to compare role fit.</p>}
-    {!ids.length ? <div className="panel comparison-empty"><h2>Select candidates to compare</h2><p>Add up to three candidates to review their skills and evidence side by side.</p><button className="primary-button" onClick={() => setPickerOpen(true)}>Add candidates</button></div> : <div className="comparison-scroll comparison-frame"><table className="comparison-table intelligence-comparison-table"><caption className="sr-only">Role-specific assessment for {selectedJob?.title ?? 'the selected job'}</caption><thead><tr><th scope="col"><span>{ids.length} selected ? max 3</span></th>{ids.map(id => {
+    {!ids.length ? <div className="panel comparison-empty"><h2>Select candidates to compare</h2><p>Add up to three candidates to review their skills and evidence side by side.</p><button className="primary-button" onClick={() => setPickerOpen(true)}>Add candidates</button></div> : <div className="comparison-scroll comparison-frame"><table className="comparison-table intelligence-comparison-table"><caption className="sr-only">Role-specific assessment for {selectedJob?.title ?? 'the selected job'}</caption><thead><tr><th scope="col"><span>{ids.length} selected · max 3</span></th>{ids.map(id => {
       const candidate = candidates.find(item => item.id === id)
       const name = candidate?.full_name ?? id
       return <th scope="col" key={id}><div className="comparison-person"><ProfileAvatar name={name}/><div><strong>{name}</strong><small>{candidate?.headline ?? 'Candidate'}</small></div><span className="comparison-score">{readyMatch(id) ? Math.round(readyMatch(id)!.final_score * 100) : '?'}</span><button className="comparison-remove" onClick={() => setIds(previous => previous.filter(item => item !== id))} aria-label={`Remove ${name}`}>?</button></div></th>

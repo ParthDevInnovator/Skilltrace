@@ -3,6 +3,7 @@ import type { CandidateContext } from '@/types/context'
 import type { Job } from '@/types/job'
 import type { ExtractedRequirement, MatchResponse } from '@/types/matching'
 import { useJdMatch } from '@/hooks/useJdMatch'
+import { assessSkills, observationCount, skillStatus } from '@/types/skills'
 
 type Metric = { label: string; percent: number }
 
@@ -22,8 +23,8 @@ export function IntelligenceOverview({ candidate, context, job, inspectClaims, c
   const match = useJdMatch(candidate.id, job?.id, canMatch)
   const records = context?.evidence_records ?? []
   const claims = context?.claims ?? []
-  const skills = [...new Set([...candidate.top_skills, ...records.map(record => record.skill)])]
-  const gaps = skills.filter(skill => !records.some(record => record.skill.toLowerCase() === skill.toLowerCase()))
+  const skills = assessSkills(candidate.top_skills, context)
+  const gaps = skills.filter(skill => skill.reported && !skill.observations.length).map(skill => skill.name)
   const contradictions = claims.filter(claim => claim.verification_state === 'contradicted').length
   const coverage = (mandatory: boolean): Metric => !job ? { label: 'Select a job', percent: 0 }
     : !canMatch ? { label: 'Restricted', percent: 0 }
@@ -43,15 +44,14 @@ export function IntelligenceOverview({ candidate, context, job, inspectClaims, c
         <h2>B. Skill Intelligence</h2>
         {skills.length === 0 && <p className="intelligence-summary">No skills reported yet.</p>}
         {skills.map(skill => {
-          const supporting = records.filter(record => record.skill.toLowerCase() === skill.toLowerCase())
-          const supported = claims.some(claim => claim.skill?.toLowerCase() === skill.toLowerCase() && claim.verification_state === 'supported')
-          return <div className="intelligence-skill" key={skill}><strong>{skill}</strong><span className={`intelligence-status ${supporting.length ? 'demonstrated' : ''}`}>{supporting.length ? 'Demonstrated' : supported ? 'Supported' : 'Unverified'}</span><span>{supporting.length ? `${supporting.length} supporting observation${supporting.length === 1 ? '' : 's'}` : 'Reported without public evidence'}</span></div>
+          const status = skillStatus(skill)
+          return <div className="intelligence-skill" key={skill.name}><strong>{skill.name}</strong><span className={`intelligence-status ${status === 'Demonstrated' || status === 'Supported' ? 'demonstrated' : status === 'Contradicted' ? 'contradicted' : ''}`}>{status}</span><span>{observationCount(skill)}{skill.reported ? '' : ' · not on resume'}</span></div>
         })}
       </section>
       <section className="intelligence-panel">
         <h2>C. Technical Projects and Evidence</h2>
         {!records.length && <p className="intelligence-summary">No public project evidence available yet.</p>}
-        {records.map(record => <article className="intelligence-project" key={record.id}><div className="intelligence-project-icon" aria-hidden="true"><span className="material-symbols-outlined">{record.source_type === 'github' ? 'code' : record.source_type === 'linkedin' ? 'work' : 'terminal'}</span></div><div className="intelligence-project-content"><p>{record.observation}</p><small>{candidate.full_name}{record.observation_date ? ` · ${record.observation_date}` : ''}</small><div className="intelligence-project-tags"><span>{record.skill}</span><span>{record.source_type.replaceAll('_', ' ')}</span>{/^https?:\/\//i.test(record.source_url) && <a href={record.source_url} target="_blank" rel="noreferrer">{record.source_url.replace(/^https?:\/\//, '')}</a>}</div><small>{record.provenance}</small></div><span className="intelligence-status demonstrated">Demonstrated</span></article>)}
+        {records.map(record => <article className="intelligence-project" key={record.id}><div className="intelligence-project-icon" aria-hidden="true"><span className="material-symbols-outlined">{record.source_type === 'github' ? 'code' : record.source_type === 'linkedin' ? 'work' : 'terminal'}</span></div><div className="intelligence-project-content"><p>{record.observation}</p><small>{candidate.full_name}{record.observation_date ? ` · ${record.observation_date}` : ''}</small><div className="intelligence-project-tags"><span>{record.canonical_skill ?? record.skill}</span><span>{record.source_type.replaceAll('_', ' ')}</span>{/^https?:\/\//i.test(record.source_url) && <a href={record.source_url} target="_blank" rel="noreferrer">{record.source_url.replace(/^https?:\/\//, '')}</a>}</div><small>{record.provenance}</small></div><span className="intelligence-status demonstrated">Demonstrated</span></article>)}
       </section>
     </div>
     <aside className="intelligence-aside">

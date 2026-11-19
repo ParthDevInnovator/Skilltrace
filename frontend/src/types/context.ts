@@ -4,12 +4,15 @@ export type SourceType = 'github' | 'leetcode' | 'linkedin' | 'interview_feedbac
 export interface ResumeClaim {
   id: string; candidate_id: string; claim_text: string; section: string; skill: string | null
   extraction_trigger: string; provenance: string
+  /** Taxonomy name for skill, the join key across screens (OI-12). */
+  canonical_skill?: string | null
   verification_state: 'unverified' | 'supported' | 'contradicted'
 }
 export interface EvidenceRecord {
   id: string; candidate_id: string; skill: string; source_type: SourceType; source_url: string
   observation: string; base_weight: number; recency_multiplier: number; computed_weight: number
   observation_date: string | null; reference_date: string; provenance: string
+  canonical_skill?: string | null
 }
 export interface CandidateContext {
   candidate: CandidateDetail; claims: ResumeClaim[]; evidence_records: EvidenceRecord[]

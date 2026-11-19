@@ -19,6 +19,13 @@ def resolve_skill(text: str) -> str | None:
     return ALIASES.get(text.strip().casefold())
 
 
+def canonical_skill(text: str | None) -> str | None:
+    """The taxonomy name for a skill label, tolerating repository-topic spelling (apache-kafka)."""
+    if not text or not text.strip():
+        return None
+    return resolve_skill(text) or resolve_skill(re.sub(r"[-_]+", " ", text))
+
+
 def skills_for_requirement(requirement_text: str) -> list[str]:
     text = requirement_text.casefold()
     # Prefer longer aliases so React.js does not separately match the alias js.

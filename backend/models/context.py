@@ -41,6 +41,14 @@ class ResumeClaim(BaseModel):
 
     model_config = ConfigDict(extra="forbid", validate_assignment=True)
 
+    @model_validator(mode="before")
+    @classmethod
+    def assign_canonical_skill(cls, value):
+        if isinstance(value, dict) and value.get("canonical_skill") is None:
+            from backend.services.taxonomy import canonical_skill
+            value = {**value, "canonical_skill": canonical_skill(value.get("skill"))}
+        return value
+
     id: NonBlankString = Field(description="Stable unique claim identifier")
     candidate_id: NonBlankString = Field(description="Candidate that made the claim")
     claim_text: NonBlankString = Field(description="Original extracted claim text")
@@ -50,6 +58,9 @@ class ResumeClaim(BaseModel):
     section: ClaimSection = Field(description="Resume section, or Unknown if unavailable")
     skill: NonBlankString | None = Field(
         default=None, description="Associated skill, if identifiable"
+    )
+    canonical_skill: str | None = Field(
+        default=None, description="Taxonomy name for skill; the join key across screens (OI-12)"
     )
     provenance: NonBlankString = Field(description="How the claim was extracted")
     verification_state: ClaimVerificationState = Field(
@@ -111,6 +122,14 @@ class EvidenceRecord(BaseModel):
 
     model_config = ConfigDict(extra="forbid", validate_assignment=True)
 
+    @model_validator(mode="before")
+    @classmethod
+    def assign_canonical_skill(cls, value):
+        if isinstance(value, dict) and value.get("canonical_skill") is None:
+            from backend.services.taxonomy import canonical_skill
+            value = {**value, "canonical_skill": canonical_skill(value.get("skill"))}
+        return value
+
     id: NonBlankString
     candidate_id: NonBlankString
     skill: NonBlankString
@@ -123,6 +142,8 @@ class EvidenceRecord(BaseModel):
     observation_date: date | None = None
     reference_date: date
     provenance: EvidenceProvenance
+    # Taxonomy name for skill (Kafka, apache-kafka -> Apache Kafka); the join key across screens (OI-12).
+    canonical_skill: str | None = None
 
     @model_validator(mode="after")
     def validate_weight_formula(self):
