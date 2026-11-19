@@ -1,18 +1,34 @@
 import type { CandidateDetail } from '@/types'
 import type { CandidateContext } from '@/types/context'
 import type { Job } from '@/types/job'
+import type { ExtractedRequirement, MatchResponse } from '@/types/matching'
+import { useJdMatch } from '@/hooks/useJdMatch'
 
-export function IntelligenceOverview({ candidate, context, job, inspectClaims }: { candidate: CandidateDetail; context: CandidateContext | null; job: Job | null; inspectClaims: () => void }) {
+type Metric = { label: string; percent: number }
+
+/** Coverage counts come from the backend match, exactly as JD Match shows them (OI-10). */
+export function matchCoverage(match: MatchResponse | null, requirements: ExtractedRequirement[], mandatory: boolean, exhausted = false): Metric {
+  if (!match || ('status' in match && match.status === 'building')) return { label: exhausted ? 'Still building' : 'Assessing…', percent: 0 }
+  if ('status' in match) return { label: 'Unavailable', percent: 0 }
+  const ids = new Set(requirements.filter(requirement => requirement.is_mandatory === mandatory).map(requirement => requirement.id))
+  const rows = match.coverage.filter(row => ids.has(row.requirement_id))
+  if (!rows.length) return { label: 'Not assessed', percent: 0 }
+  const matched = rows.filter(row => row.coverage_state === 'matched').length
+  const partial = rows.filter(row => row.coverage_state === 'partially_supported').length
+  return { label: `${matched}/${rows.length}${partial ? ` · ${partial} partial` : ''}`, percent: matched / rows.length * 100 }
+}
+
+export function IntelligenceOverview({ candidate, context, job, inspectClaims, canMatch = true }: { candidate: CandidateDetail; context: CandidateContext | null; job: Job | null; inspectClaims: () => void; canMatch?: boolean }) {
+  const match = useJdMatch(candidate.id, job?.id, canMatch)
   const records = context?.evidence_records ?? []
   const claims = context?.claims ?? []
   const skills = [...new Set([...candidate.top_skills, ...records.map(record => record.skill)])]
   const gaps = skills.filter(skill => !records.some(record => record.skill.toLowerCase() === skill.toLowerCase()))
   const contradictions = claims.filter(claim => claim.verification_state === 'contradicted').length
-  const coverage = (mandatory: boolean) => {
-    const requirements = job?.requirements?.filter(requirement => requirement.is_mandatory === mandatory) ?? []
-    const supported = requirements.filter(requirement => records.some(record => requirement.requirement_text.toLowerCase().includes(record.skill.toLowerCase()))).length
-    return { label: requirements.length ? `${supported}/${requirements.length}` : 'Not assessed', percent: requirements.length ? supported / requirements.length * 100 : 0 }
-  }
+  const coverage = (mandatory: boolean): Metric => !job ? { label: 'Select a job', percent: 0 }
+    : !canMatch ? { label: 'Restricted', percent: 0 }
+    : matchCoverage(match.result, match.requirements, mandatory, match.exhausted)
+  const matchFailed = !!match.result && 'status' in match.result && match.result.status === 'failed'
   return <div className="intelligence-grid">
     <div className="intelligence-primary">
       <section className="intelligence-panel">
@@ -21,6 +37,7 @@ export function IntelligenceOverview({ candidate, context, job, inspectClaims }:
         <div className="intelligence-metrics">
           {[{ title: 'Mandatory coverage', ...coverage(true) }, { title: 'Preferred coverage', ...coverage(false) }, { title: 'Contradictions', label: context ? `${contradictions} open` : 'Pending', percent: context && !contradictions ? 100 : 0 }].map(metric => <div className="intelligence-metric" key={metric.title}><span>{metric.title}</span><strong>{metric.label}</strong><div className="intelligence-track"><i style={{ width: `${metric.percent}%` }} /></div></div>)}
         </div>
+        {(matchFailed || match.exhausted) && <p role="alert" className="intelligence-summary">Coverage could not be loaded. <button type="button" onClick={match.retry}>Retry coverage</button></p>}
       </section>
       <section className="intelligence-panel">
         <h2>B. Skill Intelligence</h2>

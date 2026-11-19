@@ -328,7 +328,7 @@ export function CandidateProfileShell() {
       </nav>
 
       {/* TAB 1: DOSSIER OVERVIEW (Exact match to Image 1) */}
-      {activeTab === 'overview' && <IntelligenceOverview candidate={displayCandidate} context={context} job={selectedJob} inspectClaims={() => setActiveTab('claims')} />}
+      {activeTab === 'overview' && <IntelligenceOverview candidate={displayCandidate} context={context} job={selectedJob} canMatch={hasRole('recruiter')} inspectClaims={() => setActiveTab('claims')} />}
 
       {/* TAB: CLAIMS & EVIDENCE */}
       {activeTab === 'claims' && (
