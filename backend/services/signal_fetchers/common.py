@@ -10,6 +10,14 @@ from backend.models import EvidenceRecord
 from backend.services.scoring_engine import compute_recency_multiplier as recency_multiplier
 
 
+class SourceUnavailable(Exception):
+    """The source could not be read (network, HTTP or response error).
+
+    Distinct from an empty result: no profile, or a profile with no public evidence,
+    returns []. Callers report an outage as retryable instead of "no evidence" (OI-19).
+    """
+
+
 def normalize_username(value: str, platform: str) -> str | None:
     value = value.strip()
     if not value:

@@ -1,7 +1,7 @@
 import type { RankedCandidate } from '@/types/matching'
 import { useCandidateContext } from '@/hooks/useCandidateContext'
 import { EvidenceBar } from '@/components/evidence/EvidenceBar'
-import { provenanceSummary } from '@/types/context'
+import { displayEvidenceLabel, provenanceSummary } from '@/types/context'
 import type { CandidateSummary } from '@/types'
 import { useJob } from '@/context/JobContext'
 import { useAuth } from '@/context/AuthContext'
@@ -24,7 +24,7 @@ export function CandidateCard({ candidate, ranking }: CandidateCardProps) {
 
   const { hasRole } = useAuth()
   const { context } = useCandidateContext(candidate.id, hasRole('recruiter'))
-  const evidenceLabel = context?.evidence_label ?? (hasRole('recruiter') ? 'Evidence pending' : 'Evidence restricted')
+  const evidenceLabel = context ? displayEvidenceLabel(context) : (hasRole('recruiter') ? 'Evidence pending' : 'Evidence restricted')
 
   return (
     <div className="bg-white border border-[var(--border-default)] rounded-xl p-5 shadow-sm hover:border-[var(--color-primary-container)] hover:shadow-md transition-all flex flex-col justify-between gap-4">
@@ -80,7 +80,7 @@ export function CandidateCard({ candidate, ranking }: CandidateCardProps) {
       </div>
 
       {ranking?.context_status === 'ready' && <p className="match-scores" data-testid="match-score">Resume Fit {Math.round(ranking.resume_fit*100)}% | Evidence {Math.round(ranking.evidence_strength*100)}% | Final {Math.round(ranking.final_score*100)}%</p>}
-      {context && <><EvidenceBar score={context.evidence_score} label={context.evidence_label} showLabel={false} /><p className="provenance-label">{provenanceSummary(context.evidence_records)}</p></>}
+      {context && <><EvidenceBar score={context.evidence_score} label={context.evidence_label} showLabel={false} /><p className="provenance-label">{provenanceSummary(context.evidence_records, context.unavailable_sources)}</p></>}
       {/* Footer Action */}
       <div className="border-t border-[var(--bg-surface-container)] pt-3 flex items-center justify-between">
         <span className="text-[11px] text-[var(--text-muted)] flex items-center gap-1">

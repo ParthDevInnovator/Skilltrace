@@ -103,7 +103,7 @@ export function EvidenceExplorer() {
   {waiting && <p>Some contexts are still building. <button onClick={retry}>Retry explorer</button></p>}
   {rows && <p role="status">Showing {filtered.length} candidates · {evidence.length} evidence items</p>}
   {rows && !filtered.length && <p>No candidates match the evidence filters.</p>}
-  {filtered.map(row => <article className="panel" key={row.candidate.id}><h2>{row.candidate.full_name}</h2>{row.context ? <><EvidenceBar score={row.context.evidence_score} label={row.context.evidence_label} /><p>{provenanceSummary(row.context.evidence_records)}</p></> : <p>{row.status === 'error' ? 'Evidence unavailable.' : 'Context building.'}</p>}<button onClick={() => openCandidateDetail(row.candidate.id)}>Inspect {row.candidate.full_name}</button></article>)}
+  {filtered.map(row => <article className="panel" key={row.candidate.id}><h2>{row.candidate.full_name}</h2>{row.context ? <><EvidenceBar score={row.context.evidence_score} label={row.context.evidence_label} /><p>{provenanceSummary(row.context.evidence_records, row.context.unavailable_sources)}</p></> : <p>{row.status === 'error' ? 'Evidence unavailable.' : 'Context building.'}</p>}<button onClick={() => openCandidateDetail(row.candidate.id)}>Inspect {row.candidate.full_name}</button></article>)}
   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{evidence.map(({record,candidate}) => <article className="panel" key={`${candidate.id}-${record.id}`}><h2>{candidate.full_name}</h2><EvidenceCard record={record} /></article>)}</div>
   {rows && !evidence.length && <p>No evidence observations match the filters.</p>}</section>
 }

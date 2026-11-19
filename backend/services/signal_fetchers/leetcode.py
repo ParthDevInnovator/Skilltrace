@@ -7,7 +7,7 @@ import httpx
 from backend.config import settings
 from backend.models import EvidenceProvenance, EvidenceRecord
 from . import SignalCache, default_cache
-from .common import http_client, make_record, normalize_username
+from .common import SourceUnavailable, http_client, make_record, normalize_username
 
 logger = logging.getLogger(__name__)
 QUERY = """query languageStats($username: String!) {
@@ -66,6 +66,6 @@ async def fetch_leetcode(username_or_url: str, *, candidate_id: str, reference_d
                 observation=f"Public LeetCode statistics report {count} solved problems in {language}; this signal is undated.",
                 base_weight=1, observed=None, reference_date=reference_date, provenance=provenance))
         return records
-    except Exception:
-        logger.warning("LeetCode signal retrieval unavailable")
-        return []
+    except Exception as error:
+        logger.warning("LeetCode signal retrieval unavailable error_type=%s", type(error).__name__)
+        raise SourceUnavailable("leetcode") from error

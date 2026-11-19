@@ -190,6 +190,9 @@ class CandidateContext(BaseModel):
     interview_feedback: list[InterviewFeedback] = Field(default_factory=list)
     reference_date: date
     context_built_at: AwareDatetime
+    # Sources that could not be read for this build. Missing evidence from these is an
+    # outage to retry, not a finding that no public evidence exists (OI-19).
+    unavailable_sources: list[str] = Field(default_factory=list)
 
     @field_validator("context_built_at")
     @classmethod

@@ -8,7 +8,7 @@ import httpx
 from backend.config import settings
 from backend.models import EvidenceProvenance, EvidenceRecord
 from . import SignalCache, default_cache
-from .common import http_client, make_record, normalize_username, observation_date
+from .common import SourceUnavailable, http_client, make_record, normalize_username, observation_date
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +21,7 @@ async def fetch_github(username_or_url: str, *, candidate_id: str, reference_dat
         if username is None:
             return []
         cache = cache if cache is not None else default_cache()
+        partial = False
         key = f"github:v1:{username.casefold()}"
         cached = await asyncio.to_thread(cache.get_cached, key)
         provenance = EvidenceProvenance.DISK_CACHE if cached else EvidenceProvenance.LIVE
@@ -34,6 +35,8 @@ async def fetch_github(username_or_url: str, *, candidate_id: str, reference_dat
                 response = await session.get(f"https://api.github.com/users/{username}/repos",
                     params={"per_page": 100, "sort": "updated"}, headers=headers,
                     timeout=settings.SIGNAL_HTTP_TIMEOUT_SECONDS, follow_redirects=False)
+                if response.status_code == 404:
+                    return []  # No such account: an evidence gap, not an outage.
                 response.raise_for_status()
                 if response.status_code != 200:
                     raise ValueError("Unexpected repository status")
@@ -79,10 +82,17 @@ async def fetch_github(username_or_url: str, *, candidate_id: str, reference_dat
                     return {"full_name": full_name, "language": language if isinstance(language, str) else None,
                             "topics": list(dict.fromkeys(topic for topic in topics if isinstance(topic, str) and topic.strip()))[:20] if isinstance(topics, list) else [],
                             "commit_date": latest}
-                observations = await asyncio.gather(*(get_observation(repo) for repo in selected), return_exceptions=True)
-                if any(isinstance(item, BaseException) for item in observations):
-                    raise ValueError("Repository observation retrieval failed")
-            await asyncio.to_thread(cache.set_cached, key, observations)
+                results = await asyncio.gather(*(get_observation(repo) for repo in selected), return_exceptions=True)
+                # One failed commit lookup must not discard every other repository. A repository
+                # whose date could not be read is kept undated, and the partial result is not
+                # cached so the next build retries it.
+                partial = any(isinstance(item, BaseException) for item in results)
+                observations = [_undated(repo) if isinstance(item, BaseException) else item
+                                for repo, item in zip(selected, results)]
+            if partial:
+                logger.warning("GitHub commit dates partly unavailable")
+            else:
+                await asyncio.to_thread(cache.set_cached, key, observations)
         if not isinstance(observations, list):
             raise ValueError("Invalid cached observations")
         records = []
@@ -100,6 +110,14 @@ async def fetch_github(username_or_url: str, *, candidate_id: str, reference_dat
                     observation=f"Public repository {full_name} declares topic '{topic}'. This is a repository tag, not a verified resume claim.",
                     base_weight=2, observed=observed, reference_date=reference_date, provenance=provenance))
         return records
-    except Exception:
-        logger.warning("GitHub signal retrieval unavailable")
-        return []
+    except Exception as error:
+        logger.warning("GitHub signal retrieval unavailable error_type=%s", type(error).__name__)
+        raise SourceUnavailable("github") from error
+
+
+def _undated(repo: dict) -> dict:
+    topics = repo.get("topics", [])
+    language = repo.get("language")
+    return {"full_name": repo["full_name"], "language": language if isinstance(language, str) else None,
+            "topics": list(dict.fromkeys(t for t in topics if isinstance(t, str) and t.strip()))[:20] if isinstance(topics, list) else [],
+            "commit_date": None}
