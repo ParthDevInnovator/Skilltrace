@@ -35,6 +35,7 @@ async def test_context_building_ready_failed_and_not_found(api_service, prefix):
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
         response = await client.get(prefix + "/CAND-001/context")
         assert response.status_code == 202 and response.json()["status"] == "building"
+        assert [s["name"] for s in response.json()["stages"]] == ["resume_parse", "claim_extraction", "github", "leetcode", "linkedin", "scoring"]
         assert response.headers["Retry-After"] == "3"
         await service.build_context(service.repository.get_candidate("CAND-001"))
         payloads = [(await client.get(prefix + "/CAND-001/context")).json() for _ in range(3)]

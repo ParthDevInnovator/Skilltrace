@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, ApiError } from '@/services/api'
-import type { CandidateContext } from '@/types/context'
+import type { BuildStage, CandidateContext } from '@/types/context'
 
 /**
  * `failed` means the build itself failed on the server (503); retrying it asks the server to
  * rebuild (OI-27). `error` means the request failed (network, permissions) and retry just refetches.
  */
 export type ContextPhase = 'building' | 'ready' | 'error' | 'failed' | 'waiting'
-type State = { id: string | null; context: CandidateContext | null; phase: ContextPhase; message?: string }
+type State = { id: string | null; context: CandidateContext | null; phase: ContextPhase; message?: string; stages?: BuildStage[] }
 
 export function useCandidateContext(id: string | null, enabled = true) {
   const [attempt, setAttempt] = useState<{ n: number; rebuild: boolean }>({ n: 0, rebuild: false })
@@ -29,7 +29,7 @@ export function useCandidateContext(id: string | null, enabled = true) {
         if (cancelled) return
         calls++
         if ('status' in result) {
-          setState({ id, context: null, phase: calls >= 10 ? 'waiting' : 'building' })
+          setState({ id, context: null, phase: calls >= 10 ? 'waiting' : 'building', stages: result.stages })
           if (calls < 10) timer = setTimeout(() => { void poll() }, 3000)
         } else setState({ id, context: result, phase: 'ready' })
       } catch (error) {
@@ -52,5 +52,7 @@ export function useCandidateContext(id: string | null, enabled = true) {
     void start()
     return () => { cancelled = true; clearTimeout(timer) }
   }, [id, attempt, enabled])
-  return { context: current?.context ?? null, phase: current?.phase ?? 'building' as const, message: current?.message, retry }
+  // Live stages while building; the published ones once ready.
+  const stages = current?.context?.build_stages ?? current?.stages ?? []
+  return { context: current?.context ?? null, phase: current?.phase ?? 'building' as const, message: current?.message, stages, retry }
 }

@@ -85,7 +85,10 @@ async def candidate_context(candidate_id: str, service: ContextBuilder = Depends
         service.launch(candidate.id, revision)
         entry = service.registry.get(candidate.id)
     if entry.status == "building":
-        return JSONResponse(status_code=202, content={"candidate_id": candidate.id, "status": "building"}, headers={"Retry-After": "3"})
+        # Stages are measured as the build runs, so the pipeline view shows real progress (OI-28).
+        stages = [stage.model_dump(mode="json") for stage in entry.stages]
+        return JSONResponse(status_code=202, content={"candidate_id": candidate.id, "status": "building", "stages": stages},
+                            headers={"Retry-After": "3"})
     if entry.status == "failed":
         raise HTTPException(503, entry.error or "Candidate context build failed.")
     return entry.context
