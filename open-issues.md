@@ -8,7 +8,7 @@ The redesigned screens are treated as the accepted UI. This backlog concerns beh
 
 **This is the single open-issues file for the project.** The former mockup-gap list (`open issue.md`, 2026-11-06) has been merged into [Feature backlog](#feature-backlog-from-the-redesign-mockups) below and removed. `PRODUCT_DESIGN_AUDIT.md` and `REDESIGN_REPAIR_STATUS.md` are historical findings and sign-offs that do not all describe the present code.
 
-Last status review: 2026-11-19. Fix Phase 1 (`FIX_PHASE_1_TASKS.md`) closed all 10 P1 issues (OI-02 mitigated) plus OI-34, OI-42 and OI-48 on branch `fix/phase1-frontend-access`. Follow-up branch `fix/phase1-followups` closes OI-47 (regression test) and Wave 2 issues OI-10, OI-12, OI-18 and OI-19. OI-11 still needs a scoring-policy decision. Update the **Status** and **Closed** columns as fixes land.
+Last status review: 2026-11-19. Fix Phase 1 (`FIX_PHASE_1_TASKS.md`) closed all 10 P1 issues (OI-02 mitigated) plus OI-34, OI-42 and OI-48 on branch `fix/phase1-frontend-access`. Follow-up branch `fix/phase1-followups` closes OI-47 (regression test) and Wave 2 issues OI-10, OI-12, OI-18 and OI-19. OI-11 still needs a scoring-policy decision. Branch `fix/phase2-wave3` (2026-11-23) closes Wave 3: OI-13 to OI-17 and OI-24 to OI-28; OI-29 is partly fixed and its verification workflow needs a policy decision. Update the **Status** and **Closed** columns as fixes land.
 
 ## Issue tracker
 
@@ -28,23 +28,23 @@ Status values: `Open`, `In progress`, `Fixed`, `Mitigated`, `Won't fix`. Wave = 
 | OI-10 | Overview coverage differs from JD Match calculation | P2 | Matching | 2 | Fixed — Overview reads the same backend match as JD Match (`useJdMatch`) | 2026-11-07 | 2026-11-19 |
 | OI-11 | Unrelated resume claims downgrade requirement coverage | P2 | Scoring | 2 | Open — needs policy decision | 2026-11-07 | |
 | OI-12 | Skill labels don't resolve aliases or conflicts consistently | P2 | Matching | 2 | Fixed — `canonical_skill` on claims/evidence; Overview and Comparison share `assessSkills` | 2026-11-07 | 2026-11-19 |
-| OI-13 | Rankings stay pending after background analysis finishes | P2 | Async | 3 | Open | 2026-11-07 | |
-| OI-14 | Comparison context requests can remain pending forever | P2 | Comparison | 3 | Open | 2026-11-07 | |
-| OI-15 | Comparison retry doesn't recover several failure states | P2 | Comparison | 3 | Open | 2026-11-07 | |
-| OI-16 | Comparison selections disappear during profile inspection | P2 | Comparison | 3 | Open | 2026-11-07 | |
-| OI-17 | Briefs/questions can belong to the previously selected job | P2 | Agent | 3 | Open | 2026-11-07 | |
+| OI-13 | Rankings stay pending after background analysis finishes | P2 | Async | 3 | Fixed — shared `useRankings` polls while candidates are building (bounded, refresh after the limit) | 2026-11-07 | 2026-11-23 |
+| OI-14 | Comparison context requests can remain pending forever | P2 | Comparison | 3 | Fixed — comparison fetches context per candidate and polls 202s (`usePolledPerId`) | 2026-11-07 | 2026-11-23 |
+| OI-15 | Comparison retry doesn't recover several failure states | P2 | Comparison | 3 | Fixed — per-column retry and exhausted states; Retry comparison reloads the list; failures no longer drop other columns | 2026-11-07 | 2026-11-23 |
+| OI-16 | Comparison selections disappear during profile inspection | P2 | Comparison | 3 | Fixed — comparison set is workspace state (`comparisonIds`, `compareCandidate`) | 2026-11-07 | 2026-11-23 |
+| OI-17 | Briefs/questions can belong to the previously selected job | P2 | Agent | 3 | Fixed — content scoped to candidate, job and context revision; downloads state that scope | 2026-11-07 | 2026-11-23 |
 | OI-18 | Replacing a resume retains stale skills and profile links | P2 | Ingestion | 2 | Fixed — replacement is authoritative for skills and links (graph side is OI-20) | 2026-11-07 | 2026-11-19 |
 | OI-19 | Source outages look like a successful lack of evidence | P2 | Signals | 2 | Fixed — `SourceUnavailable`, `unavailable_sources` on the context and in the UI | 2026-11-07 | 2026-11-19 |
 | OI-20 | Graph retains obsolete nodes/edges after resume replacement | P2 | Graph | 4 | Open | 2026-11-07 | |
 | OI-21 | Graph labels imply unproven contributions | P2 | Graph | 4 | Open | 2026-11-07 | |
 | OI-22 | Graph view filters are not the full projects/sources experience | P2 | Graph | 4 | Open | 2026-11-07 | |
 | OI-23 | Slow graph evidence responses overwrite newer selection | P2 | Graph | 4 | Open | 2026-11-07 | |
-| OI-24 | Batch upload declares completion at HTTP 202 | P2 | Uploads | 3 | Open | 2026-11-07 | |
-| OI-25 | Batch queue identity/retry keyed by filename | P2 | Uploads | 3 | Open | 2026-11-07 | |
-| OI-26 | Batch identity failures can't be corrected in place | P2 | Uploads | 3 | Open | 2026-11-07 | |
-| OI-27 | Retry evidence doesn't restart a failed context build | P2 | Processing | 3 | Open | 2026-11-07 | |
-| OI-28 | Pipeline stages are inferred rather than measured | P2 | Processing | 3 | Open | 2026-11-07 | |
-| OI-29 | Claim verification/contradiction assessment not implemented | P2 | Intelligence | 3 | Open | 2026-11-07 | |
+| OI-24 | Batch upload declares completion at HTTP 202 | P2 | Uploads | 3 | Fixed — batch entries track uploaded → analyzing → analyzed/failed by candidate ID | 2026-11-07 | 2026-11-23 |
+| OI-25 | Batch queue identity/retry keyed by filename | P2 | Uploads | 3 | Fixed — per-entry IDs; same-name files are separate entries | 2026-11-07 | 2026-11-23 |
+| OI-26 | Batch identity failures can't be corrected in place | P2 | Uploads | 3 | Fixed — structured ingest errors (`code`, `field`), inline identity correction, queue survives navigation | 2026-11-07 | 2026-11-23 |
+| OI-27 | Retry evidence doesn't restart a failed context build | P2 | Processing | 3 | Fixed — `POST /candidates/{id}/context/rebuild` (failed builds only); Retry analysis uses it | 2026-11-07 | 2026-11-23 |
+| OI-28 | Pipeline stages are inferred rather than measured | P2 | Processing | 3 | Fixed — build records per-stage state, counts and timestamps; Pipeline shows them and runs the real match | 2026-11-07 | 2026-11-23 |
+| OI-29 | Claim verification/contradiction assessment not implemented | P2 | Intelligence | 3 | Partly fixed — `claim_assessment` + "Not assessed" metric; Kafka/Redis extracted. Verification workflow needs a policy decision | 2026-11-07 | |
 | OI-30 | Candidates not associated with the job used for upload | P2 | Product gap | 5 | Open | 2026-11-07 | |
 | OI-31 | Job lifecycle, editing, activity unavailable; job ID search broken | P2 | Product gap | 5 | Open | 2026-11-07 | |
 | OI-32 | Discovery and candidate evidence collection have no workflow | P2 | Product gap | 5 | Open — needs scope decision | 2026-11-07 | |
