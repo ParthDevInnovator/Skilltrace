@@ -453,6 +453,9 @@ export function CandidateProfileShell() {
             candidateId={displayCandidate.id}
             jobId={selectedJob?.id}
             exportRequest={exportRequest}
+            contextRevision={context?.context_built_at}
+            candidateName={displayCandidate.full_name}
+            jobTitle={selectedJob?.title}
           />
         </section>
       )}
