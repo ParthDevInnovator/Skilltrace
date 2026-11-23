@@ -6,6 +6,7 @@ import { ProfileAvatar } from '@/components/layout/ProfileAvatar'
 import type { CandidateSummary } from '@/types'
 import type { ExtractedRequirement, RankedCandidate } from '@/types/matching'
 import { visibleLocation } from '@/services/masking'
+import { useRanking } from '@/hooks/useRankings'
 
 function Icon({ name }: { name: string }) { return <span className="material-symbols-outlined" aria-hidden="true">{name}</span> }
 export function CandidateResultsView() {
@@ -17,25 +18,29 @@ export function CandidateResultsView() {
   const [fit, setFit] = useState('all')
   const [evidence, setEvidence] = useState('all')
   const [status, setStatus] = useState('all')
-  const [data, setData] = useState<{key: string; candidates: CandidateSummary[]; ranks: RankedCandidate[]; requirements: ExtractedRequirement[]; error: string; rankingError: boolean} | null>(null)
+  const [data, setData] = useState<{key: string; candidates: CandidateSummary[]; requirements: ExtractedRequirement[]; error: string; requirementsError: boolean} | null>(null)
   const key = `${selectedJob?.id ?? ''}:${canRank}:${attempt}`
+  const ranking = useRanking(selectedJob?.id, canRank)
   useEffect(() => {
     let live = true
     async function load() {
-      const [candidates, ranking] = await Promise.allSettled([
+      const [candidates, requirements] = await Promise.allSettled([
         api.getCandidates(),
-        selectedJob && canRank ? Promise.all([api.rankCandidates({job_id: selectedJob.id}), api.extractRequirements({job_id: selectedJob.id})]) : Promise.resolve(null),
+        selectedJob && canRank ? api.extractRequirements({job_id: selectedJob.id}) : Promise.resolve([]),
       ])
       if (!live) return
-      const ranked = ranking.status === 'fulfilled' ? ranking.value : null
-      setData({ key, candidates: candidates.status === 'fulfilled' ? candidates.value : [], ranks: ranked?.[0] ?? [], requirements: ranked?.[1] ?? [], error: candidates.status === 'rejected' ? 'Could not load candidates.' : '', rankingError: ranking.status === 'rejected' })
+      setData({ key, candidates: candidates.status === 'fulfilled' ? candidates.value : [], requirements: requirements.status === 'fulfilled' ? requirements.value : [], error: candidates.status === 'rejected' ? 'Could not load candidates.' : '', requirementsError: requirements.status === 'rejected' })
     }
     void load()
     return () => { live = false }
   }, [key, selectedJob, canRank])
-  const current = data?.key === key ? data : null
+  const loaded = data?.key === key ? data : null
+  const rankingError = !!loaded?.requirementsError || ranking.error
+  // Rankings arrive from the polling hook; the table waits for both so rows don't flash unscored.
+  const current = loaded && (!selectedJob || !canRank || ranking.rows !== null) ? { ...loaded, ranks: rankingError ? [] : ranking.rows ?? [], rankingError } : null
+  function refresh() { setAttempt(value => value + 1); ranking.refresh() }
   const candidates = current?.candidates ?? []
-  const ranks = current?.ranks ?? []
+  const ranks: RankedCandidate[] = current?.ranks ?? []
   const rankById = new Map(ranks.map(row => [row.candidate_id, row]))
   const ready = ranks.filter(row => row.context_status === 'ready')
   const strong = ready.filter(row => ['Strong', 'Good'].includes(row.evidence_label)).length
@@ -60,9 +65,11 @@ export function CandidateResultsView() {
   function clearFilters() { setFit('all');setEvidence('all');setStatus('all');setSelectedSkill('') }
   return <section className="candidate-results"><div className="results-heading"><div><h1>Candidate Intelligence</h1><p>Understand how every candidate aligns with this job{selectedJob ? ` - ${selectedJob.title}.` : '. Select a job to assess fit.'}</p></div><div className="results-actions"><button aria-expanded={filtersOpen} onClick={() => setFiltersOpen(!filtersOpen)}><Icon name="filter_list" />Filters</button><button className="results-compare" disabled={!canRank} onClick={() => setActiveView('comparison')}><Icon name="compare_arrows" />Compare Candidates</button></div></div>
     <div className="results-metrics">{metrics.map(metric => <article key={metric.label}><span className="results-metric-icon"><Icon name={metric.icon} /></span><div><strong>{metric.value ?? '—'}</strong><span>{metric.label}</span></div></article>)}</div>
-    {current?.rankingError && <p role="alert" className="notice error">Job rankings could not be loaded. <button onClick={() => setAttempt(value => value + 1)}>Retry rankings</button></p>}
+    {current?.rankingError && <p role="alert" className="notice error">Job rankings could not be loaded. <button onClick={refresh}>Retry rankings</button></p>}
+    {ranking.processing && !ranking.exhausted && !rankingError && <p role="status" className="notice">Some candidates are still being analyzed. Results update automatically.</p>}
+    {ranking.exhausted && !rankingError && <p role="status" className="notice">Analysis is taking longer than expected for some candidates. <button onClick={refresh}>Refresh results</button></p>}
     <div className="results-table-panel"><div className="results-filters"><div><label><span className="sr-only">Minimum job fit</span><select value={fit} onChange={event => setFit(event.target.value)}><option value="all">Job Fit: All</option>{[60,70,80,90].map(value => <option key={value} value={value}>Job Fit: {value}%+</option>)}</select></label><label><span className="sr-only">Skills</span><select value={selectedSkill || ''} onChange={event => setSelectedSkill(event.target.value)}><option value="">Skills: All</option>{[...new Set([...candidates.flatMap(candidate => candidate.top_skills), ...(selectedSkill ? [selectedSkill] : [])])].sort().map(skill => <option key={skill} value={skill}>Skills: {skill}</option>)}</select></label><label><span className="sr-only">Minimum evidence strength</span><select value={evidence} onChange={event => setEvidence(event.target.value)}><option value="all">Evidence: All</option>{[50,70,80,90].map(value => <option key={value} value={value}>Evidence: {value}%+</option>)}</select></label><label><span className="sr-only">Analysis status</span><select value={status} onChange={event => setStatus(event.target.value)}><option value="all">Status: All</option><option value="ready">Analyzed</option><option value="building">Processing</option><option value="failed">Failed</option></select></label><select aria-label="Platform source" disabled title="Platform source filtering is unavailable in the list API"><option>Source: All platforms</option></select></div><span role="status">{visible.length} of {candidates.length} shown</span></div>
-    {filtersOpen && <div className="results-filter-details"><p>Fit and evidence filters use analyzed results. Needs Review counts candidates with insufficient or unassessed requirement evidence. Identity confidence is not supplied by the API.</p><button onClick={clearFilters}>Clear filters</button><button onClick={() => setAttempt(value => value + 1)}>Refresh results</button></div>}
+    {filtersOpen && <div className="results-filter-details"><p>Fit and evidence filters use analyzed results. Needs Review counts candidates with insufficient or unassessed requirement evidence. Identity confidence is not supplied by the API.</p><button onClick={clearFilters}>Clear filters</button><button onClick={refresh}>Refresh results</button></div>}
     {!current ? <p className="results-empty" role="status">Loading candidate intelligence...</p> : current.error ? <div className="results-empty" role="alert">{current.error} <button onClick={() => setAttempt(value => value + 1)}>Retry candidates</button></div> : <div className="results-table-scroll"><table><thead><tr>{['Candidate','Technical Skills','Job Fit','Mandatory','Evidence','Identity','Action'].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead><tbody>{visible.map(candidate => {
       const row = rankById.get(candidate.id)
       const assessed = row?.context_status === 'ready'
