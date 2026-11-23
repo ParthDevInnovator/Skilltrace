@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { ResumeUpload } from './ResumeUpload'
 import { useJob } from '@/context/JobContext'
 import { useAuth } from '@/context/AuthContext'
-import { addFiles, checkAnalysis, removeEntry, setCorrection, uploadAll, uploadEntry, useBatchQueue, type BatchEntry } from '@/services/batchQueue'
+import { addFiles, checkAnalysis, removeEntry, retryAnalysis, setCorrection, uploadAll, uploadEntry, useBatchQueue, type BatchEntry } from '@/services/batchQueue'
 
 const STATUS: Record<BatchEntry['phase'], string> = {
   queued: 'Ready to upload', invalid: 'Cannot upload', uploading: 'Uploading…', rejected: 'Rejected',
@@ -26,6 +26,7 @@ function EntryRow({ entry, busy }: { entry: BatchEntry; busy: boolean }) {
     </form>}
     <div className="batch-entry-actions">
       {entry.phase === 'failed' && <button disabled={busy} onClick={() => uploadEntry(entry.id)}>Retry {name}</button>}
+      {entry.phase === 'analysis_failed' && <button onClick={() => void retryAnalysis(entry.id)}>Retry analysis for {name}</button>}
       {entry.phase === 'analysis_slow' && <button onClick={() => checkAnalysis(entry.id)}>Check {name} again</button>}
       {entry.candidateId && (entry.phase === 'analyzing' || entry.phase === 'analysis_slow' || entry.phase === 'analysis_failed') && <button onClick={() => startPipeline(entry.candidateId!)}>View progress for {name}</button>}
       {entry.candidateId && entry.phase === 'analyzed' && <button onClick={() => openCandidateDetail(entry.candidateId!)}>View {name}</button>}

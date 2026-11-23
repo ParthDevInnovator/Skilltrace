@@ -9,7 +9,7 @@ import type { CandidateMatchResult } from '@/types/matching'
 import type { Job } from '@/types/job'
 
 vi.mock('@/context/AuthContext', () => ({ useAuth: () => ({ hasRole: () => true }) }))
-vi.mock('@/services/api', () => ({ api: { getJobs: vi.fn(), getCandidates: vi.fn(), getCandidateJdMatch: vi.fn(), getCandidateContext: vi.fn() } }))
+vi.mock('@/services/api', () => ({ api: { getJobs: vi.fn(), getCandidates: vi.fn(), getCandidateJdMatch: vi.fn(), getCandidateContext: vi.fn(), rebuildCandidateContext: vi.fn() } }))
 
 const job = { id: 'J', title: 'Backend Engineer', requirements: [] } as unknown as Job
 const people = [
@@ -38,6 +38,7 @@ beforeEach(() => {
   vi.mocked(api.getCandidates).mockResolvedValue(people)
   vi.mocked(api.getCandidateJdMatch).mockImplementation(async id => match(id, id === 'A' ? .8 : .6))
   vi.mocked(api.getCandidateContext).mockImplementation(async id => context(id))
+  vi.mocked(api.rebuildCandidateContext).mockResolvedValue({ candidate_id: '', status: 'building' })
 })
 afterEach(() => { vi.useRealTimers() })
 

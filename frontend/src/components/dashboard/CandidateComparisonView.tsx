@@ -85,7 +85,7 @@ export function CandidateComparisonView({ onBack }: { onBack?: () => void }) {
     const matchFailed = !!selectedJob && (match.phase === 'error' || match.phase === 'exhausted' || (match.value != null && 'status' in match.value && match.value.status === 'failed'))
     const contextFailed = context.phase === 'error' || context.phase === 'exhausted'
     if (!matchFailed && !contextFailed) return null
-    return <button className="secondary-button comparison-retry" onClick={() => { if (matchFailed) matches.retry(id); if (contextFailed) contexts.retry(id) }}>Retry {name}</button>
+    return <button className="secondary-button comparison-retry" onClick={() => { if (matchFailed) matches.retry(id); if (contextFailed) void api.rebuildCandidateContext(id).catch(() => undefined).finally(() => contexts.retry(id)) }}>Retry {name}</button>
   }
   return <section className="candidate-comparison">
     <nav aria-label="Breadcrumb" className="comparison-breadcrumb"><button onClick={() => setActiveView('jobs')}>Jobs</button><span>/</span><button onClick={() => setActiveView('job-detail')}>{selectedJob?.title ?? 'Select a job'}</button><span>/</span><span>Comparison</span></nav>

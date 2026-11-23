@@ -174,6 +174,23 @@ class ContextBuilder:
             self._task_keys.pop(completed, None)
         task.add_done_callback(done)
 
+    def retry_failed(self, candidate_id: str) -> str:
+        """Restart a build that ended in `failed` (OI-27). Returns the new state: `building` when a
+        retry started, otherwise the unchanged status. Only failed builds restart, so repeated
+        clicks cannot pile up work, and a running build is never duplicated."""
+        with self.repository.candidate_lock:
+            entry = self.registry.get(candidate_id)
+            if entry is None or entry.status != "failed":
+                return entry.status if entry else "missing"
+            revision = self.reserve(candidate_id)
+            if revision is None:
+                return "missing"
+            pending = self.store.pending_builds.get(candidate_id)
+            if pending and pending.revision == revision:
+                pending.status, pending.stage, pending.error = "building", "queued", None
+        self.launch(candidate_id, revision)
+        return "building"
+
     async def launch_background(self, candidate_id: str, revision: str | None) -> None:
         """FastAPI background callback: schedule on its event loop, not a worker thread."""
         self.launch(candidate_id, revision)

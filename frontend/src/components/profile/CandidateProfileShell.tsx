@@ -25,7 +25,7 @@ export function CandidateProfileShell() {
   const [chatOpen, setChatOpen] = useState(false)
   const [exportRequest, setExportRequest] = useState(0)
 
-  const { context, phase, retry } = useCandidateContext(selectedCandidateId, hasRole('recruiter'))
+  const { context, phase, message: contextMessage, retry } = useCandidateContext(selectedCandidateId, hasRole('recruiter'))
 
   useEffect(() => {
     if (!selectedCandidateId) return
@@ -79,7 +79,7 @@ export function CandidateProfileShell() {
   return (
     <div className="candidate-intelligence flex flex-col gap-6 max-w-7xl mx-auto pb-16">
       {/* Context Feedback (Alert / Loading / Polling) */}
-      {hasRole('recruiter') ? <ContextFeedback phase={phase} retry={retry} /> : <p>Raw evidence context is restricted to recruiters. Interview questions remain available.</p>}
+      {hasRole('recruiter') ? <ContextFeedback phase={phase} message={contextMessage} retry={retry} /> : <p>Raw evidence context is restricted to recruiters. Interview questions remain available.</p>}
 
       {/* Breadcrumb Navigation + Back button (Exact match to Image 1 + Preserving Navigation) */}
       <div className="flex items-center justify-between pt-1">
@@ -396,7 +396,7 @@ export function CandidateProfileShell() {
               Reported skills and associated observations; evidence tiers do not certify proficiency.
             </p>
           </div>
-          <ContextFeedback phase={phase} retry={retry} />
+          <ContextFeedback phase={phase} message={contextMessage} retry={retry} />
           <div className="flex flex-wrap gap-2">
             {displayCandidate.top_skills.map(skill => (
               <span key={skill} className="px-3 py-1 rounded-lg bg-[#faf5e8] border border-[#ebd8a8] text-[#745723] text-xs font-medium">

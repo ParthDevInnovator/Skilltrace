@@ -143,6 +143,9 @@ export const api = {
 
   getCandidateContext: (id: string): Promise<CandidateContext | BuildInProgress> =>
     request(`/api/v1/candidates/${encodeURIComponent(id)}/context`),
+  /** Restart a failed context build (OI-27). 409 when the build is not in the failed state. */
+  rebuildCandidateContext: (id: string): Promise<BuildInProgress> =>
+    request(`/api/v1/candidates/${encodeURIComponent(id)}/context/rebuild`, { method: 'POST' }),
   getCandidateResume: (id: string): Promise<ResumePayload | null> =>
     request(`/api/v1/candidates/${encodeURIComponent(id)}/resume`),
   resolveCandidates: (params: { name?: string; email?: string }): Promise<CandidateSummary[]> => {

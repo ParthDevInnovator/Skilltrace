@@ -100,6 +100,18 @@ export function checkAnalysis(id: string) {
   pollAnalysis(id)
 }
 
+/** Ask the server to rebuild a failed analysis, then track it again (OI-27). */
+export async function retryAnalysis(id: string) {
+  const entry = find(id)
+  if (!entry?.candidateId || entry.phase !== 'analysis_failed') return
+  update(id, { phase: 'analyzing', message: '' })
+  try { await api.rebuildCandidateContext(entry.candidateId) }
+  catch (error) {
+    if (!(error instanceof ApiError && error.status === 409)) { update(id, { phase: 'analysis_failed', message: 'The rebuild could not be started. Retry.' }); return }
+  }
+  checkAnalysis(id)
+}
+
 async function uploadOne(entry: BatchEntry) {
   if (entry.phase === 'needs_identity' && entry.field && !entry.corrections[entry.field].trim()) return
   update(entry.id, { phase: 'uploading', message: '' })

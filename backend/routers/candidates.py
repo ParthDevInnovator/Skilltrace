@@ -91,6 +91,22 @@ async def candidate_context(candidate_id: str, service: ContextBuilder = Depends
     return entry.context
 
 
+@router.post("/{candidate_id}/context/rebuild", status_code=202,
+             summary="Retry a failed context build",
+             responses={409: {"description": "The build has not failed (it is building or ready)."}})
+async def rebuild_candidate_context(candidate_id: str, service: ContextBuilder = Depends(get_context_builder),
+                                    user=Depends(require_role(Role.recruiter, Role.hr_admin))):
+    """Restart a failed build from the stored resume (OI-27). Only a failed build can be retried."""
+    candidate = find_candidate(service, candidate_id, workspace_of(user))
+    state = service.retry_failed(candidate.id)
+    if state == "missing":
+        raise HTTPException(404, "Candidate not found")
+    if state != "building":
+        raise HTTPException(409, f"The context build is {state}; only a failed build can be retried.")
+    return JSONResponse(status_code=202, content={"candidate_id": candidate.id, "status": "building"},
+                        headers={"Retry-After": "3"})
+
+
 @router.get("/{candidate_id}/resume")
 async def candidate_resume(candidate_id: str, service: ContextBuilder = Depends(get_context_builder), user=Depends(require_role(Role.recruiter, Role.hr_admin))):
     # Raw resume text carries unmasked contact details; hiring managers are excluded.

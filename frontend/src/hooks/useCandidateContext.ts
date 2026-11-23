@@ -1,11 +1,23 @@
 import { useCallback, useEffect, useState } from 'react'
-import { api } from '@/services/api'
+import { api, ApiError } from '@/services/api'
 import type { CandidateContext } from '@/types/context'
 
+/**
+ * `failed` means the build itself failed on the server (503); retrying it asks the server to
+ * rebuild (OI-27). `error` means the request failed (network, permissions) and retry just refetches.
+ */
+export type ContextPhase = 'building' | 'ready' | 'error' | 'failed' | 'waiting'
+type State = { id: string | null; context: CandidateContext | null; phase: ContextPhase; message?: string }
+
 export function useCandidateContext(id: string | null, enabled = true) {
-  const [attempt, setAttempt] = useState(0)
-  const [state, setState] = useState<{ id: string | null; context: CandidateContext | null; phase: 'building' | 'ready' | 'error' | 'waiting' }>({ id: null, context: null, phase: 'building' })
-  const retry = useCallback(() => { setState({ id, context: null, phase: 'building' }); setAttempt(value => value + 1) }, [id])
+  const [attempt, setAttempt] = useState<{ n: number; rebuild: boolean }>({ n: 0, rebuild: false })
+  const [state, setState] = useState<State>({ id: null, context: null, phase: 'building' })
+  const current = state.id === id ? state : null
+  const failed = current?.phase === 'failed'
+  const retry = useCallback(() => {
+    setState({ id, context: null, phase: 'building' })
+    setAttempt(previous => ({ n: previous.n + 1, rebuild: failed }))
+  }, [id, failed])
   useEffect(() => {
     if (!id || !enabled) return
     let cancelled = false
@@ -20,12 +32,25 @@ export function useCandidateContext(id: string | null, enabled = true) {
           setState({ id, context: null, phase: calls >= 10 ? 'waiting' : 'building' })
           if (calls < 10) timer = setTimeout(() => { void poll() }, 3000)
         } else setState({ id, context: result, phase: 'ready' })
-      } catch {
-        if (!cancelled) setState({ id, context: null, phase: 'error' })
+      } catch (error) {
+        if (cancelled) return
+        if (error instanceof ApiError && error.status === 503) setState({ id, context: null, phase: 'failed', message: error.detail })
+        else setState({ id, context: null, phase: 'error' })
       }
     }
-    void poll()
+    const start = async () => {
+      if (attempt.rebuild) {
+        try { await api.rebuildCandidateContext(id) }
+        catch (error) {
+          // 409: someone already restarted it or it finished; just read the current state.
+          if (!(error instanceof ApiError && error.status === 409)) { if (!cancelled) setState({ id, context: null, phase: 'error' }); return }
+        }
+        if (cancelled) return
+      }
+      await poll()
+    }
+    void start()
     return () => { cancelled = true; clearTimeout(timer) }
   }, [id, attempt, enabled])
-  return { context: state.id === id ? state.context : null, phase: state.id === id ? state.phase : 'building' as const, retry }
+  return { context: current?.context ?? null, phase: current?.phase ?? 'building' as const, message: current?.message, retry }
 }

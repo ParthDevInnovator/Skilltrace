@@ -12,7 +12,7 @@ import { useCandidateContext } from '@/hooks/useCandidateContext'
 import { EVIDENCE_LABELS, labelForScore } from '@/types/context'
 import { api } from '@/services/api'
 import { exampleContext, exampleRecord } from './evidenceFixtures'
-vi.mock('@/services/api', () => ({ api: { getJobs: vi.fn(), getCandidates: vi.fn(), getCandidateById: vi.fn(), getCandidateContext: vi.fn(), getCandidateResume: vi.fn() } }))
+vi.mock('@/services/api', async importOriginal => ({ ApiError: (await importOriginal<typeof import('@/services/api')>()).ApiError, api: { getJobs: vi.fn(), getCandidates: vi.fn(), getCandidateById: vi.fn(), getCandidateContext: vi.fn(), getCandidateResume: vi.fn() } }))
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(api.getJobs).mockResolvedValue([])

@@ -243,6 +243,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/candidates/{candidate_id}/context/rebuild:
+    post:
+      tags:
+      - Candidates
+      summary: Retry a failed context build
+      description: Restart a failed build from the stored resume (OI-27). Only a failed build can be retried.
+      operationId: rebuild_candidate_context_api_v1_candidates__candidate_id__context_rebuild_post
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: candidate_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Candidate Id
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '409':
+          description: The build has not failed (it is building or ready).
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/candidates/{candidate_id}/resume:
     get:
       tags:
