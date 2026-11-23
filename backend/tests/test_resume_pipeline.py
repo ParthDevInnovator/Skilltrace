@@ -222,6 +222,25 @@ async def test_upload_rejections_do_not_mutate_store(api_store, filename, data, 
 
 
 @pytest.mark.asyncio
+async def test_upload_errors_are_structured_for_batch_correction(api_store):
+    """OI-26: a batch needs to know which field to ask for, and input errors from retryable ones."""
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+        missing = await client.post("/api/v1/ingest/resume", files={"file": ("identity.txt", b"A resume with no identity.")})
+        assert missing.status_code == 422
+        assert missing.json()["detail"]["code"] == "missing_identity"
+        assert missing.json()["detail"]["field"] == "email"
+        no_name = await client.post("/api/v1/ingest/resume", files={"file": ("identity.txt", b"A resume with no identity.")},
+                                    data={"email": "fresh.person@example.com"})
+        assert no_name.json()["detail"] == {"code": "missing_identity", "field": "full_name",
+                                            "message": "A full name is required. Supply the full_name form field if extraction missed it."}
+        fixed = await client.post("/api/v1/ingest/resume", files={"file": ("identity.txt", b"A resume with no identity.")},
+                                  data={"email": "fresh.person@example.com", "full_name": "Fresh Person"})
+        assert fixed.status_code == 202, fixed.text
+        empty = await client.post("/api/v1/ingest/resume", files={"file": ("empty.txt", b"")})
+        assert empty.json()["detail"]["code"] == "empty_file"
+
+
+@pytest.mark.asyncio
 async def test_partial_identity_can_be_corrected_with_form_fields(api_store):
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
         response = await client.post("/api/v1/ingest/resume", files={"file": ("role.pdf", (FIXTURES / "role.pdf").read_bytes())},

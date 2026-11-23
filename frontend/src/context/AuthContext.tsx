@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { setSessionRenewer, setTokenProvider } from '@/services/authToken'
+import { resetBatchQueue } from '@/services/batchQueue'
 
 export type AuthUser = {
   user_id: string
@@ -92,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     renewal.current = null
     applyToken(null)
     setUser(null)
+    resetBatchQueue() // a queued resume batch belongs to the signed-in user
   }, [applyToken])
 
   /**
