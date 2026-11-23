@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from backend.models import ResumeClaim, ClaimSection
 
 DEFAULT_ACTION_VERBS = ("Designed", "Built", "Led", "Engineered", "Implemented", "Deployed", "Optimized", "Architected", "Reduced", "Increased", "Developed", "Maintained")
-DEFAULT_SKILLS = ("Distributed Systems", "Design Systems", "Machine Learning", "Apache Kafka", "TypeScript", "JavaScript", "PostgreSQL", "Kubernetes", "Terraform", "FastAPI", "Python", "React", "Docker", "Neo4j", "AWS", "SQL", "Go", "Rust", "Java", "C++")
+DEFAULT_SKILLS = ("Distributed Systems", "Design Systems", "Machine Learning", "Apache Kafka", "TypeScript", "JavaScript", "PostgreSQL", "Kubernetes", "Terraform", "FastAPI", "Python", "React", "Docker", "Neo4j", "Kafka", "Redis", "AWS", "SQL", "Go", "Rust", "Java", "C++")
 HEADINGS = {"experience": ClaimSection.EXPERIENCE, "work experience": ClaimSection.EXPERIENCE,
             "professional experience": ClaimSection.EXPERIENCE, "projects": ClaimSection.PROJECTS,
             "selected projects": ClaimSection.PROJECTS, "education": ClaimSection.EDUCATION}

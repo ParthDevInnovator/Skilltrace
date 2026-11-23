@@ -26,6 +26,8 @@ export function IntelligenceOverview({ candidate, context, job, inspectClaims, c
   const skills = assessSkills(candidate.top_skills, context)
   const gaps = skills.filter(skill => skill.reported && !skill.observations.length).map(skill => skill.name)
   const contradictions = claims.filter(claim => claim.verification_state === 'contradicted').length
+  // No verification pass runs yet, so "0 open" would falsely read as "checked, none found" (OI-29).
+  const assessed = context?.claim_assessment === 'assessed' || claims.some(claim => claim.verification_state !== 'unverified')
   const coverage = (mandatory: boolean): Metric => !job ? { label: 'Select a job', percent: 0 }
     : !canMatch ? { label: 'Restricted', percent: 0 }
     : matchCoverage(match.result, match.requirements, mandatory, match.exhausted)
@@ -36,7 +38,7 @@ export function IntelligenceOverview({ candidate, context, job, inspectClaims, c
         <h2>A. Intelligence Overview</h2>
         <p className="intelligence-summary">{candidate.summary || 'Review the candidate’s reported experience alongside supporting public evidence.'}</p>
         <div className="intelligence-metrics">
-          {[{ title: 'Mandatory coverage', ...coverage(true) }, { title: 'Preferred coverage', ...coverage(false) }, { title: 'Contradictions', label: context ? `${contradictions} open` : 'Pending', percent: context && !contradictions ? 100 : 0 }].map(metric => <div className="intelligence-metric" key={metric.title}><span>{metric.title}</span><strong>{metric.label}</strong><div className="intelligence-track"><i style={{ width: `${metric.percent}%` }} /></div></div>)}
+          {[{ title: 'Mandatory coverage', ...coverage(true) }, { title: 'Preferred coverage', ...coverage(false) }, { title: 'Contradictions', label: !context ? 'Pending' : assessed ? `${contradictions} open` : 'Not assessed', percent: context && assessed && !contradictions ? 100 : 0 }].map(metric => <div className="intelligence-metric" key={metric.title}><span>{metric.title}</span><strong>{metric.label}</strong><div className="intelligence-track"><i style={{ width: `${metric.percent}%` }} /></div></div>)}
         </div>
         {(matchFailed || match.exhausted) && <p role="alert" className="intelligence-summary">Coverage could not be loaded. <button type="button" onClick={match.retry}>Retry coverage</button></p>}
       </section>

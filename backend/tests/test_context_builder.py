@@ -38,7 +38,7 @@ def service():
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("candidate_id,count", [("CAND-001", 1), ("CAND-002", 1), ("CAND-003", 0), ("CAND-004", 1), ("CAND-005", 0), ("CAND-006", 1)])
+@pytest.mark.parametrize("candidate_id,count", [("CAND-001", 2), ("CAND-002", 1), ("CAND-003", 0), ("CAND-004", 1), ("CAND-005", 0), ("CAND-006", 1)])
 async def test_fixture_context_state_score_claims_and_reference(service, candidate_id, count):
     candidate = service.repository.get_candidate(candidate_id)
     fixture = json.loads((Path(__file__).resolve().parents[1] / "data" / "fixtures" / f"{candidate_id}.json").read_text(encoding="utf-8"))

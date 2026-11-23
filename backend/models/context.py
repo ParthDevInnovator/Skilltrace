@@ -236,6 +236,9 @@ class CandidateContext(BaseModel):
     unavailable_sources: list[str] = Field(default_factory=list)
     # Measured build steps with timestamps; empty for contexts built before OI-28.
     build_stages: list[BuildStage] = Field(default_factory=list)
+    # Whether claims were checked against evidence. No verification pass exists yet, so this is
+    # "not_assessed" and a zero contradiction count must not be read as "checked, none found" (OI-29).
+    claim_assessment: Literal["not_assessed", "assessed"] = "not_assessed"
 
     @field_validator("context_built_at")
     @classmethod

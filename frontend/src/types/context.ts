@@ -24,6 +24,8 @@ export interface CandidateContext {
   unavailable_sources?: SourceType[]
   /** Measured build steps (OI-28); absent for contexts built before stages were recorded. */
   build_stages?: BuildStage[]
+  /** Whether claims were checked against evidence; until then a zero contradiction count means nothing (OI-29). */
+  claim_assessment?: 'not_assessed' | 'assessed'
 }
 export type BuildStageName = 'resume_parse' | 'claim_extraction' | 'github' | 'leetcode' | 'linkedin' | 'scoring'
 export interface BuildStage { name: BuildStageName; state: 'pending' | 'running' | 'complete' | 'skipped' | 'unavailable' | 'failed'; started_at: string | null; finished_at: string | null; item_count: number | null }

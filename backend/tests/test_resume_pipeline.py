@@ -272,3 +272,18 @@ async def test_docx_upload_and_existing_seed_update(api_store):
     assert candidate.external_identifiers.github is None
     assert candidate.resume_path is None and candidate.resume_text_stub is None
     assert candidate.match_preview is None
+
+
+def test_extractor_covers_redis_and_bare_kafka_with_canonical_names():
+    """OI-29: common stack keywords become claims, joined to the taxonomy's canonical skill."""
+    text = "Experience\n- Built Kafka consumers for billing.\n- Optimized Redis caching for search.\n- Designed Apache Kafka topics."
+    claims = extract_claims(text, "CAND-X")
+    assert [claim.skill for claim in claims] == ["Kafka", "Redis", "Apache Kafka"]
+    assert claims[0].canonical_skill == claims[2].canonical_skill == "Apache Kafka"
+    assert all(claim.verification_state == "unverified" for claim in claims)
+
+
+def test_contexts_say_claims_were_not_assessed():
+    """OI-29: zero contradictions must not read as 'checked and none found'."""
+    from backend.models import CandidateContext
+    assert CandidateContext.model_fields["claim_assessment"].default == "not_assessed"
