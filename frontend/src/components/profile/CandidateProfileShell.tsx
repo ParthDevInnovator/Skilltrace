@@ -17,7 +17,7 @@ import { locationLabel } from '@/services/masking'
 
 export function CandidateProfileShell() {
   const { hasRole } = useAuth()
-  const { selectedCandidateId, selectedJob, backToDashboard, setActiveView } = useJob()
+  const { selectedCandidateId, selectedJob, backToDashboard, setActiveView, compareCandidate } = useJob()
   const [candidate, setCandidate] = useState<CandidateDetail | null>(null)
   const [failed, setFailed] = useState(false)
   const [detailAttempt, setDetailAttempt] = useState(0)
@@ -178,7 +178,7 @@ export function CandidateProfileShell() {
           <div className="flex items-center gap-2.5">
             <button
               type="button"
-              onClick={() => setActiveView('comparison')}
+              onClick={() => selectedCandidateId ? compareCandidate(selectedCandidateId) : setActiveView('comparison')}
               className="h-10 px-4 rounded-xl bg-[#141618] hover:bg-[#2a2d32] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
             >
               <span className="material-symbols-outlined text-[17px]">compare_arrows</span>

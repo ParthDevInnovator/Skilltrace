@@ -5,7 +5,8 @@ import { TalentPoolView } from '@/components/dashboard/TalentPoolView'
 import { api } from '@/services/api'
 const openCandidateDetail = vi.fn()
 const setActiveView = vi.fn()
-vi.mock('@/context/JobContext', () => ({ useJob: () => ({ selectedJob: { id: 'J1', title: 'Engineer' }, searchQuery: '', openCandidateDetail, setActiveView }) }))
+const compareCandidate = vi.fn()
+vi.mock('@/context/JobContext', () => ({ useJob: () => ({ selectedJob: { id: 'J1', title: 'Engineer' }, searchQuery: '', openCandidateDetail, compareCandidate, setActiveView }) }))
 vi.mock('@/context/AuthContext', () => ({ useAuth: () => ({ hasRole: () => true }) }))
 vi.mock('@/services/api', () => ({ api: { getCandidates: vi.fn(), rankCandidates: vi.fn(), getCandidateById: vi.fn() } }))
 beforeEach(() => {
@@ -32,8 +33,7 @@ it('retains selected candidate when opening comparison and routes resume upload'
   const user = userEvent.setup()
   render(<TalentPoolView />)
   await user.click(await screen.findByRole('button', { name: 'Compare Maya Chen' }))
-  expect(openCandidateDetail).toHaveBeenCalledWith('A')
-  expect(setActiveView).toHaveBeenCalledWith('comparison')
+  expect(compareCandidate).toHaveBeenCalledWith('A')
   await user.click(screen.getByRole('button', { name: 'Add Resumes' }))
   expect(setActiveView).toHaveBeenCalledWith('add-candidates')
 })

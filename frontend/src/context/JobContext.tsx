@@ -19,6 +19,11 @@ interface JobContextType {
   startPipeline: (candidateId: string) => void
   selectedCandidateId: string | null
   openCandidateDetail: (candidateId: string) => void
+  /** Candidates in the comparison set. Workspace state, so inspecting a profile and coming back keeps the set (OI-16). */
+  comparisonIds: string[]
+  setComparisonIds: (update: (previous: string[]) => string[]) => void
+  /** Add a candidate to the comparison set (max 3) and open the comparison. */
+  compareCandidate: (candidateId: string) => void
   backToDashboard: () => void
   jobWorkspaceTab: 'overview' | 'candidates' | 'requirements' | 'comparison' | 'activity'
   setJobWorkspaceTab: (tab: 'overview' | 'candidates' | 'requirements' | 'comparison' | 'activity') => void
@@ -27,6 +32,8 @@ interface JobContextType {
   retryJobs: () => void
   jobError: string | null
 }
+
+export const MAX_COMPARISON = 3
 
 const JobContext = createContext<JobContextType | undefined>(undefined)
 
@@ -38,6 +45,8 @@ export function JobProvider({ children }: { children: ReactNode }) {
   const [selectedSkill, setSelectedSkill] = useState<string>('')
   const [activeView, setActiveView] = useState<'overview' | 'jobs' | 'candidates' | 'candidate-detail' | 'evidence' | 'graph' | 'job-detail' | 'add-candidates' | 'pipeline' | 'talent-pool' | 'talent-discovery' | 'comparison' | 'admin-access'>(() => window.location.pathname.startsWith('/candidates') ? 'talent-pool' : 'overview')
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null)
+  const [comparisonIds, setComparisonIdState] = useState<string[]>([])
+  const setComparisonIds = useCallback((update: (previous: string[]) => string[]) => setComparisonIdState(previous => [...new Set(update(previous))].slice(0, MAX_COMPARISON)), [])
   const [jobWorkspaceTab, setJobWorkspaceTab] = useState<'overview' | 'candidates' | 'requirements' | 'comparison' | 'activity'>('overview')
   const [isLoadingJobs, setIsLoadingJobs] = useState<boolean>(true)
   const [jobError, setJobError] = useState<string | null>(null)
@@ -70,6 +79,12 @@ export function JobProvider({ children }: { children: ReactNode }) {
     setActiveView('candidate-detail')
   }
 
+  const compareCandidate = (candidateId: string) => {
+    setSelectedCandidateId(candidateId)
+    setComparisonIds(previous => previous.includes(candidateId) || previous.length >= MAX_COMPARISON ? previous : [...previous, candidateId])
+    setActiveView('comparison')
+  }
+
   const openJobWorkspace = (job: Job, tab: 'overview' | 'candidates' = 'overview') => {
     setSelectedJob(job)
     setJobWorkspaceTab(tab)
@@ -99,6 +114,9 @@ export function JobProvider({ children }: { children: ReactNode }) {
         startPipeline: (id: string) => { setSelectedCandidateId(id); setActiveView('pipeline') },
         selectedCandidateId,
         openCandidateDetail,
+        comparisonIds,
+        setComparisonIds,
+        compareCandidate,
         backToDashboard,
         jobWorkspaceTab,
         setJobWorkspaceTab,
