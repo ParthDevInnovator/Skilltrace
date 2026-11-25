@@ -13,9 +13,21 @@ def test_claim_matching_excludes_contradictions():
     assert match_claims_to_requirement(req,[claim(),claim('Built Python','unverified','other'),claim(state='contradicted',id='bad')])==(['c'],.5)
     assert match_claims_to_requirement(req,[])==([],0)
     assert match_claims_to_requirement(req,[claim('Built Python')])==([],0)
-    assert match_claims_to_requirement(req,[claim(state='supported')])==(['c'],1)
+    assert match_claims_to_requirement(req,[claim(state='supported')])==(['c'],.5)
+    assert match_claims_to_requirement(req,[claim(),claim(id='c2')])==(['c','c2'],1)
+    assert match_claims_to_requirement(req,[claim(id=f'c{i}') for i in range(5)])[1]==1
     tagged=claim('Built interfaces').model_copy(update={'skill':'ReactJS'})
-    assert match_claims_to_requirement(req,[tagged])==(['c'],1)
+    assert match_claims_to_requirement(req,[tagged])==(['c'],.5)
+def test_unrelated_claims_never_lower_requirement_support():
+    """OI-11: a broader resume must not score worse for the same demonstrated requirement."""
+    req=convert('Python','p')
+    python=[claim('Built Python services',id='py')]
+    unrelated=[claim('Built React.js dashboards',id=f'r{i}') for i in range(10)]
+    alone=match_claims_to_requirement(req,python)
+    broad=match_claims_to_requirement(req,python+unrelated)
+    assert alone==broad==(['py'],.5)
+    strength=match_evidence_to_requirement(req,[record('Python')])[1]
+    assert classify_coverage(alone[1],strength)==classify_coverage(broad[1],strength)=='matched'
 def test_evidence_alias_negative_and_cap():
     req=convert('React','r')
     assert match_evidence_to_requirement(req,[record()])==(['e'],1/3)
