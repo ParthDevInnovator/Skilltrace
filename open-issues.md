@@ -8,7 +8,7 @@ The redesigned screens are treated as the accepted UI. This backlog concerns beh
 
 **This is the single open-issues file for the project.** The former mockup-gap list (`open issue.md`, 2026-11-06) has been merged into [Feature backlog](#feature-backlog-from-the-redesign-mockups) below and removed. `PRODUCT_DESIGN_AUDIT.md` and `REDESIGN_REPAIR_STATUS.md` are historical findings and sign-offs that do not all describe the present code.
 
-Last status review: 2026-11-19. Fix Phase 1 (`FIX_PHASE_1_TASKS.md`) closed all 10 P1 issues (OI-02 mitigated) plus OI-34, OI-42 and OI-48 on branch `fix/phase1-frontend-access`. Follow-up branch `fix/phase1-followups` closes OI-47 (regression test) and Wave 2 issues OI-10, OI-12, OI-18 and OI-19. OI-11 still needs a scoring-policy decision. Branch `fix/phase2-wave3` (2026-11-23) closes Wave 3: OI-13 to OI-17 and OI-24 to OI-28; OI-29 is partly fixed and its verification workflow needs a policy decision. Branch `fix/phase2-wave3` (2026-11-25) also closes Wave 4: OI-20 to OI-23 (graph); the new Cypher has unit tests against fakes and still needs a live Neo4j run. Update the **Status** and **Closed** columns as fixes land.
+Last status review: 2026-11-26. Fix Phase 1 (`FIX_PHASE_1_TASKS.md`) closed all 10 P1 issues (OI-02 mitigated) plus OI-34, OI-42 and OI-48 on branch `fix/phase1-frontend-access`. Follow-up branch `fix/phase1-followups` closes OI-47 (regression test) and Wave 2 issues OI-10, OI-12, OI-18 and OI-19. OI-11 still needs a scoring-policy decision. Branch `fix/phase2-wave3` (2026-11-23) closes Wave 3: OI-13 to OI-17 and OI-24 to OI-28; OI-29 is partly fixed and its verification workflow needs a policy decision. Branch `fix/phase2-wave4` (2026-11-25, built on `fix/phase2-wave3`) closes Wave 4: OI-20 to OI-23 (graph); the new Cypher has unit tests against fakes and still needs a live Neo4j run. Neither Phase 2 branch has been merged to `main` yet. Update the **Status** and **Closed** columns as fixes land.
 
 ## Issue tracker
 
@@ -546,7 +546,7 @@ These items come from the former `open issue.md`, written 2026-11-06 against the
 | BL-13 | Full intelligence dossier export (PDF/Markdown) | Dossier | Backlog | OI-41 |
 | BL-14 | "Request evidence" candidate portal | Dossier | Backlog: marked unavailable | OI-32 |
 | BL-15 | Contradiction detection engine | Dossier | Backlog | OI-29 |
-| BL-16 | Async multi-file batch ingestion queue | Add candidates | Partial: UI exists, no backend queue | OI-24, OI-25, OI-26 |
+| BL-16 | Async multi-file batch ingestion queue | Add candidates | Partial: client-side queue (`services/batchQueue.ts`) tracks each file through analysis since 2026-11-23 (`4b03b43`); no server-side queue | OI-24, OI-25, OI-26 |
 | BL-17 | Resume metadata (size, pages, OCR confidence) | Add candidates | Backlog | — |
 | BL-18 | Live 8-stage pipeline via SSE/WebSocket | Pipeline | Backlog | OI-28 |
 | BL-19 | PDF preview with extraction highlights | Pipeline | Backlog | — |
@@ -554,7 +554,7 @@ These items come from the former `open issue.md`, written 2026-11-06 against the
 | BL-21 | Server-side candidate facets (fit, evidence, status, source) | Job workspace | Backlog | OI-38 |
 | BL-22 | Side-by-side comparison of up to 3 candidates | Comparison | **Done** 2026-11-07 (`2ba2163`), client-side | OI-14, OI-15, OI-16 |
 | BL-23 | Server comparison/diff endpoint | Comparison | Backlog | OI-09 |
-| BL-24 | Job-scoped graph with real projects/sources views | Graph | Backlog | OI-22 |
+| BL-24 | Job-scoped graph with real projects/sources views | Graph | **Done** 2026-11-25 (`820dc53`); not yet run against a live Neo4j | OI-21, OI-22, OI-46 |
 | BL-25 | External profile metadata on graph nodes | Graph | Backlog | OI-21 |
 | BL-26 | Global evidence search endpoint + bulk CSV/JSON export | Evidence Explorer | Backlog | OI-38, OI-41 |
 | BL-27 | Org-wide talent pool search/aggregation endpoint | Talent Pool | Backlog | OI-38 |
@@ -571,6 +571,8 @@ Longer-standing deferred scope, carried from the phase plans:
 | BL-33 | Role-based evidence-weight overrides (PRD §7 bias mitigation) | Planned mitigation, not built |
 
 ## Final audit execution status
+
+> **Historical snapshot (2026-11-07).** This section records the original audit run and is not kept up to date. Several blockers below have since been fixed (for example OI-07 in Phase 1); see the [Issue tracker](#issue-tracker) for current status and OI-43 for the browser-suite rewrite.
 
 All audit commands have completed. Build passed, backend tests passed, and frontend/browser verification is not green. The earlier per-screen passing test runs were narrower than this full-repository audit.
 
