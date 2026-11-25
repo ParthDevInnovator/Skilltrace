@@ -8,9 +8,15 @@ from backend.services.taxonomy import resolve_skill
 logger = logging.getLogger(__name__)
 
 
+# Persisted labels (see seeder.py). Job/Requirement are never stored: they are a
+# per-request overlay computed from the same match as JD Match (OI-22).
+STORED_LABELS = ('Candidate', 'Skill', 'Source', 'Project')
+NodeLabel = Literal['Candidate', 'Skill', 'Source', 'Project', 'Job', 'Requirement']
+
+
 class GraphNode(BaseModel):
     id: str
-    label: Literal['Candidate', 'Skill', 'Repository', 'Job', 'Requirement']
+    label: NodeLabel
     properties: dict = Field(default_factory=dict)
 
 
@@ -20,9 +26,30 @@ class GraphEdge(BaseModel):
     relationship: str
 
 
+class JobScope(BaseModel):
+    job_id: str
+    title: str
+    # included: Job/Requirement nodes are in the graph; context_building /
+    # context_failed: the candidate has no ready context to match against yet.
+    status: Literal['included', 'context_building', 'context_failed']
+
+
 class CandidateSubgraph(BaseModel):
     nodes: list[GraphNode] = Field(default_factory=list)
     edges: list[GraphEdge] = Field(default_factory=list)
+    job_scope: JobScope | None = None
+
+
+def _stored(nodes, edges):
+    """Keep only current-model nodes; nodes written by older seeders (Repository,
+    persisted Job/Requirement) disappear from reads until the candidate is reseeded."""
+    kept = {key: node for key, node in nodes.items() if node.label in STORED_LABELS}
+    return CandidateSubgraph(nodes=list(kept.values()), edges=[edge for edge in edges.values()
+        if edge.source_id in kept and edge.target_id in kept])
+
+
+def _node(data):
+    return GraphNode.model_validate(data) if data.get('label') in STORED_LABELS else None
 
 
 class Neo4jClient:
@@ -52,6 +79,14 @@ class Neo4jClient:
             logger.warning('Graph query unavailable')
             return None
 
+    async def execute_write(self, work, *args):
+        """Run ``work(tx, *args)`` in one managed write transaction; errors propagate
+        so the caller can tell a rejected write from a committed one."""
+        if not self.enabled:
+            return None
+        async with self.driver.session() as session:
+            return await session.execute_write(work, *args)
+
     async def delete_candidate(self, candidate_id) -> bool:
         """Remove the candidate, its candidate-scoped nodes and any skills left orphaned."""
         rows = await self.query('''OPTIONAL MATCH (n) WHERE n.candidate_id = $candidate_id
@@ -78,14 +113,15 @@ class Neo4jClient:
             return None if report_unavailable else CandidateSubgraph()
         nodes, edges = {}, {}
         def add_node(node):
-            label = next((v for v in ('Candidate', 'Skill', 'Repository', 'Job', 'Requirement') if v in node.labels), None)
+            label = next((v for v in STORED_LABELS if v in node.labels), None)
             if label and node.get('id'):
                 nodes[node['id']] = GraphNode(id=node['id'], label=label, properties=dict(node))
         # Driver data() serializes nodes to dicts; query projections below are
         # used for portable data-only transport and simple mocked drivers.
         for row in rows:
             for node in row.get('nodes', []):
-                nodes[node['id']] = GraphNode.model_validate(node)
+                if item := _node(node):
+                    nodes[item.id] = item
             for edge in row.get('edges', []):
                 item = GraphEdge.model_validate(edge)
                 edges[(item.source_id, item.target_id, item.relationship)] = item
@@ -102,24 +138,25 @@ class Neo4jClient:
                 return None if report_unavailable else CandidateSubgraph()
             for row in projected:
                 for node in row['nodes']:
-                    nodes[node['id']] = GraphNode.model_validate(node)
+                    if item := _node(node):
+                        nodes[item.id] = item
                 for edge in row['edges']:
                     item = GraphEdge.model_validate(edge)
                     edges[(item.source_id, item.target_id, item.relationship)] = item
-        return CandidateSubgraph(nodes=list(nodes.values()), edges=list(edges.values()))
+        return _stored(nodes, edges)
 
     async def graph_evidence_for_skill(self, candidate_id, skill, *, report_unavailable=False):
-        rows = await self.query('''MATCH (c:Candidate {id:$candidate_id})-[:HAS_SKILL]->(s:Skill {id:$skill})
-            MATCH (s)<-[:DEMONSTRATES]-(n:Repository)<-[:CONTRIBUTED_TO]-(c)
-            RETURN DISTINCT {id:n.id,label:'Repository',properties:properties(n)} AS node
+        """Projects and sources that indicate ``skill``, each with its observation text."""
+        rows = await self.query('''MATCH (c:Candidate {id:$candidate_id})-[:HAS_SOURCE]->(src:Source)
+                  -[:LISTS]->(n:Project)-[r:INDICATES]->(:Skill {id:$skill})
+            RETURN {id:n.id, label:'Project', properties:n{.*, source_name:src.name, observations:r.observations}} AS node
             UNION
-            MATCH (c:Candidate {id:$candidate_id})-[:HAS_SKILL]->(s:Skill {id:$skill})
-            MATCH (s)-[:COVERS]->(r:Requirement)<-[:REQUIRES]-(n:Job)<-[:APPLIED_FOR]-(c)
-            RETURN DISTINCT {id:n.id,label:'Job',properties:properties(n)} AS node''',
+            MATCH (c:Candidate {id:$candidate_id})-[:HAS_SOURCE]->(n:Source)-[r:INDICATES]->(:Skill {id:$skill})
+            RETURN {id:n.id, label:'Source', properties:n{.*, observations:r.observations}} AS node''',
             candidate_id=candidate_id, skill=resolve_skill(skill))
         if rows is None:
             return None if report_unavailable else []
-        return [GraphNode.model_validate(row['node']) for row in rows]
+        return [node for row in rows if (node := _node(row['node']))]
 
 
 @lru_cache(maxsize=1)

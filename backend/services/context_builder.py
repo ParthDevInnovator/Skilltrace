@@ -70,6 +70,11 @@ class ContextBuildRegistry:
                 stages.append(stage)
             self._entries[candidate_id] = replace(entry, stages=tuple(stages))
 
+    def is_current(self, candidate_id: str, revision: str) -> bool:
+        with self._lock:
+            entry = self._entries.get(candidate_id)
+            return entry is not None and entry.revision == revision
+
     def get(self, candidate_id: str) -> ContextBuildState | None:
         with self._lock:
             entry = self._entries.get(candidate_id)
@@ -121,6 +126,7 @@ class ContextBuilder:
         self._semaphore = asyncio.Semaphore(concurrency)
         self._tasks: set[asyncio.Task] = set()
         self._graph_tasks: set[asyncio.Task] = set()
+        self._graph_locks: dict[str, asyncio.Lock] = {}
         self._task_keys: dict[asyncio.Task, tuple[str, str]] = {}
         self._startup_gate: asyncio.Event | None = None
         self._closing = False
@@ -372,7 +378,7 @@ class ContextBuilder:
                 await self._persist(candidate, revision, "ready", context=context, unavailable=unavailable)
                 from backend.config import settings
                 if settings.GRAPH_SEEDING_ENABLED:
-                    task = asyncio.create_task(self._seed_graph(candidate_id, context))
+                    task = asyncio.create_task(self._seed_graph(candidate_id, revision, context))
                     self._graph_tasks.add(task)
                     task.add_done_callback(self._graph_tasks.discard)
                 return context
@@ -395,10 +401,16 @@ class ContextBuilder:
         await self.persistence.save_build(candidate, revision, status=status, context=context,
                                           error=error, unavailable_sources=unavailable)
 
-    async def _seed_graph(self, candidate_id, context):
+    async def _seed_graph(self, candidate_id, revision, context):
+        # One seed per candidate at a time, and only for the revision that is still
+        # current, so an older build cannot overwrite a newer graph (OI-20). The
+        # seeder also rejects older contexts inside its transaction.
         try:
             from backend.services.graph.seeder import seed_candidate_graph
-            await seed_candidate_graph(candidate_id, context)
+            async with self._graph_locks.setdefault(candidate_id, asyncio.Lock()):
+                if not self.registry.is_current(candidate_id, revision):
+                    return
+                await seed_candidate_graph(candidate_id, context, revision=revision)
         except Exception:
             logger.warning('Graph background seeding failed candidate=%s', candidate_id)
 

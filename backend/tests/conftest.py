@@ -76,7 +76,7 @@ def isolated_database_per_test(isolated_test_environment):
     app.dependency_overrides.update(previous)
 
 AUTHENTICATED_LEGACY_MODULES={
- 'test_agent_api.py','test_candidates.py','test_context_api.py','test_graph.py',
+ 'test_agent_api.py','test_candidates.py','test_context_api.py','test_graph.py','test_graph_wave4.py',
  'test_jobs.py','test_matching_api.py','test_resume_pipeline.py',
 }
 
