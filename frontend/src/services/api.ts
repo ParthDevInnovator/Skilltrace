@@ -103,8 +103,9 @@ export const api = {
   sendChatMessage: (payload: {message:string;history:ChatMessage[];job_id?:string}): Promise<AgentResponse> => request('/api/v1/agent/chat', {method:'POST',body:JSON.stringify(payload)}),
   generateBrief: (id:string, params:{job_id?:string;reference_date?:string}): Promise<GenerationResult<CandidateBrief>> => generationRequest(id, 'brief', params),
   generateInterviewQuestions: (id:string, params:{job_id:string;reference_date?:string}): Promise<GenerationResult<InterviewQuestionSet>> => generationRequest(id, 'interview-questions', params),
-  getCandidateGraph: (id:string): Promise<CandidateSubgraph | {status:'unavailable'}> => graphRequest(id, 'graph'),
-  getGraphEvidence: (id:string, skill:string): Promise<GraphNode[] | {status:'unavailable'}> => graphRequest(id, 'graph-evidence', {skill}),
+  getCandidateGraph: (id:string, jobId?:string|null, signal?:AbortSignal): Promise<CandidateSubgraph | {status:'unavailable'}> =>
+    graphRequest(id, jobId ? `graph?job_id=${encodeURIComponent(jobId)}` : 'graph', undefined, signal),
+  getGraphEvidence: (id:string, skill:string, signal?:AbortSignal): Promise<GraphNode[] | {status:'unavailable'}> => graphRequest(id, 'graph-evidence', {skill}, signal),
   extractRequirements: (params: {job_id?:string; jd_text?:string}): Promise<ExtractedRequirement[]> => request('/api/v1/jd/extract', {method:'POST',body:JSON.stringify(params)}),
   rankCandidates: (params: {job_id:string; reference_date?:string}): Promise<RankedCandidate[]> => request('/api/v1/jd/rank', {method:'POST',body:JSON.stringify(params)}),
   getSimilarJobs: (job_id:string): Promise<SimilarJob[]> => request('/api/v1/jd/similar', {method:'POST',body:JSON.stringify({job_id})}),
@@ -180,8 +181,8 @@ async function generationRequest<T>(id:string, action:string, params:object): Pr
   if (!response.ok) throw new Error('Could not generate this content. Please retry.')
   return response.json()
 }
-async function graphRequest<T>(id:string, action:string, body?:object): Promise<T | {status:'unavailable'}> {
-  const response = await authFetch(`/api/v1/candidates/${encodeURIComponent(id)}/${action}`, body ? {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)} : {})
+async function graphRequest<T>(id:string, action:string, body?:object, signal?:AbortSignal): Promise<T | {status:'unavailable'}> {
+  const response = await authFetch(`/api/v1/candidates/${encodeURIComponent(id)}/${action}`, body ? {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal} : {signal})
   if (response.status === 503) return {status:'unavailable'}
   if (!response.ok) throw new Error('Could not load the graph. Please retry.')
   return response.json()

@@ -17,7 +17,7 @@ const questions:InterviewQuestionSet={candidate_id:'CAND-001',job_id:'JOB-001',g
  {question_text:'Address the gap?',target_type:'coverage_gap',source_id:'REQ-1',rationale:'Requirement is not assessed.'},
  {question_text:'Discuss the history?',target_type:'history_probe',source_id:'CLAIM-2',rationale:'Prior feedback requires clarification.'},
 ]}
-const graph={nodes:[{id:'CAND-001',label:'Candidate' as const,properties:{name:'Alex'}},{id:'Python',label:'Skill' as const,properties:{name:'Python'}},{id:'repo',label:'Repository' as const,properties:{title:'Repo'}}],edges:[{source_id:'CAND-001',target_id:'Python',relationship:'HAS_SKILL'}]}
+const graph={nodes:[{id:'CAND-001',label:'Candidate' as const,properties:{name:'Alex'}},{id:'Python',label:'Skill' as const,properties:{name:'Python'}},{id:'repo',label:'Project' as const,properties:{name:'Repo'}}],edges:[{source_id:'CAND-001',target_id:'Python',relationship:'CLAIMS'}]}
 
 beforeEach(()=>{
  vi.resetAllMocks()
@@ -29,7 +29,7 @@ beforeEach(()=>{
  vi.mocked(api.generateBrief).mockResolvedValue(brief)
  vi.mocked(api.generateInterviewQuestions).mockResolvedValue(questions)
  vi.mocked(api.getCandidateGraph).mockResolvedValue(graph)
- vi.mocked(api.getGraphEvidence).mockResolvedValue([{id:'repo',label:'Repository',properties:{title:'Repo'}}])
+ vi.mocked(api.getGraphEvidence).mockResolvedValue([{id:'repo',label:'Project',properties:{name:'Repo'}}])
 })
 
 it('shows a typing indicator while chat is in flight',async()=>{
@@ -88,5 +88,5 @@ it('asks for candidate selection when graph has no candidate',()=>{
  render(<GraphVisualization/>);expect(screen.getByText('Select a candidate to explore their knowledge graph.')).toBeVisible();expect(api.getCandidateGraph).not.toHaveBeenCalled()
 })
 it('loads skill evidence and opens candidate nodes',async()=>{
- const user=userEvent.setup();render(<GraphVisualization candidateId="CAND-001"/>);const svg=await screen.findByLabelText('Candidate knowledge graph');await user.click(within(svg).getByLabelText('Skill: Python'));expect((await screen.findAllByText('Repo')).length).toBeGreaterThan(1);expect(api.getGraphEvidence).toHaveBeenCalledWith('CAND-001','Python');await user.click(within(svg).getByLabelText('Candidate: Alex'));expect(openCandidateDetail).toHaveBeenCalledWith('CAND-001')
+ const user=userEvent.setup();render(<GraphVisualization candidateId="CAND-001"/>);const svg=await screen.findByLabelText('Candidate knowledge graph');await user.click(within(svg).getByLabelText('Skill: Python'));expect((await screen.findAllByText('Repo')).length).toBeGreaterThan(1);expect(api.getGraphEvidence).toHaveBeenCalledWith('CAND-001','Python',expect.any(AbortSignal));await user.click(within(svg).getByLabelText('Candidate: Alex'));expect(openCandidateDetail).toHaveBeenCalledWith('CAND-001')
 })

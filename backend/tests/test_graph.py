@@ -28,10 +28,10 @@ async def test_graph_skill_filter_and_connection_failure(monkeypatch):
     client = Neo4jClient(driver=object())
     async def rows(*_, **params):
         assert params['skill'] == 'Python'
-        return [{'node': {'id': 'repo-1', 'label': 'Repository', 'properties': {'url': 'https://example.test'}}}]
+        return [{'node': {'id': 'repo-1', 'label': 'Project', 'properties': {'url': 'https://example.test'}}}]
     monkeypatch.setattr(client, 'query', rows)
     result = await client.graph_evidence_for_skill('CAND-001', 'python')
-    assert len(result) == 1 and result[0].label == 'Repository'
+    assert len(result) == 1 and result[0].label == 'Project'
     monkeypatch.setattr(client, 'query', lambda *_args, **_kwargs: fail())
     async def unavailable(*_, **__): return None
     monkeypatch.setattr(client, 'query', unavailable)
@@ -74,10 +74,10 @@ async def test_graph_endpoints_return_successful_payloads(api_service, monkeypat
         async def get_candidate_subgraph(self, *_args, **_kwargs):
             return CandidateSubgraph(nodes=[{'id': 'CAND-001', 'label': 'Candidate', 'properties': {'name': 'Alex'}}])
         async def graph_evidence_for_skill(self, *_args, **_kwargs):
-            return [{'id': 'repo-1', 'label': 'Repository', 'properties': {'title': 'Repo'}}]
+            return [{'id': 'repo-1', 'label': 'Project', 'properties': {'name': 'Repo'}}]
     monkeypatch.setattr('backend.routers.graph.get_graph_client', lambda: Available())
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://test') as client:
         graph = await client.get('/api/v1/candidates/CAND-001/graph')
         evidence = await client.post('/candidates/CAND-001/graph-evidence', json={'skill': 'Python'})
         assert graph.status_code == 200 and graph.json()['nodes'][0]['label'] == 'Candidate'
-        assert evidence.status_code == 200 and evidence.json()[0]['label'] == 'Repository'
+        assert evidence.status_code == 200 and evidence.json()[0]['label'] == 'Project'
