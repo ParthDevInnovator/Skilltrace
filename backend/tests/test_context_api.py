@@ -35,6 +35,7 @@ async def test_context_building_ready_failed_and_not_found(api_service, prefix):
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
         response = await client.get(prefix + "/CAND-001/context")
         assert response.status_code == 202 and response.json()["status"] == "building"
+        assert [s["name"] for s in response.json()["stages"]] == ["resume_parse", "claim_extraction", "github", "leetcode", "linkedin", "scoring"]
         assert response.headers["Retry-After"] == "3"
         await service.build_context(service.repository.get_candidate("CAND-001"))
         payloads = [(await client.get(prefix + "/CAND-001/context")).json() for _ in range(3)]
@@ -44,6 +45,27 @@ async def test_context_building_ready_failed_and_not_found(api_service, prefix):
         service.registry.finish("CAND-001", revision, error="Synthetic failure")
         assert (await client.get(prefix + "/CAND-001/context")).status_code == 503
         assert (await client.get(prefix + "/NONEXISTENT/context")).status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_failed_build_recovers_through_rebuild(api_service):
+    """OI-27: a terminal failed build can be retried, and only a failed build."""
+    service, _ = api_service
+    revision = service.reserve("CAND-001")
+    service.registry.finish("CAND-001", revision, error="Synthetic failure")
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+        url = "/api/v1/candidates/CAND-001/context"
+        assert (await client.get(url)).status_code == 503
+        response = await client.post(url + "/rebuild")
+        assert response.status_code == 202 and response.json() == {"candidate_id": "CAND-001", "status": "building"}
+        # A second click while it runs does not start another build.
+        assert (await client.post(url + "/rebuild")).status_code == 409
+        await service.drain()
+        ready = await client.get(url)
+        assert ready.status_code == 200 and ready.json()["evidence_score"] > 0
+        conflict = await client.post(url + "/rebuild")
+        assert conflict.status_code == 409 and "ready" in conflict.json()["detail"]
+        assert (await client.post("/api/v1/candidates/NONEXISTENT/context/rebuild")).status_code == 404
 
 
 @pytest.mark.asyncio

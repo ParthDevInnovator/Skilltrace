@@ -38,7 +38,7 @@ def service():
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("candidate_id,count", [("CAND-001", 1), ("CAND-002", 1), ("CAND-003", 0), ("CAND-004", 1), ("CAND-005", 0), ("CAND-006", 1)])
+@pytest.mark.parametrize("candidate_id,count", [("CAND-001", 2), ("CAND-002", 1), ("CAND-003", 0), ("CAND-004", 1), ("CAND-005", 0), ("CAND-006", 1)])
 async def test_fixture_context_state_score_claims_and_reference(service, candidate_id, count):
     candidate = service.repository.get_candidate(candidate_id)
     fixture = json.loads((Path(__file__).resolve().parents[1] / "data" / "fixtures" / f"{candidate_id}.json").read_text(encoding="utf-8"))
@@ -263,3 +263,52 @@ async def test_real_adapter_http_500_preserves_other_fixture_signals(service, tm
     # The outage is reported, not presented as "no GitHub evidence" (OI-19).
     assert context.unavailable_sources == ["github"]
     assert service.registry.get("CAND-004").unavailable_sources == ("github",)
+
+
+@pytest.mark.asyncio
+async def test_build_stages_are_measured_while_running_and_published(service):
+    """OI-28: each stage reports its own state, count and timestamps instead of one aggregate."""
+    from backend.services.signal_fetchers.common import SourceUnavailable
+    release = asyncio.Event()
+    originals = service.fetchers.copy()
+
+    async def slow_github(profile, **kwargs):
+        await release.wait()
+        return await originals["github"](profile, **kwargs)
+
+    async def down(profile, **kwargs):
+        raise SourceUnavailable("leetcode down")
+
+    service.fetchers = {**originals, "github": slow_github, "leetcode": down}
+    token = service.reserve("CAND-001")
+    initial = {stage.name: stage.state for stage in service.registry.get("CAND-001").stages}
+    assert initial == dict.fromkeys(["resume_parse", "claim_extraction", "github", "leetcode", "linkedin", "scoring"], "pending")
+    service.launch("CAND-001", token)
+    for _ in range(100):
+        stages = {stage.name: stage for stage in service.registry.get("CAND-001").stages}
+        if stages["github"].state == "running" and stages["leetcode"].state == "unavailable":
+            break
+        await asyncio.sleep(0.01)
+    assert stages["resume_parse"].state == stages["claim_extraction"].state == "complete"
+    assert stages["github"].state == "running" and stages["github"].started_at and not stages["github"].finished_at
+    assert stages["scoring"].state == "pending"
+    release.set()
+    await service.drain()
+    context = service.registry.get("CAND-001").context
+    published = {stage.name: stage for stage in context.build_stages}
+    assert published["claim_extraction"].item_count == len(context.claims)
+    assert published["github"].state == "complete"
+    assert published["github"].item_count == sum(r.source_type == "github" for r in context.evidence_records)
+    assert published["leetcode"].state == "unavailable"
+    assert published["scoring"].state == "complete" and published["scoring"].item_count == len(context.evidence_records)
+    assert all(stage.finished_at >= stage.started_at for stage in context.build_stages)
+
+
+@pytest.mark.asyncio
+async def test_failed_build_marks_the_running_stage_failed(service, monkeypatch):
+    import backend.services.context_builder as builder_module
+    monkeypatch.setattr(builder_module, "extract_claims", lambda *args: (_ for _ in ()).throw(RuntimeError("boom")))
+    await service.build_context(service.repository.get_candidate("CAND-001"))
+    stages = {stage.name: stage.state for stage in service.registry.get("CAND-001").stages}
+    assert stages["resume_parse"] == "complete" and stages["claim_extraction"] == "failed"
+    assert stages["scoring"] == "pending"

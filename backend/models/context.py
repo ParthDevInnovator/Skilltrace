@@ -4,7 +4,7 @@ import json
 import math
 from datetime import date, timezone
 from enum import Enum
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import NAMESPACE_URL, uuid5
 
 from pydantic import (
@@ -195,6 +195,26 @@ class InterviewFeedback(BaseModel):
     skill: NonBlankString | None = None
 
 
+BuildStageName = Literal["resume_parse", "claim_extraction", "github", "leetcode", "linkedin", "scoring"]
+BuildStageState = Literal["pending", "running", "complete", "skipped", "unavailable", "failed"]
+
+
+class BuildStage(BaseModel):
+    """One measured step of a context build (OI-28). `skipped` means there was nothing to read,
+    e.g. no profile link for that source; `unavailable` means the source could not be read."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: BuildStageName
+    state: BuildStageState = "pending"
+    started_at: AwareDatetime | None = None
+    finished_at: AwareDatetime | None = None
+    item_count: int | None = Field(default=None, ge=0)
+
+
+BUILD_STAGE_NAMES: tuple[str, ...] = ("resume_parse", "claim_extraction", "github", "leetcode", "linkedin", "scoring")
+
+
 class CandidateContext(BaseModel):
     """Canonical data for one candidate; no inferred verification or role fit."""
 
@@ -214,6 +234,11 @@ class CandidateContext(BaseModel):
     # Sources that could not be read for this build. Missing evidence from these is an
     # outage to retry, not a finding that no public evidence exists (OI-19).
     unavailable_sources: list[str] = Field(default_factory=list)
+    # Measured build steps with timestamps; empty for contexts built before OI-28.
+    build_stages: list[BuildStage] = Field(default_factory=list)
+    # Whether claims were checked against evidence. No verification pass exists yet, so this is
+    # "not_assessed" and a zero contradiction count must not be read as "checked, none found" (OI-29).
+    claim_assessment: Literal["not_assessed", "assessed"] = "not_assessed"
 
     @field_validator("context_built_at")
     @classmethod

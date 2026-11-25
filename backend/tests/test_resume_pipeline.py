@@ -222,6 +222,25 @@ async def test_upload_rejections_do_not_mutate_store(api_store, filename, data, 
 
 
 @pytest.mark.asyncio
+async def test_upload_errors_are_structured_for_batch_correction(api_store):
+    """OI-26: a batch needs to know which field to ask for, and input errors from retryable ones."""
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+        missing = await client.post("/api/v1/ingest/resume", files={"file": ("identity.txt", b"A resume with no identity.")})
+        assert missing.status_code == 422
+        assert missing.json()["detail"]["code"] == "missing_identity"
+        assert missing.json()["detail"]["field"] == "email"
+        no_name = await client.post("/api/v1/ingest/resume", files={"file": ("identity.txt", b"A resume with no identity.")},
+                                    data={"email": "fresh.person@example.com"})
+        assert no_name.json()["detail"] == {"code": "missing_identity", "field": "full_name",
+                                            "message": "A full name is required. Supply the full_name form field if extraction missed it."}
+        fixed = await client.post("/api/v1/ingest/resume", files={"file": ("identity.txt", b"A resume with no identity.")},
+                                  data={"email": "fresh.person@example.com", "full_name": "Fresh Person"})
+        assert fixed.status_code == 202, fixed.text
+        empty = await client.post("/api/v1/ingest/resume", files={"file": ("empty.txt", b"")})
+        assert empty.json()["detail"]["code"] == "empty_file"
+
+
+@pytest.mark.asyncio
 async def test_partial_identity_can_be_corrected_with_form_fields(api_store):
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
         response = await client.post("/api/v1/ingest/resume", files={"file": ("role.pdf", (FIXTURES / "role.pdf").read_bytes())},
@@ -253,3 +272,18 @@ async def test_docx_upload_and_existing_seed_update(api_store):
     assert candidate.external_identifiers.github is None
     assert candidate.resume_path is None and candidate.resume_text_stub is None
     assert candidate.match_preview is None
+
+
+def test_extractor_covers_redis_and_bare_kafka_with_canonical_names():
+    """OI-29: common stack keywords become claims, joined to the taxonomy's canonical skill."""
+    text = "Experience\n- Built Kafka consumers for billing.\n- Optimized Redis caching for search.\n- Designed Apache Kafka topics."
+    claims = extract_claims(text, "CAND-X")
+    assert [claim.skill for claim in claims] == ["Kafka", "Redis", "Apache Kafka"]
+    assert claims[0].canonical_skill == claims[2].canonical_skill == "Apache Kafka"
+    assert all(claim.verification_state == "unverified" for claim in claims)
+
+
+def test_contexts_say_claims_were_not_assessed():
+    """OI-29: zero contradictions must not read as 'checked and none found'."""
+    from backend.models import CandidateContext
+    assert CandidateContext.model_fields["claim_assessment"].default == "not_assessed"

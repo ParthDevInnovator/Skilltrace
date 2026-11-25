@@ -59,13 +59,24 @@ export class ApiError extends Error {
     this.endpoint = endpoint
     this.body = body
   }
+  private get rawDetail(): unknown {
+    try { return JSON.parse(this.body)?.detail } catch { return undefined }
+  }
   get detail(): string | undefined {
-    try {
-      const detail = JSON.parse(this.body)?.detail
-      return typeof detail === 'string' ? detail : undefined
-    } catch {
-      return undefined
-    }
+    const detail = this.rawDetail
+    if (typeof detail === 'string') return detail
+    const message = (detail as { message?: unknown } | undefined)?.message
+    return typeof message === 'string' ? message : undefined
+  }
+  /** Machine-readable reason, when the endpoint sends structured errors (e.g. `missing_identity`). */
+  get code(): string | undefined {
+    const code = (this.rawDetail as { code?: unknown } | undefined)?.code
+    return typeof code === 'string' ? code : undefined
+  }
+  /** The form field that would fix the error, when the server names one. */
+  get field(): string | undefined {
+    const field = (this.rawDetail as { field?: unknown } | undefined)?.field
+    return typeof field === 'string' ? field : undefined
   }
 }
 
@@ -132,6 +143,9 @@ export const api = {
 
   getCandidateContext: (id: string): Promise<CandidateContext | BuildInProgress> =>
     request(`/api/v1/candidates/${encodeURIComponent(id)}/context`),
+  /** Restart a failed context build (OI-27). 409 when the build is not in the failed state. */
+  rebuildCandidateContext: (id: string): Promise<BuildInProgress> =>
+    request(`/api/v1/candidates/${encodeURIComponent(id)}/context/rebuild`, { method: 'POST' }),
   getCandidateResume: (id: string): Promise<ResumePayload | null> =>
     request(`/api/v1/candidates/${encodeURIComponent(id)}/resume`),
   resolveCandidates: (params: { name?: string; email?: string }): Promise<CandidateSummary[]> => {
@@ -140,7 +154,7 @@ export const api = {
     if (params.email) query.set('email', params.email)
     return request(`/api/v1/candidates/resolve?${query}`)
   },
-  uploadResume: (data: FormData): Promise<{ candidate_id: string; status: 'building' }> =>
+  uploadResume: (data: FormData): Promise<{ candidate_id: string; status: 'building'; updated_existing?: boolean; context_revision?: string }> =>
     request('/api/v1/ingest/resume', { method: 'POST', body: data }),
   getCandidateById: (id: string): Promise<CandidateDetail> =>
     request<CandidateDetail>(`/api/v1/candidates/${id}`),

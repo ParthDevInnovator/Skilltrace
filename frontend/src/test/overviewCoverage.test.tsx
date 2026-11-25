@@ -51,6 +51,15 @@ describe('IntelligenceOverview coverage', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Retry coverage' }))
     expect(await screen.findByText('1/2')).toBeVisible()
   })
+  it('says contradictions are not assessed instead of reporting zero (OI-29)', async () => {
+    vi.mocked(api.getCandidateJdMatch).mockResolvedValue(match)
+    const unverified = { ...exampleContext, claim_assessment: 'not_assessed' as const, claims: exampleContext.claims.map(claim => ({ ...claim, verification_state: 'unverified' as const })) }
+    const { rerender } = render(<IntelligenceOverview candidate={exampleContext.candidate} context={unverified} job={job} inspectClaims={() => {}} />)
+    expect(await screen.findByText('Not assessed')).toBeVisible()
+    expect(screen.queryByText('0 open')).not.toBeInTheDocument()
+    rerender(<IntelligenceOverview candidate={exampleContext.candidate} context={{ ...unverified, claim_assessment: 'assessed' }} job={job} inspectClaims={() => {}} />)
+    expect(screen.getByText('0 open')).toBeVisible()
+  })
   it('does not call the match API for roles without access', async () => {
     render(<IntelligenceOverview candidate={exampleContext.candidate} context={null} job={job} canMatch={false} inspectClaims={() => {}} />)
     expect(screen.getAllByText('Restricted')).toHaveLength(2)

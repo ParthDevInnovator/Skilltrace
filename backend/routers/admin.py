@@ -71,7 +71,7 @@ async def audit_logs(user_id: str | None = None, candidate_id: str | None = None
 
 
 @router.delete("/api/v1/candidates/{candidate_id}", status_code=204)
-@router.delete("/candidates/{candidate_id}", status_code=204)
+@router.delete("/candidates/{candidate_id}", status_code=204, include_in_schema=False)
 async def delete_candidate(candidate_id: str, db: AsyncSession = Depends(get_db),
                            user: User = Depends(require_role(Role.hr_admin)),
                            service=Depends(get_context_builder), cache=Depends(get_signal_cache),

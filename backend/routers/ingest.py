@@ -27,6 +27,15 @@ class IngestResponse(BaseModel):
     enrichment_pending: bool = True
 
 
+def _reject(status: int, code: str, message: str, field: str | None = None) -> HTTPException:
+    """Upload errors carry a machine-readable code (and the field to correct), so a batch can tell
+    rejected input from a retryable failure and ask for a missing identity (OI-26)."""
+    detail = {"code": code, "message": message}
+    if field:
+        detail["field"] = field
+    return HTTPException(status, detail)
+
+
 def get_ingestion_store() -> ResumeIngestionStore:
     return ingestion_store
 
@@ -50,36 +59,36 @@ async def ingest_resume(
     try:
         filename = file.filename or ""
         if Path(filename).suffix.lower() not in SUPPORTED_EXTENSIONS:
-            raise HTTPException(422, "Supported resume formats are PDF, DOCX and TXT.")
+            raise _reject(422, "unsupported_format", "Supported resume formats are PDF, DOCX and TXT.")
         data = bytearray()
         while chunk := await file.read(64 * 1024):
             data.extend(chunk)
             if len(data) > MAX_UPLOAD_BYTES:
-                raise HTTPException(413, "Resume files must be 5 MB or smaller.")
+                raise _reject(413, "too_large", "Resume files must be 5 MB or smaller.")
     finally:
         await file.close()
     if not data:
-        raise HTTPException(422, "The resume file is empty.")
+        raise _reject(422, "empty_file", "The resume file is empty.")
     parsed = await run_in_threadpool(parse_resume, raw_bytes=bytes(data), filename=filename)
     if parsed.source == "empty":
-        raise HTTPException(422, "Could not read resume text. Check the file or upload a text resume.")
+        raise _reject(422, "unreadable", "Could not read resume text. Check the file or upload a text resume.")
     if parsed.source == "pdf" and parsed.char_count < 50:
-        raise HTTPException(422, "PDF has fewer than 50 readable characters. Scanned PDFs require OCR or a text resume.")
+        raise _reject(422, "unreadable", "PDF has fewer than 50 readable characters. Scanned PDFs require OCR or a text resume.")
     identity = extract_identity(parsed.raw_text).model_dump()
     overrides = {"full_name": full_name, "email": email, "headline": headline, "location": location}
     identity.update({key: value.strip() for key, value in overrides.items() if value and value.strip()})
     try:
         extracted = ExtractedIdentity.model_validate(identity)
         if builder.store is not store:
-            raise HTTPException(503, "Resume service configuration is inconsistent.")
+            raise _reject(503, "service_unavailable", "Resume service configuration is inconsistent.")
         candidate, updated, revision, reserved = await builder.ingest_resume(extracted, parsed, filename, bytes(data),
                                                                              workspace_of(user))
     except ValidationError:
-        raise HTTPException(422, "Candidate identity is invalid. Check the name, email, headline and location fields.") from None
+        raise _reject(422, "invalid_identity", "Candidate identity is invalid. Check the name, email, headline and location fields.") from None
     except MissingIdentityError as exc:
-        raise HTTPException(422, str(exc)) from None
+        raise _reject(422, "missing_identity", str(exc), exc.field) from None
     except PersistenceError:
-        raise HTTPException(503, "The resume could not be saved. Nothing was changed; retry the upload.") from None
+        raise _reject(503, "persistence_failed", "The resume could not be saved. Nothing was changed; retry the upload.") from None
     background_tasks.add_task(builder.launch_background, candidate.id, reserved)
     return IngestResponse(candidate_id=candidate.id, updated_existing=updated,
                           parse_source=parsed.source, context_revision=revision)

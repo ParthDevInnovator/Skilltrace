@@ -17,7 +17,7 @@ import { locationLabel } from '@/services/masking'
 
 export function CandidateProfileShell() {
   const { hasRole } = useAuth()
-  const { selectedCandidateId, selectedJob, backToDashboard, setActiveView } = useJob()
+  const { selectedCandidateId, selectedJob, backToDashboard, setActiveView, compareCandidate } = useJob()
   const [candidate, setCandidate] = useState<CandidateDetail | null>(null)
   const [failed, setFailed] = useState(false)
   const [detailAttempt, setDetailAttempt] = useState(0)
@@ -25,7 +25,7 @@ export function CandidateProfileShell() {
   const [chatOpen, setChatOpen] = useState(false)
   const [exportRequest, setExportRequest] = useState(0)
 
-  const { context, phase, retry } = useCandidateContext(selectedCandidateId, hasRole('recruiter'))
+  const { context, phase, message: contextMessage, retry } = useCandidateContext(selectedCandidateId, hasRole('recruiter'))
 
   useEffect(() => {
     if (!selectedCandidateId) return
@@ -79,7 +79,7 @@ export function CandidateProfileShell() {
   return (
     <div className="candidate-intelligence flex flex-col gap-6 max-w-7xl mx-auto pb-16">
       {/* Context Feedback (Alert / Loading / Polling) */}
-      {hasRole('recruiter') ? <ContextFeedback phase={phase} retry={retry} /> : <p>Raw evidence context is restricted to recruiters. Interview questions remain available.</p>}
+      {hasRole('recruiter') ? <ContextFeedback phase={phase} message={contextMessage} retry={retry} /> : <p>Raw evidence context is restricted to recruiters. Interview questions remain available.</p>}
 
       {/* Breadcrumb Navigation + Back button (Exact match to Image 1 + Preserving Navigation) */}
       <div className="flex items-center justify-between pt-1">
@@ -178,7 +178,7 @@ export function CandidateProfileShell() {
           <div className="flex items-center gap-2.5">
             <button
               type="button"
-              onClick={() => setActiveView('comparison')}
+              onClick={() => selectedCandidateId ? compareCandidate(selectedCandidateId) : setActiveView('comparison')}
               className="h-10 px-4 rounded-xl bg-[#141618] hover:bg-[#2a2d32] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
             >
               <span className="material-symbols-outlined text-[17px]">compare_arrows</span>
@@ -396,7 +396,7 @@ export function CandidateProfileShell() {
               Reported skills and associated observations; evidence tiers do not certify proficiency.
             </p>
           </div>
-          <ContextFeedback phase={phase} retry={retry} />
+          <ContextFeedback phase={phase} message={contextMessage} retry={retry} />
           <div className="flex flex-wrap gap-2">
             {displayCandidate.top_skills.map(skill => (
               <span key={skill} className="px-3 py-1 rounded-lg bg-[#faf5e8] border border-[#ebd8a8] text-[#745723] text-xs font-medium">
@@ -453,6 +453,9 @@ export function CandidateProfileShell() {
             candidateId={displayCandidate.id}
             jobId={selectedJob?.id}
             exportRequest={exportRequest}
+            contextRevision={context?.context_built_at}
+            candidateName={displayCandidate.full_name}
+            jobTitle={selectedJob?.title}
           />
         </section>
       )}

@@ -22,8 +22,14 @@ export interface CandidateContext {
   reference_date: string; context_built_at: string
   /** Sources that could not be read for this build: an outage to retry, not missing evidence (OI-19). */
   unavailable_sources?: SourceType[]
+  /** Measured build steps (OI-28); absent for contexts built before stages were recorded. */
+  build_stages?: BuildStage[]
+  /** Whether claims were checked against evidence; until then a zero contradiction count means nothing (OI-29). */
+  claim_assessment?: 'not_assessed' | 'assessed'
 }
-export interface BuildInProgress { candidate_id: string; status: 'building' }
+export type BuildStageName = 'resume_parse' | 'claim_extraction' | 'github' | 'leetcode' | 'linkedin' | 'scoring'
+export interface BuildStage { name: BuildStageName; state: 'pending' | 'running' | 'complete' | 'skipped' | 'unavailable' | 'failed'; started_at: string | null; finished_at: string | null; item_count: number | null }
+export interface BuildInProgress { candidate_id: string; status: 'building'; stages?: BuildStage[] }
 export interface ResumePayload { candidate_id: string; raw_text: string; source: ParseSource; char_count: number }
 export const EVIDENCE_LABELS: EvidenceLabel[] = ['No public evidence', 'Limited', 'Some', 'Good', 'Strong']
 export function labelForScore(score: number): EvidenceLabel {

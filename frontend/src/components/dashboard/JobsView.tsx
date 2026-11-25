@@ -1,9 +1,10 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useJob } from '@/context/JobContext'
 import { JobStatus } from '@/components/common/JobStatus'
 import { useAuth } from '@/context/AuthContext'
 import { api } from '@/services/api'
 import type { SimilarJob } from '@/types/matching'
+import { useRankings } from '@/hooks/useRankings'
 
 function Icon({ name }: { name: string }) { return <span className="material-symbols-outlined" aria-hidden="true">{name}</span> }
 export function JobsView({ onCreate }: { onCreate: () => void }) {
@@ -14,22 +15,14 @@ export function JobsView({ onCreate }: { onCreate: () => void }) {
   const [department, setDepartment] = useState('')
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [status, setStatus] = useState('all')
-  const [scores, setScores] = useState<Record<string, number | null>>({})
   const [similar, setSimilar] = useState<{ jobId: string; rows: SimilarJob[]; error: boolean } | null>(null)
   const jobId = selectedJob?.id
   const jobKey = jobs.map(job => job.id).join('|')
-  useEffect(() => {
-    if (!canMatch || !jobKey) return
-    let live = true
-    void Promise.all(jobKey.split('|').map(async id => {
-      try {
-        const rows = await api.rankCandidates({ job_id: id })
-        const ready = rows.filter(row => row.context_status === 'ready')
-        return [id, ready.length ? Math.round(Math.max(...ready.map(row => row.final_score)) * 100) : null] as const
-      } catch { return [id, null] as const }
-    })).then(rows => { if (live) setScores(Object.fromEntries(rows)) })
-    return () => { live = false }
-  }, [jobKey, canMatch])
+  const ranking = useRankings(jobKey ? jobKey.split('|') : [], canMatch)
+  const scores: Record<string, number | null> = Object.fromEntries(Object.entries(ranking.byJob).map(([id, job]) => {
+    const ready = job.rows.filter(row => row.context_status === 'ready')
+    return [id, ready.length ? Math.round(Math.max(...ready.map(row => row.final_score)) * 100) : null]
+  }))
   useEffect(() => {
     if (!jobId || !canMatch) return
     let live = true
@@ -62,6 +55,8 @@ export function JobsView({ onCreate }: { onCreate: () => void }) {
       </article>
     })}</div>
     {!filtered.length && <p className="jobs-empty">{jobs.length ? 'No jobs match your filters.' : 'No jobs yet. Create a job to start reviewing candidates.'}</p>}
+    {ranking.processing && !ranking.exhausted && <p role="status" className="jobs-data-note">Some candidates are still being analyzed. Fit scores update automatically.</p>}
+    {ranking.exhausted && <p role="status" className="jobs-data-note">Analysis is taking longer than expected. <button onClick={ranking.refresh}>Refresh fit scores</button></p>}
     {!!jobs.length && <p className="jobs-data-note">Job status and per-job resume counts are not available yet. Fit scores evaluate the shared candidate pool; missing evidence remains unknown.</p>}
     {jobId && canMatch && <details className="jobs-similar"><summary>Similar Requisitions</summary>{similar?.jobId !== jobId ? <p role="status">Loading similar requisitions…</p> : similar.error ? <p role="alert">Could not load similar requisitions.</p> : !similar.rows.length ? <p>No similar requisitions found.</p> : similar.rows.map(row => <article key={row.job_id}><button onClick={() => { const job = jobs.find(item => item.id === row.job_id); if (job) setSelectedJob(job) }}>{row.title}</button><p>{row.shared_requirement_count} overlapping requirements</p><p>{row.overlapping_requirements.join(' · ')}</p></article>)}</details>}
   </section>

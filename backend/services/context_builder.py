@@ -8,6 +8,7 @@ from typing import Literal
 from uuid import uuid4
 
 from backend.models import CandidateContext, CandidateDetail, EvidenceRecord
+from backend.models.context import BUILD_STAGE_NAMES, BuildStage
 from backend.services.claim_extractor import extract_claims
 from backend.services.deduplicator import ResumeIngestionStore, ingestion_store
 from backend.services.resume_parser import parse_resume
@@ -28,6 +29,11 @@ class ContextBuildState:
     context: CandidateContext | None = None
     error: str | None = None
     unavailable_sources: tuple[str, ...] = ()
+    stages: tuple[BuildStage, ...] = ()
+
+
+def _pending_stages() -> tuple[BuildStage, ...]:
+    return tuple(BuildStage(name=name) for name in BUILD_STAGE_NAMES)
 
 
 class ContextBuildRegistry:
@@ -42,8 +48,27 @@ class ContextBuildRegistry:
     def begin(self, candidate_id: str, revision: str | None = None) -> str:
         revision = revision or str(uuid4())
         with self._lock:
-            self._entries[candidate_id] = ContextBuildState(candidate_id, revision)
+            self._entries[candidate_id] = ContextBuildState(candidate_id, revision, stages=_pending_stages())
         return revision
+
+    def stage(self, candidate_id: str, revision: str, name: str, state: str, at: datetime,
+              item_count: int | None = None) -> None:
+        """Record one measured build step (OI-28); ignored for a superseded revision."""
+        with self._lock:
+            entry = self._entries.get(candidate_id)
+            if entry is None or entry.revision != revision:
+                return
+            stages = []
+            for stage in entry.stages or _pending_stages():
+                if stage.name == name:
+                    update = {"state": state, "item_count": item_count}
+                    if state == "running":
+                        update.update(started_at=at, finished_at=None)
+                    else:
+                        update.update(started_at=stage.started_at or at, finished_at=at)
+                    stage = stage.model_copy(update=update)
+                stages.append(stage)
+            self._entries[candidate_id] = replace(entry, stages=tuple(stages))
 
     def get(self, candidate_id: str) -> ContextBuildState | None:
         with self._lock:
@@ -68,7 +93,11 @@ class ContextBuildRegistry:
             entry = self._entries.get(candidate_id)
             if entry is None or entry.revision != revision:
                 return False
-            self._entries[candidate_id] = replace(entry, status="failed" if error else "ready",
+            stages = entry.stages
+            if error:
+                stages = tuple(stage.model_copy(update={"state": "failed"}) if stage.state == "running" else stage
+                               for stage in stages)
+            self._entries[candidate_id] = replace(entry, status="failed" if error else "ready", stages=stages,
                 context=context.model_copy(deep=True) if context else None,
                 error=error, unavailable_sources=tuple(unavailable_sources))
             return True
@@ -174,6 +203,23 @@ class ContextBuilder:
             self._task_keys.pop(completed, None)
         task.add_done_callback(done)
 
+    def retry_failed(self, candidate_id: str) -> str:
+        """Restart a build that ended in `failed` (OI-27). Returns the new state: `building` when a
+        retry started, otherwise the unchanged status. Only failed builds restart, so repeated
+        clicks cannot pile up work, and a running build is never duplicated."""
+        with self.repository.candidate_lock:
+            entry = self.registry.get(candidate_id)
+            if entry is None or entry.status != "failed":
+                return entry.status if entry else "missing"
+            revision = self.reserve(candidate_id)
+            if revision is None:
+                return "missing"
+            pending = self.store.pending_builds.get(candidate_id)
+            if pending and pending.revision == revision:
+                pending.status, pending.stage, pending.error = "building", "queued", None
+        self.launch(candidate_id, revision)
+        return "building"
+
     async def launch_background(self, candidate_id: str, revision: str | None) -> None:
         """FastAPI background callback: schedule on its event loop, not a worker thread."""
         self.launch(candidate_id, revision)
@@ -235,6 +281,11 @@ class ContextBuilder:
                 if started.tzinfo is None:
                     raise ValueError("Build clock must return an aware timestamp")
                 reference_date = started.astimezone(timezone.utc).date()
+
+                def mark(name, state, count=None):
+                    self.registry.stage(candidate_id, revision, name, state, datetime.now(timezone.utc), count)
+
+                mark("resume_parse", "running")
                 with self.repository.candidate_lock:
                     candidate = self.repository.get_candidate(candidate_id)
                     if candidate is None:
@@ -252,12 +303,16 @@ class ContextBuilder:
                         if not path.is_absolute():
                             path = self.repository.data_dir.parent / path
                     parsed = await asyncio.to_thread(parse_resume, path, candidate.resume_text_stub)
+                mark("resume_parse", "complete", parsed.char_count)
+                mark("claim_extraction", "running")
                 claims = await asyncio.to_thread(extract_claims, parsed.raw_text, candidate_id)
+                mark("claim_extraction", "complete", len(claims))
                 links = candidate.external_identifiers
 
                 async def collect(source):
+                    profile = getattr(links, source, None) if links else None
+                    mark(source, "running")
                     try:
-                        profile = getattr(links, source, None) if links else None
                         kwargs = {"candidate_id": candidate_id, "reference_date": reference_date}
                         records = await self.fetchers[source](profile or "", **kwargs)
                         normalized = []
@@ -269,8 +324,11 @@ class ContextBuilder:
                             normalized.append(EvidenceRecord.model_validate({**record.model_dump(),
                                 "reference_date": reference_date, "recency_multiplier": multiplier,
                                 "computed_weight": record.base_weight * multiplier}))
+                        # No profile link and nothing found: nothing was looked up, not an empty result.
+                        mark(source, "complete" if profile or normalized else "skipped", len(normalized))
                         return normalized
                     except Exception as error:
+                        mark(source, "unavailable")
                         logger.warning("Context source unavailable candidate=%s source=%s error_type=%s",
                                        candidate_id, source, type(error).__name__)
                         return error
@@ -288,12 +346,15 @@ class ContextBuilder:
                         for record in result:
                             evidence.setdefault(record.id, record)
                 records = list(evidence.values())
+                mark("scoring", "running")
                 score, label = score_evidence(records, reference_date)
+                mark("scoring", "complete", len(records))
                 candidate = candidate.model_copy(update={"claims_preview": [claim.claim_text for claim in claims]})
                 context = CandidateContext(candidate=candidate, claims=claims, evidence_records=records,
                     evidence_score=score, evidence_label=label, resume_text=parsed.raw_text,
                     parse_source=parsed.source, reference_date=reference_date, context_built_at=self.clock(),
-                    unavailable_sources=unavailable)
+                    unavailable_sources=unavailable,
+                    build_stages=list((self.registry.get(candidate_id) or ContextBuildState(candidate_id, revision)).stages))
                 with self.repository.candidate_lock:
                     current = self.store.pending_builds.get(candidate_id)
                     if current and current.revision != revision:

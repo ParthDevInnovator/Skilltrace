@@ -21,7 +21,9 @@ logger = logging.getLogger(__name__)
 
 
 class MissingIdentityError(ValueError):
-    pass
+    def __init__(self, message: str, field: str | None = None):
+        super().__init__(message)
+        self.field = field  # the form field that would supply the missing value
 
 
 @dataclass
@@ -53,12 +55,12 @@ class ResumeIngestionStore:
             workspace = workspace_id or default_workspace_id()
             email = str(identity.email).strip().casefold() if identity.email else None
             if not email:
-                raise MissingIdentityError("An email is required. Supply the email form field if extraction missed it.")
+                raise MissingIdentityError("An email is required. Supply the email form field if extraction missed it.", "email")
             # De-duplicate within the uploader's workspace only; IDs stay globally unique.
             existing = next((candidate for candidate in candidates if record_workspace(candidate) == workspace
                              and str(candidate.email).strip().casefold() == email), None)
             if not existing and not identity.full_name:
-                raise MissingIdentityError("A full name is required. Supply the full_name form field if extraction missed it.")
+                raise MissingIdentityError("A full name is required. Supply the full_name form field if extraction missed it.", "full_name")
             skills = [skill for skill in DEFAULT_SKILLS if re.search(rf"(?<!\w){re.escape(skill)}(?!\w)", parsed.raw_text, re.I)]
             if existing:
                 values = existing.model_dump()
