@@ -6,13 +6,16 @@ MATCHED_CLAIM = .5
 MATCHED_EVIDENCE = .3
 PARTIAL_CLAIM = .25
 PARTIAL_EVIDENCE = .15
+# Matching claims needed for full claim support. Support depends only on the
+# claims that match the requirement, so unrelated claims never lower it (OI-11).
+CLAIMS_FOR_FULL_SUPPORT = 2
 COVERAGE_WEIGHTS = {CoverageState.MATCHED:1., CoverageState.PARTIALLY_SUPPORTED:.5, CoverageState.INSUFFICIENT_EVIDENCE:.1, CoverageState.NOT_ASSESSED:0.}
 
 
 def match_claims_to_requirement(requirement: ExtractedRequirement, claims: list[ResumeClaim]) -> tuple[list[str], float]:
     eligible = [c for c in claims if c.verification_state != 'contradicted']
     ids = sorted(c.id for c in eligible if set(requirement.skill_aliases) & (set(skills_for_requirement(c.claim_text)) | {resolve_skill(c.skill or '')}))
-    return ids, len(ids)/len(eligible) if eligible else 0.
+    return ids, min(1., len(ids)/CLAIMS_FOR_FULL_SUPPORT)
 
 
 def match_evidence_to_requirement(requirement: ExtractedRequirement, records: list[EvidenceRecord]) -> tuple[list[str], float]:
