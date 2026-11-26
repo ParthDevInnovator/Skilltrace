@@ -2,6 +2,14 @@ import { HandleSSOCallback, useSignIn } from '@clerk/react'
 import { useEffect, useState } from 'react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
+import { CHOOSE_ORGANIZATION_PATH, usePendingSessionTask } from '@/pages/ChooseOrganizationTask'
+
+// A Clerk session with an unfinished task (e.g. choose-organization) counts as signed out;
+// send the user to the task page instead of looping between login and the callback.
+function PendingTaskRedirect({ next }: { next: string }) {
+  const task = usePendingSessionTask()
+  return task === 'choose-organization' ? <Navigate replace to={`${CHOOSE_ORGANIZATION_PATH}?next=${encodeURIComponent(next)}`} /> : null
+}
 
 function destination(requested: string | null) {
   return requested && /^\/(dashboard|candidates)(\/|\?|$)/.test(requested) && !requested.includes('\\') ? requested : '/dashboard'
@@ -62,7 +70,7 @@ export function GoogleLoginPage() {
           <div className="signin-form-area">
             <p className="signin-provider-note">Sign in securely with your Google account.</p>
             {auth.error ? <><p role="alert" className="login-error">{auth.error}</p><button className="google-signin-button" onClick={() => void auth.logout()}>Sign out and retry</button></>
-              : configured ? <GoogleSignIn next={next} />
+              : configured ? <><PendingTaskRedirect next={next} /><GoogleSignIn next={next} /></>
               : nativeTest ? <NativeTestSignIn />
               : <><button className="google-signin-button" disabled><GoogleIcon />Continue with Google</button><p className="login-error" role="alert">Google sign-in is not configured. Contact your administrator.</p></>}
             {params.get('error') && <p className="login-error" role="alert">Your account requires additional verification. Please contact your administrator before trying again.</p>}
@@ -109,5 +117,5 @@ export function GoogleSSOCallback() {
   if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) return <Navigate replace to="/login" />
   if (auth.ready && auth.isAuthenticated) return <Navigate replace to={next} />
   if (auth.ready && auth.error) return <Navigate replace to={`/login?next=${encodeURIComponent(next)}`} />
-  return <main className="login-page"><p role="status">Completing Google sign-in…</p>{stalled && <p role="alert">Sign-in is taking longer than expected. <a href={`/login?next=${encodeURIComponent(next)}`}>Back to sign-in</a></p>}<HandleSSOCallback navigateToApp={({ decorateUrl }) => { window.location.assign(decorateUrl(next)) }} navigateToSignIn={() => navigate(`/login?next=${encodeURIComponent(next)}&error=verification`, { replace: true })} navigateToSignUp={() => navigate(`/login?next=${encodeURIComponent(next)}&error=verification`, { replace: true })} /></main>
+  return <main className="login-page"><PendingTaskRedirect next={next} /><p role="status">Completing Google sign-in…</p>{stalled && <p role="alert">Sign-in is taking longer than expected. <a href={`/login?next=${encodeURIComponent(next)}`}>Back to sign-in</a></p>}<HandleSSOCallback navigateToApp={({ decorateUrl }) => { window.location.assign(decorateUrl(next)) }} navigateToSignIn={() => navigate(`/login?next=${encodeURIComponent(next)}&error=verification`, { replace: true })} navigateToSignUp={() => navigate(`/login?next=${encodeURIComponent(next)}&error=verification`, { replace: true })} /></main>
 }

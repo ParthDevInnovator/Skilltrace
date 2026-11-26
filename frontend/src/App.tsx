@@ -22,6 +22,7 @@ import { AuthProvider, useAuth } from '@/context/AuthContext'
 import { ClerkIdentity } from '@/context/ClerkIdentity'
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute'
 import { GoogleLoginPage as LoginPage, GoogleSSOCallback } from '@/pages/GoogleLogin'
+import { CHOOSE_ORGANIZATION_PATH, ChooseOrganizationTaskPage } from '@/pages/ChooseOrganizationTask'
 import { ForbiddenPage } from '@/pages/ForbiddenPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 
@@ -86,6 +87,7 @@ export default function App() {
     <BrowserRouter><IdentityProvider><Routes>
       <Route path="/login" element={<LoginPage/>}/><Route path="/403" element={<ForbiddenPage/>}/>
       <Route path="/sso-callback" element={<GoogleSSOCallback/>}/>
+      <Route path={CHOOSE_ORGANIZATION_PATH} element={<ChooseOrganizationTaskPage/>}/>
       <Route path="/" element={<Navigate replace to="/login"/>}/>
       <Route path="/dashboard/*" element={<ProtectedRoute><JobProvider><WorkspaceContent/></JobProvider></ProtectedRoute>}/>
       <Route path="/candidates/*" element={<ProtectedRoute><JobProvider><WorkspaceContent/></JobProvider></ProtectedRoute>}/>

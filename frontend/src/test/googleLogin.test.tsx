@@ -7,6 +7,8 @@ import { GoogleLoginPage } from '@/pages/GoogleLogin'
 const clerk = vi.hoisted(() => ({ sso: vi.fn() }))
 vi.mock('@clerk/react', () => ({
   useSignIn: () => ({ signIn: { sso: clerk.sso }, fetchStatus: 'idle' }),
+  useClerk: () => ({ session: null, addListener: () => () => {} }),
+  TaskChooseOrganization: () => null,
   HandleSSOCallback: () => null,
 }))
 vi.mock('@/context/AuthContext', () => ({ useAuth: () => ({ ready: true, isAuthenticated: false }) }))
