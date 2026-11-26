@@ -1,5 +1,5 @@
 import { HandleSSOCallback, useSignIn } from '@clerk/react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 
@@ -95,9 +95,19 @@ export function GoogleLoginPage() {
 }
 
 export function GoogleSSOCallback() {
+  const auth = useAuth()
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const next = destination(params.get('next'))
+  const [stalled, setStalled] = useState(false)
+  // Clerk's HandleSSOCallback silently does nothing when no sign-in state matches
+  // (e.g. the session is already active), so never leave the user on a spinner.
+  useEffect(() => {
+    const timer = window.setTimeout(() => setStalled(true), 15000)
+    return () => window.clearTimeout(timer)
+  }, [])
   if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) return <Navigate replace to="/login" />
-  return <main className="login-page"><p role="status">Completing Google sign-in…</p><HandleSSOCallback navigateToApp={({ decorateUrl }) => { window.location.assign(decorateUrl(next)) }} navigateToSignIn={() => navigate(`/login?next=${encodeURIComponent(next)}&error=verification`, { replace: true })} navigateToSignUp={() => navigate(`/login?next=${encodeURIComponent(next)}&error=verification`, { replace: true })} /></main>
+  if (auth.ready && auth.isAuthenticated) return <Navigate replace to={next} />
+  if (auth.ready && auth.error) return <Navigate replace to={`/login?next=${encodeURIComponent(next)}`} />
+  return <main className="login-page"><p role="status">Completing Google sign-in…</p>{stalled && <p role="alert">Sign-in is taking longer than expected. <a href={`/login?next=${encodeURIComponent(next)}`}>Back to sign-in</a></p>}<HandleSSOCallback navigateToApp={({ decorateUrl }) => { window.location.assign(decorateUrl(next)) }} navigateToSignIn={() => navigate(`/login?next=${encodeURIComponent(next)}&error=verification`, { replace: true })} navigateToSignUp={() => navigate(`/login?next=${encodeURIComponent(next)}&error=verification`, { replace: true })} /></main>
 }
