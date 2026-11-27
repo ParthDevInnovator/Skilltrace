@@ -9,7 +9,9 @@ from uuid import uuid4
 
 from backend.models import CandidateContext, CandidateDetail, EvidenceRecord
 from backend.models.context import BUILD_STAGE_NAMES, BuildStage
+from backend.services.claim_assessor import REVIEWABLE_LINKS, apply_review, apply_reviews, assess_claims
 from backend.services.claim_extractor import extract_claims
+from backend.services.claim_reviews import ClaimReviewStore
 from backend.services.deduplicator import ResumeIngestionStore, ingestion_store
 from backend.services.resume_parser import parse_resume
 from backend.services.scoring_engine import compute_recency_multiplier, score_evidence
@@ -87,6 +89,16 @@ class ContextBuildRegistry:
             self._entries[candidate_id] = ContextBuildState(candidate_id, revision, status,
                 context.model_copy(deep=True) if context else None, error, tuple(unavailable_sources))
 
+    def update_context(self, candidate_id: str, change) -> ContextBuildState | None:
+        """Replace a ready context in place (same revision); returns the new state."""
+        with self._lock:
+            entry = self._entries.get(candidate_id)
+            if entry is None or entry.status != "ready" or entry.context is None:
+                return None
+            entry = replace(entry, context=change(entry.context.model_copy(deep=True)))
+            self._entries[candidate_id] = entry
+            return replace(entry, context=entry.context.model_copy(deep=True))
+
     def remove(self, candidate_id: str) -> None:
         with self._lock:
             self._entries.pop(candidate_id, None)
@@ -108,14 +120,25 @@ class ContextBuildRegistry:
             return True
 
 
+class ClaimReviewError(Exception):
+    """`code` is one of: not_ready, claim_missing, not_reviewable."""
+
+    def __init__(self, code: str, message: str):
+        super().__init__(message)
+        self.code = code
+
+
 class ContextBuilder:
     def __init__(self, store: ResumeIngestionStore, *, registry=None, fetchers=None,
-                 clock=None, concurrency: int = 3, persistence=None):
+                 clock=None, concurrency: int = 3, persistence=None, reviews: ClaimReviewStore | None = None):
         if concurrency < 1:
             raise ValueError("Context build concurrency must be positive")
         self.store = store
         # Optional durable store (RuntimePersistence). Isolated tests run without one.
         self.persistence = persistence
+        # Recruiter decisions on claim evidence links (OI-29); durable when persistence is.
+        self.reviews = reviews if reviews is not None else ClaimReviewStore(
+            persistence.sessions if persistence is not None else None)
         self.repository = store.repository
         self.registry = registry if registry is not None else ContextBuildRegistry()
         self.fetchers = fetchers if fetchers is not None else {
@@ -178,6 +201,7 @@ class ContextBuilder:
             self.registry.remove(candidate_id)
             self.store.forget(candidate_id)
             self.repository.delete_candidate(candidate_id)
+            self.reviews.forget(candidate_id)
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
@@ -355,16 +379,22 @@ class ContextBuilder:
                 mark("scoring", "running")
                 score, label = score_evidence(records, reference_date)
                 mark("scoring", "complete", len(records))
+                # Suggest claim-evidence links for a recruiter to review; nothing is verified here (OI-29).
+                claims = assess_claims(claims, records)
                 candidate = candidate.model_copy(update={"claims_preview": [claim.claim_text for claim in claims]})
                 context = CandidateContext(candidate=candidate, claims=claims, evidence_records=records,
                     evidence_score=score, evidence_label=label, resume_text=parsed.raw_text,
                     parse_source=parsed.source, reference_date=reference_date, context_built_at=self.clock(),
-                    unavailable_sources=unavailable,
+                    unavailable_sources=unavailable, claim_assessment="assessed",
                     build_stages=list((self.registry.get(candidate_id) or ContextBuildState(candidate_id, revision)).stages))
                 with self.repository.candidate_lock:
                     current = self.store.pending_builds.get(candidate_id)
                     if current and current.revision != revision:
                         return None
+                    # Earlier recruiter decisions carry over by stable claim ID.
+                    context = context.model_copy(update={
+                        "claims": apply_reviews(context.claims, self.reviews.for_candidate(candidate_id))})
+                    claims = context.claims
                     if not self.registry.finish(candidate_id, revision, context=context, unavailable_sources=unavailable):
                         return None
                     self.repository.save_candidate(candidate)
@@ -393,6 +423,53 @@ class ContextBuilder:
             if candidate is not None:
                 await self._persist(candidate, revision, "failed", error=message, unavailable=unavailable)
             return None
+
+    async def review_claim(self, candidate_id: str, claim_id: str, decision, *, reviewer: str,
+                           reviewer_id=None, workspace_id: str | None = None):
+        """Record (or with decision=None, clear) a recruiter's decision on a claim's evidence link.
+
+        Only a ready context's claims with a supported/contradiction link can be reviewed. The
+        decision is durable before the served context changes. Returns the updated claim.
+        """
+        from backend.models.context import ClaimReview
+        entry = self.registry.get(candidate_id)
+        if entry is None or entry.status != "ready" or entry.context is None:
+            raise ClaimReviewError("not_ready", "The candidate context is not ready; claims cannot be reviewed yet.")
+        claim = next((c for c in entry.context.claims if c.id == claim_id), None)
+        if claim is None:
+            raise ClaimReviewError("claim_missing", "Claim not found in the current context.")
+        if decision is None:
+            await self.reviews.clear(candidate_id, claim_id)
+        else:
+            if claim.evidence_link not in REVIEWABLE_LINKS:
+                raise ClaimReviewError("not_reviewable",
+                                       "Only claims linked to evidence or flagged as a possible contradiction can be reviewed.")
+            review = ClaimReview(decision=decision, reviewed_link=claim.evidence_link, reviewed_by=reviewer,
+                                 reviewed_at=datetime.now(timezone.utc))
+            await self.reviews.save(candidate_id, claim_id, review, reviewer_id=reviewer_id, workspace_id=workspace_id)
+        reviews = self.reviews.for_candidate(candidate_id)
+
+        def change(context):
+            return context.model_copy(update={"claims": [apply_review(c, reviews.get(c.id)) if c.id == claim_id else c
+                                                         for c in context.claims]})
+        with self.repository.candidate_lock:
+            updated = self.registry.update_context(candidate_id, change)
+            pending = self.store.pending_builds.get(candidate_id)
+            if updated is not None and pending is not None and pending.revision == updated.revision:
+                pending.claims = list(updated.context.claims)
+        from backend.services.match_store import match_store
+        match_store.clear_candidate(candidate_id)  # Confirmed contradictions change matching.
+        if updated is None:
+            # A rebuild started meanwhile; it applies the stored decision when it finishes.
+            raise ClaimReviewError("not_ready", "The candidate context is rebuilding; the decision was saved and applies when it finishes.")
+        candidate = self.repository.get_candidate(candidate_id)
+        if candidate is not None:
+            await self._persist(candidate, updated.revision, "ready", context=updated.context,
+                                unavailable=updated.unavailable_sources)
+        claim = next((c for c in updated.context.claims if c.id == claim_id), None)
+        if claim is None:
+            raise ClaimReviewError("claim_missing", "Claim not found in the current context.")
+        return claim
 
     async def _persist(self, candidate, revision, status, *, context=None, error=None, unavailable=()):
         # Only uploaded candidates are durable; bundled fixtures are rebuilt from disk.

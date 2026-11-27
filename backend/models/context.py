@@ -26,9 +26,38 @@ class ClaimSection(str, Enum):
 
 
 class ClaimVerificationState(str, Enum):
+    """Human-confirmed outcome. Only a recruiter's confirmation sets supported or contradicted (OI-29)."""
     UNVERIFIED = "unverified"
     SUPPORTED = "supported"
     CONTRADICTED = "contradicted"
+
+
+class ClaimEvidenceLink(str, Enum):
+    """What the automatic pass found when it compared a claim with public evidence (OI-29).
+
+    This is a suggestion for a recruiter to review, never a verification.
+    """
+    SUPPORTED_BY_EVIDENCE = "supported_by_evidence"
+    POSSIBLE_CONTRADICTION = "possible_contradiction"
+    NO_EVIDENCE = "no_evidence"
+
+
+class ClaimReviewDecision(str, Enum):
+    CONFIRMED = "confirmed"
+    DISMISSED = "dismissed"
+
+
+class ClaimReview(BaseModel):
+    """A recruiter's decision on one automatic evidence link."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    decision: ClaimReviewDecision
+    # The automatic link the recruiter was looking at. A review only applies while the
+    # claim still has this link; a rebuild that changes the link sets it aside.
+    reviewed_link: ClaimEvidenceLink
+    reviewed_by: NonBlankString
+    reviewed_at: AwareDatetime
 
 
 class ResumeClaim(BaseModel):
@@ -65,8 +94,17 @@ class ResumeClaim(BaseModel):
     provenance: NonBlankString = Field(description="How the claim was extracted")
     verification_state: ClaimVerificationState = Field(
         default=ClaimVerificationState.UNVERIFIED,
-        description="Explicit assessment; never inferred from evidence presence",
+        description="Recruiter-confirmed outcome; never inferred from evidence presence",
     )
+    evidence_link: ClaimEvidenceLink | None = Field(
+        default=None, description="Automatic suggestion; None when the claim has not been assessed",
+    )
+    supporting_evidence_ids: list[str] = Field(default_factory=list)
+    conflicting_evidence_ids: list[str] = Field(
+        default_factory=list, description="Evidence or interview-feedback IDs that may conflict with the claim",
+    )
+    assessment_reason: str | None = None
+    review: ClaimReview | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -236,8 +274,8 @@ class CandidateContext(BaseModel):
     unavailable_sources: list[str] = Field(default_factory=list)
     # Measured build steps with timestamps; empty for contexts built before OI-28.
     build_stages: list[BuildStage] = Field(default_factory=list)
-    # Whether claims were checked against evidence. No verification pass exists yet, so this is
-    # "not_assessed" and a zero contradiction count must not be read as "checked, none found" (OI-29).
+    # Whether claims were checked against evidence. Contexts built before the assessment pass stay
+    # "not_assessed", and a zero contradiction count must not be read as "checked, none found" (OI-29).
     claim_assessment: Literal["not_assessed", "assessed"] = "not_assessed"
 
     @field_validator("context_built_at")

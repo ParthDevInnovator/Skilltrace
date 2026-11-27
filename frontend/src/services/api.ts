@@ -8,6 +8,7 @@ import type {
   CandidateFilterParams,
   CandidateContext, BuildInProgress, ResumePayload,
 } from '@/types'
+import type { ClaimReviewDecision, ResumeClaim } from '@/types/context'
 import { authFetch } from '@/services/authToken'
 
 const API_BASE = '' // Uses Vite proxy in development
@@ -147,6 +148,13 @@ export const api = {
   /** Restart a failed context build (OI-27). 409 when the build is not in the failed state. */
   rebuildCandidateContext: (id: string): Promise<BuildInProgress> =>
     request(`/api/v1/candidates/${encodeURIComponent(id)}/context/rebuild`, { method: 'POST' }),
+  /** OI-29: confirm or dismiss a claim's automatic evidence link; returns the updated claim. */
+  reviewClaim: (candidateId: string, claimId: string, decision: ClaimReviewDecision): Promise<ResumeClaim> =>
+    request(`/api/v1/candidates/${encodeURIComponent(candidateId)}/claims/${encodeURIComponent(claimId)}/review`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ decision }),
+    }),
+  clearClaimReview: (candidateId: string, claimId: string): Promise<ResumeClaim> =>
+    request(`/api/v1/candidates/${encodeURIComponent(candidateId)}/claims/${encodeURIComponent(claimId)}/review`, { method: 'DELETE' }),
   getCandidateResume: (id: string): Promise<ResumePayload | null> =>
     request(`/api/v1/candidates/${encodeURIComponent(id)}/resume`),
   resolveCandidates: (params: { name?: string; email?: string }): Promise<CandidateSummary[]> => {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, ApiError } from '@/services/api'
-import type { BuildStage, CandidateContext } from '@/types/context'
+import type { BuildStage, CandidateContext, ResumeClaim } from '@/types/context'
 
 /**
  * `failed` means the build itself failed on the server (503); retrying it asks the server to
@@ -52,7 +52,14 @@ export function useCandidateContext(id: string | null, enabled = true) {
     void start()
     return () => { cancelled = true; clearTimeout(timer) }
   }, [id, attempt, enabled])
+  /** Swap in a claim the server returned after a review (OI-29), without refetching the context. */
+  const updateClaim = useCallback((claim: ResumeClaim) => {
+    setState(previous => previous.id !== id || !previous.context ? previous : {
+      ...previous,
+      context: { ...previous.context, claims: previous.context.claims.map(item => item.id === claim.id ? claim : item) },
+    })
+  }, [id])
   // Live stages while building; the published ones once ready.
   const stages = current?.context?.build_stages ?? current?.stages ?? []
-  return { context: current?.context ?? null, phase: current?.phase ?? 'building' as const, message: current?.message, stages, retry }
+  return { context: current?.context ?? null, phase: current?.phase ?? 'building' as const, message: current?.message, stages, retry, updateClaim }
 }

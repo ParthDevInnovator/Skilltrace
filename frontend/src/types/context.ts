@@ -6,7 +6,30 @@ export interface ResumeClaim {
   extraction_trigger: string; provenance: string
   /** Taxonomy name for skill, the join key across screens (OI-12). */
   canonical_skill?: string | null
+  /** Recruiter-confirmed outcome. Only a confirmation sets supported/contradicted (OI-29). */
   verification_state: 'unverified' | 'supported' | 'contradicted'
+  /** Automatic suggestion for review; absent or null when the claim was not assessed. */
+  evidence_link?: ClaimEvidenceLink | null
+  supporting_evidence_ids?: string[]
+  conflicting_evidence_ids?: string[]
+  assessment_reason?: string | null
+  review?: ClaimReview | null
+}
+export type ClaimEvidenceLink = 'supported_by_evidence' | 'possible_contradiction' | 'no_evidence'
+export type ClaimReviewDecision = 'confirmed' | 'dismissed'
+export interface ClaimReview {
+  decision: ClaimReviewDecision
+  reviewed_link: ClaimEvidenceLink
+  reviewed_by: string
+  reviewed_at: string
+}
+/** Possible contradictions nobody has dismissed yet, and contradictions a recruiter confirmed. */
+export function contradictionCounts(claims: ResumeClaim[]) {
+  const flagged = claims.filter(claim => claim.evidence_link === 'possible_contradiction')
+  return {
+    open: flagged.filter(claim => !claim.review).length,
+    confirmed: flagged.filter(claim => claim.review?.decision === 'confirmed').length,
+  }
 }
 export interface EvidenceRecord {
   id: string; candidate_id: string; skill: string; source_type: SourceType; source_url: string
@@ -24,7 +47,7 @@ export interface CandidateContext {
   unavailable_sources?: SourceType[]
   /** Measured build steps (OI-28); absent for contexts built before stages were recorded. */
   build_stages?: BuildStage[]
-  /** Whether claims were checked against evidence; until then a zero contradiction count means nothing (OI-29). */
+  /** Whether claims were checked against evidence; for older contexts a zero contradiction count means nothing (OI-29). */
   claim_assessment?: 'not_assessed' | 'assessed'
 }
 export type BuildStageName = 'resume_parse' | 'claim_extraction' | 'github' | 'leetcode' | 'linkedin' | 'scoring'

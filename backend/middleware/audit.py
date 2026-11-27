@@ -40,10 +40,11 @@ class AuditMiddleware:
             return  # Unauthenticated requests are rejected before any data is read.
         method = scope["method"]
         code = status["code"] or 500
-        if method == "DELETE" and code < 400:
+        review = path.endswith("/review")
+        if method == "DELETE" and code < 400 and not review:
             return  # Successful erasures are recorded by the deletion workflow itself.
-        action = ("DENIED" if code in (401, 403) else "DELETE_FAILED" if method == "DELETE"
-                  else "EXPORT" if "export" in path else "VIEW")
+        action = ("DENIED" if code in (401, 403) else "CLAIM_REVIEW" if review
+                  else "DELETE_FAILED" if method == "DELETE" else "EXPORT" if "export" in path else "VIEW")
         await audit_writer.record(
             user_id=principal.get("user_id"), roles=principal.get("roles", []), endpoint=path, method=method,
             candidate_id=_candidate_id(path), workspace_id=principal.get("workspace_id"), status_code=code,

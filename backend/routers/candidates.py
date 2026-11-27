@@ -4,7 +4,9 @@ from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 from backend.routers.ingest import get_context_builder
 from backend.routers.jd import JobRequest, candidate_match
-from backend.services.context_builder import ContextBuilder
+from pydantic import BaseModel
+from backend.models.context import ClaimReviewDecision
+from backend.services.context_builder import ClaimReviewError, ContextBuilder
 from backend.services.resume_parser import parse_resume
 
 from backend.models import CandidateFilterParams
@@ -12,7 +14,7 @@ from backend.services.seed_loader import seed_loader
 from backend.core.dependencies import require_role
 from backend.core.masking import is_restricted, role_for, serialize_candidate
 from backend.core.roles import Role
-from backend.core.workspace import in_workspace, workspace_of
+from backend.core.workspace import in_workspace, record_workspace, workspace_of
 from backend.models.db import User
 from backend.core.synthetic import may_include_synthetic
 
@@ -108,6 +110,42 @@ async def rebuild_candidate_context(candidate_id: str, service: ContextBuilder =
         raise HTTPException(409, f"The context build is {state}; only a failed build can be retried.")
     return JSONResponse(status_code=202, content={"candidate_id": candidate.id, "status": "building"},
                         headers={"Retry-After": "3"})
+
+
+class ClaimReviewRequest(BaseModel):
+    decision: ClaimReviewDecision
+
+
+def _review_error(error: ClaimReviewError) -> HTTPException:
+    return HTTPException(404 if error.code == "claim_missing" else 409, str(error))
+
+
+@router.put("/{candidate_id}/claims/{claim_id}/review",
+            summary="Confirm or dismiss a claim's automatic evidence link",
+            responses={409: {"description": "Context not ready, or the claim has no evidence link to review."}})
+async def review_claim(candidate_id: str, claim_id: str, body: ClaimReviewRequest,
+                       service: ContextBuilder = Depends(get_context_builder),
+                       user=Depends(require_role(Role.recruiter, Role.hr_admin))):
+    """OI-29: links are suggestions. Confirming a supported link marks the claim supported;
+    confirming a possible contradiction marks it contradicted; dismissing leaves it unverified."""
+    candidate = find_candidate(service, candidate_id, workspace_of(user))
+    try:
+        return await service.review_claim(candidate.id, claim_id, body.decision,
+                                          reviewer=user.full_name or user.email, reviewer_id=user.id,
+                                          workspace_id=record_workspace(candidate))
+    except ClaimReviewError as error:
+        raise _review_error(error) from None
+
+
+@router.delete("/{candidate_id}/claims/{claim_id}/review", summary="Clear a claim review")
+async def clear_claim_review(candidate_id: str, claim_id: str,
+                             service: ContextBuilder = Depends(get_context_builder),
+                             user=Depends(require_role(Role.recruiter, Role.hr_admin))):
+    candidate = find_candidate(service, candidate_id, workspace_of(user))
+    try:
+        return await service.review_claim(candidate.id, claim_id, None, reviewer=user.full_name or user.email)
+    except ClaimReviewError as error:
+        raise _review_error(error) from None
 
 
 @router.get("/{candidate_id}/resume")

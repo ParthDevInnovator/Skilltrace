@@ -56,9 +56,22 @@ describe('IntelligenceOverview coverage', () => {
     const unverified = { ...exampleContext, claim_assessment: 'not_assessed' as const, claims: exampleContext.claims.map(claim => ({ ...claim, verification_state: 'unverified' as const })) }
     const { rerender } = render(<IntelligenceOverview candidate={exampleContext.candidate} context={unverified} job={job} inspectClaims={() => {}} />)
     expect(await screen.findByText('Not assessed')).toBeVisible()
-    expect(screen.queryByText('0 open')).not.toBeInTheDocument()
+    expect(screen.queryByText('0 to review')).not.toBeInTheDocument()
     rerender(<IntelligenceOverview candidate={exampleContext.candidate} context={{ ...unverified, claim_assessment: 'assessed' }} job={job} inspectClaims={() => {}} />)
-    expect(screen.getByText('0 open')).toBeVisible()
+    expect(screen.getByText('0 to review')).toBeVisible()
+  })
+  it('counts unreviewed possible contradictions and confirmed ones separately (OI-29)', async () => {
+    vi.mocked(api.getCandidateJdMatch).mockResolvedValue(match)
+    const base = exampleContext.claims[0]
+    const review = (decision: 'confirmed' | 'dismissed') => ({ decision, reviewed_link: 'possible_contradiction' as const, reviewed_by: 'Rita', reviewed_at: '2026-11-27T00:00:00Z' })
+    const claims = [
+      { ...base, id: 'C-1', evidence_link: 'possible_contradiction' as const },
+      { ...base, id: 'C-2', evidence_link: 'possible_contradiction' as const, review: review('confirmed'), verification_state: 'contradicted' as const },
+      { ...base, id: 'C-3', evidence_link: 'possible_contradiction' as const, review: review('dismissed') },
+      { ...base, id: 'C-4', evidence_link: 'supported_by_evidence' as const },
+    ]
+    render(<IntelligenceOverview candidate={exampleContext.candidate} context={{ ...exampleContext, claim_assessment: 'assessed', claims }} job={job} inspectClaims={() => {}} />)
+    expect(await screen.findByText('1 to review · 1 confirmed')).toBeVisible()
   })
   it('does not call the match API for roles without access', async () => {
     render(<IntelligenceOverview candidate={exampleContext.candidate} context={null} job={job} canMatch={false} inspectClaims={() => {}} />)
