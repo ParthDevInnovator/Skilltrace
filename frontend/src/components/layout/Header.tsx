@@ -2,6 +2,7 @@
 import { useJob } from '@/context/JobContext'
 import { JobSelector } from '@/components/dashboard/JobSelector'
 import { useAuth } from '@/context/AuthContext'
+import { NotificationsMenu } from './NotificationsMenu'
 
 export function Header({
   onOpenCustomJDModal,
@@ -12,7 +13,7 @@ export function Header({
 }) {
   const { searchQuery, setSearchQuery, activeView, setActiveView } = useJob()
   const { hasRole, user } = useAuth()
-  const showJobTools = activeView !== 'overview' && activeView !== 'jobs' && activeView !== 'admin-access'
+  const showJobTools = !['overview', 'jobs', 'admin-access', 'admin-records', 'account'].includes(activeView)
   const searchRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -82,15 +83,7 @@ export function Header({
           <span className="hidden sm:inline">Ask AI</span>
         </button>}
 
-        {/* Notifications Icon Button */}
-        <button
-          type="button"
-          disabled aria-label="Notifications (not available)" title="Notifications are not available"
-          className="relative w-9 h-9 rounded-lg border border-[#e7e2d9] bg-white hover:bg-[#f8f7f4] text-[#59616b] hover:text-[#141618] flex items-center justify-center transition-colors shadow-2xs"
-        >
-          <span className="material-symbols-outlined text-[19px]">notifications</span>
-          <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-[#a9874e]" />
-        </button>
+        <NotificationsMenu />
 
         {/* Create Job Primary Button */}
         <button

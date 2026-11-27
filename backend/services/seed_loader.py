@@ -111,6 +111,7 @@ class SeedLoader:
                 or q in j.location.lower()
                 or q in j.description_raw.lower()
                 or any(q in r.lower() for r in j.requirements_preview)
+                or any(q in r.requirement_text.lower() for r in j.requirements)
             ]
 
         if params.department:
@@ -120,6 +121,9 @@ class SeedLoader:
         if params.location:
             loc = params.location.lower().strip()
             filtered = [j for j in filtered if loc in j.location.lower()]
+
+        if params.status:
+            filtered = [j for j in filtered if j.status == params.status]
 
         return filtered
 

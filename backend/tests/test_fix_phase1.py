@@ -627,9 +627,7 @@ async def test_oauth_never_links_an_existing_account_by_email_alone(google, monk
 @pytest.mark.asyncio
 async def test_admin_rebuild_keeps_custom_jobs_and_uploads_matchable(pipeline, monkeypatch):
     from pydantic import SecretStr
-    from backend.routers import jobs as job_routes
     monkeypatch.setattr(settings, "ADMIN_KEY", SecretStr("rebuild-key"))
-    monkeypatch.setattr(job_routes, "seed_loader", pipeline.repository)
     app.dependency_overrides[admin_routes.get_signal_cache] = lambda: SimpleNamespace(clear=lambda: None)
     try:
         as_user(principal())

@@ -166,7 +166,7 @@ Priority meanings: **P1** = fix before real candidate data. **P2** = fix before 
 | Async refresh & comparison | OI-13, 14, 15, 16, 17 | Rankings never refresh after builds. Comparison contexts stay pending, retry is broken, and selections are lost. Brief belongs to the previously selected job |
 | Knowledge graph | OI-20, 21, 22, 23 | Stale nodes after re-upload. Graph claims "contributed to" without proof. View modes are not real. Race between skill selections |
 | Uploads & processing | OI-24, 25, 26, 27, 28, 29 | Batch shows "Complete" at HTTP 202. Queue keyed by filename. No in-place identity fix. Retry doesn't rebuild. Pipeline stages are inferred. No claim verification/contradiction engine |
-| Unfinished product features | OI-30, 31, 32, 33 | No job↔candidate membership. No job status/edit/activity, and Jobs ID search is broken. NL discovery and evidence requests missing. No notifications/settings/admin UI |
+| Unfinished product features | OI-32 | NL discovery and evidence requests stay unavailable (won't fix this phase). OI-30, 31 and 33 fixed 2026-11-27 |
 | Auth, retention & ops | ~~OI-34~~, 36, 37, 38, 39, 40, 41 | ~~No automatic token refresh~~ (fixed). Retention doesn't cover runtime stores. Synthetic filter not enforced. No rate or input limits. No URL state for reload/back. Dashboard hides partial failures. Export is incomplete |
 | Verification & config | ~~OI-42~~, 43, 45, 46, 47, ~~48~~ | ~~5 FE tests failing~~ (fixed). 11 E2E tests failing and 5 lint warnings. File-size and requirement contracts mismatch (10 MB vs 5 MB). No deployment config or live smoke test. Admin rebuild drops custom jobs (in progress). ~~Passwords over 72 bytes cause HTTP 500~~ (fixed) |
 

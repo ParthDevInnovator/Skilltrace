@@ -10,8 +10,8 @@ from sqlalchemy import delete, select
 
 from backend.core.database import session_factory
 from backend.core.workspace import record_workspace
-from backend.models import CandidateContext, CandidateDetail, Job
-from backend.models.db import Candidate, CandidateResume, ContextBuildStatus, Job as DBJob, JobRequirement
+from backend.models import CandidateContext, CandidateDetail
+from backend.models.db import Candidate, CandidateResume, ContextBuildStatus
 from backend.services.resume_parser import ParsedResume
 
 logger = logging.getLogger(__name__)
@@ -105,17 +105,8 @@ class RuntimePersistence:
         # Recruiter claim reviews first, so restored and rebuilt contexts both carry them (OI-29).
         counts["claim_reviews"] = await builder.reviews.load()
         async with self.sessions()() as db:
-            for row in (await db.scalars(select(DBJob).where(DBJob.is_custom.is_(True)))).all():
-                requirements = (await db.scalars(select(JobRequirement).where(JobRequirement.job_id == row.id)
-                                                 .order_by(JobRequirement.id))).all()
-                builder.repository.add_job(Job(
-                    id=row.id, title=row.title, department=row.department, location=row.location,
-                    description_raw=row.description_raw, created_at=row.created_at.isoformat(),
-                    workspace_id=row.workspace_id or record_workspace(None),
-                    requirements=[{"id": r.id, "requirement_text": r.skill, "is_mandatory": r.level == "required"}
-                                  for r in requirements],
-                    requirements_preview=[r.skill for r in requirements[:4]]))
-                counts["jobs"] += 1
+            from backend.services.persisted_jobs import restore_custom_jobs
+            counts["jobs"] = await restore_custom_jobs(db, builder.repository)
             candidates = (await db.scalars(select(Candidate).where(Candidate.profile_json.is_not(None)))).all()
             resumes = {r.candidate_id: r for r in (await db.scalars(select(CandidateResume))).all()}
             builds = {b.candidate_id: b for b in (await db.scalars(select(ContextBuildStatus))).all()}

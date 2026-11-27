@@ -61,13 +61,22 @@ async def audit_logs(user_id: str | None = None, candidate_id: str | None = None
                      db: AsyncSession = Depends(get_db),
                      user: User = Depends(require_role(Role.hr_admin))):
     query = select(AuditLog).where(_workspace_clause(AuditLog.workspace_id, workspace_of(user)))
-    if user_id: query = query.where(AuditLog.user_id == user_id)
+    if user_id:
+        try:
+            query = query.where(AuditLog.user_id == UUID(user_id))
+        except ValueError:
+            raise HTTPException(422, "user_id must be a user ID.") from None
     if candidate_id: query = query.where(AuditLog.candidate_id == candidate_id)
     if action_type: query = query.where(AuditLog.action_type == action_type)
     if date_from: query = query.where(AuditLog.occurred_at >= date_from)
     if date_to: query = query.where(AuditLog.occurred_at <= date_to)
     rows = (await db.scalars(query.order_by(AuditLog.occurred_at.desc()).offset((page-1)*page_size).limit(page_size))).all()
-    return [{column.key: getattr(row, column.key) for column in row.__table__.columns} for row in rows]
+    # Names make the log reviewable in the admin UI (OI-33); erased users show only their ID.
+    ids = {row.user_id for row in rows if row.user_id}
+    people = {member.id: member for member in (await db.scalars(select(User).where(User.id.in_(ids)))).all()} if ids else {}
+    return [{**{column.key: getattr(row, column.key) for column in row.__table__.columns},
+             "user_email": getattr(people.get(row.user_id), "email", None),
+             "user_name": getattr(people.get(row.user_id), "full_name", None)} for row in rows]
 
 
 @router.delete("/api/v1/candidates/{candidate_id}", status_code=204)

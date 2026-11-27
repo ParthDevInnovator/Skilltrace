@@ -175,6 +175,59 @@ class Job(Base):
     workspace_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     created_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    # OI-31: lifecycle and structured requisition fields (previously folded into the description).
+    status: Mapped[str] = mapped_column(String(16), default="active", index=True)
+    employment_type: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    experience_range: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    hiring_manager: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class JobApplication(Base):
+    """A candidate considered for a job (OI-30): membership, separate from the reusable profile.
+
+    job_id and candidate_id are plain identifiers, not foreign keys: bundled fixture jobs and
+    candidates have no rows. Candidate erasure deletes these rows explicitly.
+    """
+    __tablename__ = "job_applications"
+    __table_args__ = (UniqueConstraint("job_id", "candidate_id", name="uq_job_applications_job_candidate"),)
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    job_id: Mapped[str] = mapped_column(String(64), index=True)
+    candidate_id: Mapped[str] = mapped_column(String(64), index=True)
+    workspace_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    source: Mapped[str] = mapped_column(String(16), default="upload")
+    added_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class JobEvent(Base):
+    """Job activity feed (OI-31): creation, edits, status changes and candidate membership."""
+    __tablename__ = "job_events"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    job_id: Mapped[str] = mapped_column(String(64), index=True)
+    workspace_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    kind: Mapped[str] = mapped_column(String(32))
+    actor_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    actor_name: Mapped[str] = mapped_column(String(255), default="")
+    # Plain identifier, so erasure can remove events naming a candidate.
+    candidate_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    detail: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
+class Notification(Base):
+    """In-app notification for one user (OI-33)."""
+    __tablename__ = "notifications"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    workspace_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    kind: Mapped[str] = mapped_column(String(32))
+    title: Mapped[str] = mapped_column(String(255))
+    body: Mapped[str] = mapped_column(Text, default="")
+    candidate_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    job_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class JobRequirement(Base):

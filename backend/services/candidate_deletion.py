@@ -7,13 +7,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.workspace import in_workspace
 from backend.models.db import (ApplicationHistory, AuditLog, Candidate, CandidateResume, ChatHistory,
-    ClaimReview, ContextBuildStatus, EvidenceRecord, InterviewFeedback, MatchResult, ResumeClaim)
+    ClaimReview, ContextBuildStatus, EvidenceRecord, InterviewFeedback, JobApplication, JobEvent, MatchResult,
+    Notification, ResumeClaim)
 from backend.services.audit import audit_user_action
 
 logger = logging.getLogger(__name__)
 
 SQL_MODELS = (ChatHistory, InterviewFeedback, ApplicationHistory, EvidenceRecord, ResumeClaim, ClaimReview, MatchResult,
-              ContextBuildStatus, CandidateResume, AuditLog)
+              ContextBuildStatus, CandidateResume, AuditLog, JobApplication, JobEvent, Notification)
 
 
 async def delete_candidate_everywhere(candidate_id: str, workspace_id: str, user, db: AsyncSession, builder,
@@ -49,6 +50,8 @@ async def delete_candidate_everywhere(candidate_id: str, workspace_id: str, user
         raise HTTPException(500, "Deletion failed; database records were not removed. Retry the deletion.") from None
 
     # 3. Runtime caches and in-flight work (cancelled builds cannot write back).
+    from backend.services.notifications import build_watches
+    build_watches.forget(candidate_id)
     await builder.forget(candidate_id)
 
     # 4. Cached public-profile responses fetched for this candidate.

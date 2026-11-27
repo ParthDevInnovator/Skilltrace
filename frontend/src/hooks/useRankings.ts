@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { api } from '@/services/api'
+import { api, type RankingScope } from '@/services/api'
 import type { RankedCandidate } from '@/types/matching'
 
 export const RANKING_POLL_MS = 4000
@@ -13,16 +13,17 @@ export interface JobRanking { rows: RankedCandidate[]; error: boolean }
  * analysis appears without leaving the screen (OI-13). After the limit, `exhausted` is set
  * and `refresh()` starts a new bounded cycle.
  */
-export function useRankings(jobIds: string[], enabled = true) {
-  const key = enabled ? jobIds.join('|') : ''
+export function useRankings(jobIds: string[], enabled = true, scope: RankingScope = 'pool') {
+  const key = enabled && jobIds.length ? `${scope}:${jobIds.join('|')}` : ''
   const [attempt, setAttempt] = useState(0)
   const [state, setState] = useState<{ key: string; byJob: Record<string, JobRanking>; exhausted: boolean }>({ key: '', byJob: {}, exhausted: false })
   useEffect(() => {
     if (!key) return
     let cancelled = false, timer: ReturnType<typeof setTimeout> | undefined, polls = 0
-    const ids = key.split('|')
+    const ids = key.slice(key.indexOf(':') + 1).split('|')
     const byJob: Record<string, JobRanking> = {}
-    const rank = (id: string) => api.rankCandidates({ job_id: id })
+    // Only send the scope when it narrows the ranking, so pool requests stay unchanged.
+    const rank = (id: string) => api.rankCandidates(scope === 'pool' ? { job_id: id } : { job_id: id, scope })
       .then(rows => { byJob[id] = { rows, error: false } })
       .catch(() => { byJob[id] = { rows: [], error: true } })
     const pending = () => ids.filter(id => byJob[id]?.rows.some(row => row.context_status === 'building'))
@@ -36,7 +37,7 @@ export function useRankings(jobIds: string[], enabled = true) {
     }
     void run(ids)
     return () => { cancelled = true; clearTimeout(timer) }
-  }, [key, attempt])
+  }, [key, attempt, scope])
   const refresh = useCallback(() => setAttempt(value => value + 1), [])
   const current = state.key === key ? state : null
   return {
@@ -49,8 +50,8 @@ export function useRankings(jobIds: string[], enabled = true) {
 }
 
 /** Single-job convenience wrapper. `rows` is null until the first response arrives. */
-export function useRanking(jobId: string | null | undefined, enabled = true) {
-  const { byJob, loaded, processing, exhausted, refresh } = useRankings(jobId ? [jobId] : [], enabled && !!jobId)
+export function useRanking(jobId: string | null | undefined, enabled = true, scope: RankingScope = 'pool') {
+  const { byJob, loaded, processing, exhausted, refresh } = useRankings(jobId ? [jobId] : [], enabled && !!jobId, scope)
   const job = jobId ? byJob[jobId] : undefined
   return { rows: loaded ? job?.rows ?? [] : null, error: job?.error ?? false, processing, exhausted, refresh }
 }

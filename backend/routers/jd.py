@@ -1,7 +1,11 @@
 """JD APIs: existing structured requirements bypass the extractor."""
 from datetime import date, datetime, timezone
+from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+from backend.core.database import get_db
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 from backend.routers.ingest import get_context_builder
 from backend.models.matching import ExtractedRequirement, RankedCandidate, SimilarJob
@@ -14,10 +18,12 @@ from backend.core.workspace import in_workspace, workspace_of
 router = APIRouter(tags=['JD matching'])
 class ExtractRequest(BaseModel):
     job_id: str | None = None
-    jd_text: str | None = None
+    jd_text: str | None = Field(default=None, max_length=100_000)
 class JobRequest(BaseModel):
     job_id: str = Field(min_length=1)
     reference_date: date | None = None
+    # "applicants": only candidates added to the job (OI-30). "pool": every candidate in the workspace.
+    scope: Literal['pool', 'applicants'] = 'pool'
     def date(self):
         return self.reference_date or datetime.now(timezone.utc).date()
 def find_job(service, id, workspace_id=None):
@@ -32,12 +38,17 @@ def extract(body: ExtractRequest, service=Depends(get_context_builder), user=Dep
     if not body.jd_text or len(body.jd_text.strip()) < 50: raise HTTPException(422,'Provide a job_id or at least 50 characters of jd_text.')
     return extract_requirements(body.jd_text,'CUSTOM')
 @router.post('/rank', response_model=list[RankedCandidate])
-def rank(body: JobRequest, service=Depends(get_context_builder), user=Depends(require_role(Role.recruiter, Role.hr_admin))):
+async def rank(body: JobRequest, service=Depends(get_context_builder), user=Depends(require_role(Role.recruiter, Role.hr_admin)),
+               db: AsyncSession = Depends(get_db)):
     workspace = workspace_of(user)
     job = find_job(service,body.job_id,workspace)
     candidates = {c.id:c for c in service.repository.all_candidate_details() if in_workspace(c, workspace)}
+    if body.scope == 'applicants':
+        from backend.services.job_membership import applicants
+        members = {row.candidate_id for row in (await applicants(db,[job.id],workspace)).get(job.id,[])}
+        candidates = {id:c for id,c in candidates.items() if id in members}
     entries = {id:service.registry.get(id) for id in candidates}
-    rows, results = rank_with_results(job,entries,body.date(),candidates)
+    rows, results = await run_in_threadpool(rank_with_results,job,entries,body.date(),candidates)
     for result in results:
         entry = entries[result.candidate_id]
         if entry and entry.status=='ready':

@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 
 from backend.config import settings
 from backend.routers import candidates, health, jobs, ingest, admin, jd
-from backend.routers import agent, graph, auth
+from backend.routers import agent, graph, auth, notifications
 from backend.core.database import prepare_database, session_factory
 from backend.core.openapi import install_openapi
 from backend.core.retention import purge_expired_evidence
@@ -147,6 +147,7 @@ app.include_router(jobs.router, prefix="/jobs", include_in_schema=False)
 app.include_router(ingest.router, prefix=f"{settings.API_V1_PREFIX}/ingest")
 app.include_router(admin.router)
 app.include_router(auth.router, prefix=settings.API_V1_PREFIX)
+app.include_router(notifications.router, prefix=settings.API_V1_PREFIX)
 for feature in (agent.router, graph.router):
     app.include_router(feature, prefix=settings.API_V1_PREFIX)
     app.include_router(feature, include_in_schema=False)

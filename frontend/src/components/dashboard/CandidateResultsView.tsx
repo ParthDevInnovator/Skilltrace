@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useJob } from '@/context/JobContext'
 import { useAuth } from '@/context/AuthContext'
-import { api } from '@/services/api'
+import { api, ApiError } from '@/services/api'
+import { isOpenJob } from '@/types'
 import { ProfileAvatar } from '@/components/layout/ProfileAvatar'
 import type { CandidateSummary } from '@/types'
 import type { ExtractedRequirement, RankedCandidate } from '@/types/matching'
@@ -10,7 +11,7 @@ import { useRanking } from '@/hooks/useRankings'
 
 function Icon({ name }: { name: string }) { return <span className="material-symbols-outlined" aria-hidden="true">{name}</span> }
 export function CandidateResultsView() {
-  const { selectedJob, searchQuery, selectedSkill, setSelectedSkill, openCandidateDetail, setActiveView } = useJob()
+  const { selectedJob, searchQuery, selectedSkill, setSelectedSkill, openCandidateDetail, setActiveView, refreshJob } = useJob()
   const { hasRole } = useAuth()
   const canRank = hasRole('recruiter')
   const [attempt, setAttempt] = useState(0)
@@ -18,9 +19,37 @@ export function CandidateResultsView() {
   const [fit, setFit] = useState('all')
   const [evidence, setEvidence] = useState('all')
   const [status, setStatus] = useState('all')
+  // OI-30: by default a job shows the candidates added to it; "All candidates" ranks the whole pool.
+  const [scope, setScope] = useState<'applicants' | 'pool'>('applicants')
+  const [membership, setMembership] = useState<{ jobId: string; ids: Set<string>; error: boolean } | null>(null)
+  const [memberVersion, setMemberVersion] = useState(0)
+  const [memberBusy, setMemberBusy] = useState<string | null>(null)
+  const [memberError, setMemberError] = useState('')
   const [data, setData] = useState<{key: string; candidates: CandidateSummary[]; requirements: ExtractedRequirement[]; error: string; requirementsError: boolean} | null>(null)
   const key = `${selectedJob?.id ?? ''}:${canRank}:${attempt}`
-  const ranking = useRanking(selectedJob?.id, canRank)
+  const jobScoped = !!selectedJob && scope === 'applicants'
+  const ranking = useRanking(selectedJob?.id, canRank, jobScoped ? 'applicants' : 'pool')
+  const jobId = selectedJob?.id
+  useEffect(() => {
+    if (!jobId) return
+    let live = true
+    api.getJobCandidates(jobId)
+      .then(rows => { if (live) setMembership({ jobId, ids: new Set(rows.map(row => row.candidate_id)), error: false }) })
+      .catch(() => { if (live) setMembership({ jobId, ids: new Set(), error: true }) })
+    return () => { live = false }
+  }, [jobId, memberVersion, attempt])
+  const members = membership?.jobId === jobId ? membership : null
+  const canManage = hasRole('recruiter') && !!selectedJob
+  async function changeMembership(candidateId: string, add: boolean) {
+    if (!jobId) return
+    setMemberBusy(candidateId); setMemberError('')
+    try {
+      if (add) await api.addJobCandidate(jobId, candidateId)
+      else await api.removeJobCandidate(jobId, candidateId)
+      setMemberVersion(value => value + 1); ranking.refresh(); void refreshJob(jobId)
+    } catch (error) { setMemberError(error instanceof ApiError && error.detail ? error.detail : 'Could not update the candidates on this job. Please retry.') }
+    finally { setMemberBusy(null) }
+  }
   useEffect(() => {
     let live = true
     async function load() {
@@ -49,6 +78,7 @@ export function CandidateResultsView() {
   const mandatoryIds = new Set(current?.requirements.filter(requirement => requirement.is_mandatory).map(requirement => requirement.id))
   const visible = candidates.filter(candidate => {
     const row = rankById.get(candidate.id)
+    if (jobScoped && !members?.ids.has(candidate.id)) return false
     return `${candidate.full_name} ${candidate.headline} ${candidate.top_skills.join(' ')}`.toLowerCase().includes(searchQuery.toLowerCase())
       && (!selectedSkill || selectedSkill === 'All' || candidate.top_skills.some(skill => skill.toLowerCase() === selectedSkill.toLowerCase()))
       && (fit === 'all' || (row?.context_status === 'ready' && row.final_score * 100 >= Number(fit)))
@@ -63,19 +93,23 @@ export function CandidateResultsView() {
     {icon:'stacks',value:average === null ? null : `${average}%`,label:'Avg. Evidence Strength'},
   ]
   function clearFilters() { setFit('all');setEvidence('all');setStatus('all');setSelectedSkill('') }
-  return <section className="candidate-results"><div className="results-heading"><div><h1>Candidate Intelligence</h1><p>Understand how every candidate aligns with this job{selectedJob ? ` - ${selectedJob.title}.` : '. Select a job to assess fit.'}</p></div><div className="results-actions"><button aria-expanded={filtersOpen} onClick={() => setFiltersOpen(!filtersOpen)}><Icon name="filter_list" />Filters</button><button className="results-compare" disabled={!canRank} onClick={() => setActiveView('comparison')}><Icon name="compare_arrows" />Compare Candidates</button></div></div>
+  return <section className="candidate-results"><div className="results-heading"><div><h1>Candidate Intelligence</h1><p>Understand how every candidate aligns with this job{selectedJob ? ` - ${selectedJob.title}.` : '. Select a job to assess fit.'}</p>{selectedJob && <div className="results-scope" role="group" aria-label="Candidates shown"><button aria-pressed={scope === 'applicants'} onClick={() => setScope('applicants')}>This job ({members ? members.ids.size : '…'})</button><button aria-pressed={scope === 'pool'} onClick={() => setScope('pool')}>All candidates</button></div>}</div><div className="results-actions"><button aria-expanded={filtersOpen} onClick={() => setFiltersOpen(!filtersOpen)}><Icon name="filter_list" />Filters</button><button className="results-compare" disabled={!canRank} onClick={() => setActiveView('comparison')}><Icon name="compare_arrows" />Compare Candidates</button></div></div>
     <div className="results-metrics">{metrics.map(metric => <article key={metric.label}><span className="results-metric-icon"><Icon name={metric.icon} /></span><div><strong>{metric.value ?? '—'}</strong><span>{metric.label}</span></div></article>)}</div>
+    {members?.error && <p role="alert" className="notice error">Could not load the candidates on this job. <button onClick={() => setMemberVersion(value => value + 1)}>Retry</button></p>}
+    {memberError && <p role="alert" className="notice error">{memberError}</p>}
     {current?.rankingError && <p role="alert" className="notice error">Job rankings could not be loaded. <button onClick={refresh}>Retry rankings</button></p>}
     {ranking.processing && !ranking.exhausted && !rankingError && <p role="status" className="notice">Some candidates are still being analyzed. Results update automatically.</p>}
     {ranking.exhausted && !rankingError && <p role="status" className="notice">Analysis is taking longer than expected for some candidates. <button onClick={refresh}>Refresh results</button></p>}
-    <div className="results-table-panel"><div className="results-filters"><div><label><span className="sr-only">Minimum job fit</span><select value={fit} onChange={event => setFit(event.target.value)}><option value="all">Job Fit: All</option>{[60,70,80,90].map(value => <option key={value} value={value}>Job Fit: {value}%+</option>)}</select></label><label><span className="sr-only">Skills</span><select value={selectedSkill || ''} onChange={event => setSelectedSkill(event.target.value)}><option value="">Skills: All</option>{[...new Set([...candidates.flatMap(candidate => candidate.top_skills), ...(selectedSkill ? [selectedSkill] : [])])].sort().map(skill => <option key={skill} value={skill}>Skills: {skill}</option>)}</select></label><label><span className="sr-only">Minimum evidence strength</span><select value={evidence} onChange={event => setEvidence(event.target.value)}><option value="all">Evidence: All</option>{[50,70,80,90].map(value => <option key={value} value={value}>Evidence: {value}%+</option>)}</select></label><label><span className="sr-only">Analysis status</span><select value={status} onChange={event => setStatus(event.target.value)}><option value="all">Status: All</option><option value="ready">Analyzed</option><option value="building">Processing</option><option value="failed">Failed</option></select></label><select aria-label="Platform source" disabled title="Platform source filtering is unavailable in the list API"><option>Source: All platforms</option></select></div><span role="status">{visible.length} of {candidates.length} shown</span></div>
+    <div className="results-table-panel"><div className="results-filters"><div><label><span className="sr-only">Minimum job fit</span><select value={fit} onChange={event => setFit(event.target.value)}><option value="all">Job Fit: All</option>{[60,70,80,90].map(value => <option key={value} value={value}>Job Fit: {value}%+</option>)}</select></label><label><span className="sr-only">Skills</span><select value={selectedSkill || ''} onChange={event => setSelectedSkill(event.target.value)}><option value="">Skills: All</option>{[...new Set([...candidates.flatMap(candidate => candidate.top_skills), ...(selectedSkill ? [selectedSkill] : [])])].sort().map(skill => <option key={skill} value={skill}>Skills: {skill}</option>)}</select></label><label><span className="sr-only">Minimum evidence strength</span><select value={evidence} onChange={event => setEvidence(event.target.value)}><option value="all">Evidence: All</option>{[50,70,80,90].map(value => <option key={value} value={value}>Evidence: {value}%+</option>)}</select></label><label><span className="sr-only">Analysis status</span><select value={status} onChange={event => setStatus(event.target.value)}><option value="all">Status: All</option><option value="ready">Analyzed</option><option value="building">Processing</option><option value="failed">Failed</option></select></label><select aria-label="Platform source" disabled title="Platform source filtering is unavailable in the list API"><option>Source: All platforms</option></select></div><span role="status">{visible.length} of {jobScoped ? members?.ids.size ?? 0 : candidates.length} shown</span></div>
     {filtersOpen && <div className="results-filter-details"><p>Fit and evidence filters use analyzed results. Needs Review counts candidates with insufficient or unassessed requirement evidence. Identity confidence is not supplied by the API.</p><button onClick={clearFilters}>Clear filters</button><button onClick={refresh}>Refresh results</button></div>}
     {!current ? <p className="results-empty" role="status">Loading candidate intelligence...</p> : current.error ? <div className="results-empty" role="alert">{current.error} <button onClick={() => setAttempt(value => value + 1)}>Retry candidates</button></div> : <div className="results-table-scroll"><table><thead><tr>{['Candidate','Technical Skills','Job Fit','Mandatory','Evidence','Identity','Action'].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead><tbody>{visible.map(candidate => {
       const row = rankById.get(candidate.id)
       const assessed = row?.context_status === 'ready'
       const mandatoryMatched = row?.coverage.filter(item => mandatoryIds.has(item.requirement_id) && item.coverage_state === 'matched').length ?? 0
-      return <tr key={candidate.id}><td><div className="results-person"><ProfileAvatar name={candidate.full_name} /><div><strong>{candidate.full_name}</strong><small>{candidate.headline || visibleLocation(candidate) || 'No headline provided'}</small></div></div></td><td><div className="results-skills">{candidate.top_skills.slice(0,2).map(skill => <span key={skill}>{skill}</span>)}{candidate.top_skills.length > 2 && <span title={candidate.top_skills.slice(2).join(', ')}>+{candidate.top_skills.length - 2}</span>}{!candidate.top_skills.length && <span>Unknown</span>}</div></td><td><strong className="results-fit">{assessed ? Math.round(row.final_score * 100) : '—'}</strong></td><td title="Fully matched mandatory requirements">{assessed && mandatoryIds.size ? `${mandatoryMatched}/${mandatoryIds.size}` : '—'}</td><td>{assessed ? <div className="results-evidence" title={`Evidence strength: ${Math.round(row.evidence_strength * 100)}%`}><div><span style={{width:`${Math.max(0, Math.min(100, row.evidence_strength * 100))}%`}} /></div><small>{Math.round(row.evidence_strength * 100)}%</small></div> : <span>—</span>}</td><td><span className="results-identity">Unavailable</span><small className="results-status">{row?.context_status === 'ready' ? 'Analyzed' : row?.context_status === 'building' ? 'Processing' : row?.context_status === 'failed' ? 'Failed' : 'Not assessed'}</small></td><td><button className="results-view" aria-label={`View Intelligence for ${candidate.full_name}`} onClick={() => openCandidateDetail(candidate.id)}>View Intelligence<span className="sr-only"> for {candidate.full_name}</span></button></td></tr>
-    })}</tbody></table>{!visible.length && <div className="results-empty"><p>No candidates match these filters.</p><button onClick={clearFilters}>Clear filters</button></div>}</div>}</div>
-    <p className="results-data-note">Results evaluate the shared candidate pool against the selected job. Evidence strength reflects available observations; identity confidence is unavailable.</p>
+      return <tr key={candidate.id}><td><div className="results-person"><ProfileAvatar name={candidate.full_name} /><div><strong>{candidate.full_name}</strong><small>{candidate.headline || visibleLocation(candidate) || 'No headline provided'}</small></div></div></td><td><div className="results-skills">{candidate.top_skills.slice(0,2).map(skill => <span key={skill}>{skill}</span>)}{candidate.top_skills.length > 2 && <span title={candidate.top_skills.slice(2).join(', ')}>+{candidate.top_skills.length - 2}</span>}{!candidate.top_skills.length && <span>Unknown</span>}</div></td><td><strong className="results-fit">{assessed ? Math.round(row.final_score * 100) : '—'}</strong></td><td title="Fully matched mandatory requirements">{assessed && mandatoryIds.size ? `${mandatoryMatched}/${mandatoryIds.size}` : '—'}</td><td>{assessed ? <div className="results-evidence" title={`Evidence strength: ${Math.round(row.evidence_strength * 100)}%`}><div><span style={{width:`${Math.max(0, Math.min(100, row.evidence_strength * 100))}%`}} /></div><small>{Math.round(row.evidence_strength * 100)}%</small></div> : <span>—</span>}</td><td><span className="results-identity">Unavailable</span><small className="results-status">{row?.context_status === 'ready' ? 'Analyzed' : row?.context_status === 'building' ? 'Processing' : row?.context_status === 'failed' ? 'Failed' : 'Not assessed'}</small></td><td><button className="results-view" aria-label={`View Intelligence for ${candidate.full_name}`} onClick={() => openCandidateDetail(candidate.id)}>View Intelligence<span className="sr-only"> for {candidate.full_name}</span></button>{canManage && members && (members.ids.has(candidate.id)
+        ? <button className="results-membership" disabled={memberBusy === candidate.id} aria-label={`Remove ${candidate.full_name} from this job`} onClick={() => void changeMembership(candidate.id, false)}>Remove from job</button>
+        : isOpenJob(selectedJob) && <button className="results-membership" disabled={memberBusy === candidate.id} aria-label={`Add ${candidate.full_name} to this job`} onClick={() => void changeMembership(candidate.id, true)}>Add to job</button>)}</td></tr>
+    })}</tbody></table>{!visible.length && (jobScoped && members && !members.ids.size ? <div className="results-empty"><p>No candidates have been added to this job yet.</p>{canManage && isOpenJob(selectedJob) && <button onClick={() => setActiveView('add-candidates')}>Add resumes</button>}<button onClick={() => setScope('pool')}>Browse all candidates</button></div> : <div className="results-empty"><p>No candidates match these filters.</p><button onClick={clearFilters}>Clear filters</button></div>)}</div>}</div>
+    <p className="results-data-note">{jobScoped ? 'Results cover the candidates added to this job.' : 'Results evaluate the whole candidate pool against the selected job.'} Evidence strength reflects available observations; identity confidence is unavailable.</p>
   </section>
 }

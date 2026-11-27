@@ -154,6 +154,9 @@ class ContextBuilder:
         self._startup_gate: asyncio.Event | None = None
         self._closing = False
         self._rebuild_lock = asyncio.Lock()
+        # Async callables (candidate, status) run after a build is ready or failed, e.g.
+        # in-app notifications (OI-33). A failing listener never affects the build.
+        self.finish_listeners: list = []
 
     async def rebuild(self, cache) -> dict:
         """Serialize rebuilds; stop obsolete workers before replacing seed data."""
@@ -411,6 +414,7 @@ class ContextBuilder:
                     task = asyncio.create_task(self._seed_graph(candidate_id, revision, context))
                     self._graph_tasks.add(task)
                     task.add_done_callback(self._graph_tasks.discard)
+                await self._announce(candidate, "ready")
                 return context
         except asyncio.CancelledError:
             self._fail(candidate_id, revision, "Context build cancelled during shutdown.", unavailable)
@@ -422,7 +426,15 @@ class ContextBuilder:
             candidate = self.repository.get_candidate(candidate_id)
             if candidate is not None:
                 await self._persist(candidate, revision, "failed", error=message, unavailable=unavailable)
+                await self._announce(candidate, "failed")
             return None
+
+    async def _announce(self, candidate, status: str) -> None:
+        for listener in list(self.finish_listeners):
+            try:
+                await listener(candidate, status)
+            except Exception:
+                logger.warning("Build finish listener failed candidate=%s", candidate.id)
 
     async def review_claim(self, candidate_id: str, claim_id: str, decision, *, reviewer: str,
                            reviewer_id=None, workspace_id: str | None = None):
@@ -504,6 +516,9 @@ class ContextBuilder:
 from backend.services.runtime_persistence import runtime_persistence  # noqa: E402
 
 context_builder = ContextBuilder(ingestion_store, persistence=runtime_persistence)
+from backend.services.notifications import on_build_finished  # noqa: E402
+
+context_builder.finish_listeners.append(on_build_finished)
 
 
 async def build_context(candidate: CandidateDetail) -> CandidateContext | None:
