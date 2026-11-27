@@ -78,6 +78,8 @@ async def admit(db: AsyncSession, user: User) -> str:
         MembershipRequest.user_id == user.id, MembershipRequest.status == "pending"))
     if existing is None:
         db.add(MembershipRequest(user_id=user.id, workspace_id=None, status="pending"))
+        from backend.services.notifications import notify_admins_of_request
+        await notify_admins_of_request(db, user)
     return "pending"
 
 

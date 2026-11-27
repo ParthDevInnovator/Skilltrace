@@ -8,7 +8,7 @@ The redesigned screens are treated as the accepted UI. This backlog concerns beh
 
 **This is the single open-issues file for the project.** The former mockup-gap list (`open issue.md`, 2026-11-06) has been merged into [Feature backlog](#feature-backlog-from-the-redesign-mockups) below and removed. `PRODUCT_DESIGN_AUDIT.md` and `REDESIGN_REPAIR_STATUS.md` are historical findings and sign-offs that do not all describe the present code.
 
-Last status review: 2026-11-26. Fix Phase 1 (`FIX_PHASE_1_TASKS.md`) closed all 10 P1 issues (OI-02 mitigated) plus OI-34, OI-42 and OI-48 on branch `fix/phase1-frontend-access`. Follow-up branch `fix/phase1-followups` closes OI-47 (regression test) and Wave 2 issues OI-10, OI-12, OI-18 and OI-19. OI-11 was fixed on 2026-11-26 after its scoring policy was agreed. OI-29 was completed on 2026-11-27 (claim-evidence links with recruiter review). Branch `fix/phase2-wave3` (2026-11-23) closes Wave 3: OI-13 to OI-17 and OI-24 to OI-28. Branch `fix/phase2-wave4` (2026-11-25, built on `fix/phase2-wave3`) closes Wave 4: OI-20 to OI-23 (graph); the new Cypher has unit tests against fakes and still needs a live Neo4j run. Both Phase 2 branches are merged to `main` (Wave 3 in PR #17, Wave 4 in PR #16). Update the **Status** and **Closed** columns as fixes land.
+Last status review: 2026-11-26. Fix Phase 1 (`FIX_PHASE_1_TASKS.md`) closed all 10 P1 issues (OI-02 mitigated) plus OI-34, OI-42 and OI-48 on branch `fix/phase1-frontend-access`. Follow-up branch `fix/phase1-followups` closes OI-47 (regression test) and Wave 2 issues OI-10, OI-12, OI-18 and OI-19. OI-11 was fixed on 2026-11-26 after its scoring policy was agreed. OI-29 was completed on 2026-11-27 (claim-evidence links with recruiter review). Branch `fix/phase2-wave5-jobs-admin` (2026-11-27, built on the OI-29 branch) closes OI-30, OI-31, OI-33 and OI-45 (migration 0005). Branch `fix/phase2-wave3` (2026-11-23) closes Wave 3: OI-13 to OI-17 and OI-24 to OI-28. Branch `fix/phase2-wave4` (2026-11-25, built on `fix/phase2-wave3`) closes Wave 4: OI-20 to OI-23 (graph); the new Cypher has unit tests against fakes and still needs a live Neo4j run. Both Phase 2 branches are merged to `main` (Wave 3 in PR #17, Wave 4 in PR #16). Update the **Status** and **Closed** columns as fixes land.
 
 ## Issue tracker
 
@@ -45,10 +45,10 @@ Status values: `Open`, `In progress`, `Fixed`, `Mitigated`, `Won't fix`. Wave = 
 | OI-27 | Retry evidence doesn't restart a failed context build | P2 | Processing | 3 | Fixed — `POST /candidates/{id}/context/rebuild` (failed builds only); Retry analysis uses it | 2026-11-07 | 2026-11-23 |
 | OI-28 | Pipeline stages are inferred rather than measured | P2 | Processing | 3 | Fixed — build records per-stage state, counts and timestamps; Pipeline shows them and runs the real match | 2026-11-07 | 2026-11-23 |
 | OI-29 | Claim verification/contradiction assessment not implemented | P2 | Intelligence | 3 | Fixed — each build links claims to evidence (`claim_assessor`: `supported_by_evidence` / `possible_contradiction` / `no_evidence`, with evidence IDs and a reason); recruiters confirm or dismiss (`PUT/DELETE /candidates/{id}/claims/{claim_id}/review`, `claim_reviews` table, migration 0004). Only a confirmation sets `verification_state`; reviews survive rebuilds by claim ID and are set aside if the link changes. Missing evidence is never a contradiction | 2026-11-07 | 2026-11-27 |
-| OI-30 | Candidates not associated with the job used for upload | P2 | Product gap | 5 | Open | 2026-11-07 | |
-| OI-31 | Job lifecycle, editing, activity unavailable; job ID search broken | P2 | Product gap | 5 | Open | 2026-11-07 | |
+| OI-30 | Candidates not associated with the job used for upload | P2 | Product gap | 5 | Fixed — `job_applications` membership: uploads with `job_id` (and Add/Remove on a job) record it; per-job counts on `GET /jobs`; `POST /jd/rank` `scope: applicants`; the job workspace shows This job / All candidates. Closed jobs refuse new candidates | 2026-11-07 | 2026-11-27 |
+| OI-31 | Job lifecycle, editing, activity unavailable; job ID search broken | P2 | Product gap | 5 | Fixed — `status` (draft/active/closed/archived), structured employment type/experience/hiring manager columns, `PATCH /jobs/{id}` (custom jobs; bundled demo jobs are read-only), `GET /jobs/{id}/activity` from `job_events`; search covers job ID and requirement text on both sides | 2026-11-07 | 2026-11-27 |
 | OI-32 | Discovery and candidate evidence collection have no workflow | P2 | Product gap | 5 | Won't fix (this phase) — decided 2026-11-26: Talent Discovery and Request evidence stay marked unavailable; future work tracked as BL-14 and BL-29 | 2026-11-07 | 2026-11-26 |
-| OI-33 | Notifications, settings and admin UI absent | P2 | Product gap | 5 | Open — decided 2026-11-26: build in-app candidate deletion + audit log review, notifications, and an account/profile page; role and retention settings are administered outside the app (HR-admin Team access page added 2026-11-19) | 2026-11-07 |  |
+| OI-33 | Notifications, settings and admin UI absent | P2 | Product gap | 5 | Fixed — as decided 2026-11-26: in-app notifications (analysis ready/failed for the uploader, access requests for HR admins, job status changes for the creator), Account page (`PATCH /auth/me`, read-only for Clerk), HR-admin Records & audit page (typed-name candidate erasure, filtered audit log with user names). Roles stay on Team access; retention stays deployment configuration | 2026-11-07 | 2026-11-27 |
 | OI-34 | Native sessions don't refresh automatically | P2 | Auth | 5 | Fixed (renew once on 401, rotated refresh token kept) | 2026-11-07 | 2026-11-19 |
 | OI-35 | Native OAuth state/email handling needs hardening | P1 | Auth | 1 | Fixed | 2026-11-07 | 2026-11-19 |
 | OI-36 | Retention doesn't govern runtime evidence and resumes | P2 | Privacy | 5 | Open | 2026-11-07 | |
@@ -60,7 +60,7 @@ Status values: `Open`, `In progress`, `Fixed`, `Mitigated`, `Won't fix`. Wave = 
 | OI-42 | Full frontend regression suite failing (5/86) | P2 | Tests | 5 | Fixed (5 stale tests updated to the redesigned UI) | 2026-11-07 | 2026-11-19 |
 | OI-43 | Browser acceptance (22/30 desktop failing) and lint warnings | P2 | Tests | 5 | Open (partly: browser server uses its own migrated DB and native sign-in; header axe violation fixed. Older specs target pre-redesign screens and need rewriting; ESLint has no flat config) | 2026-11-07 |  |
 | OI-44 | Docs and duplicate legacy components describe different products | P3 | Docs | 5 | Open (partly: issue lists consolidated 2026-11-18) | 2026-11-07 | |
-| OI-45 | Document/requirement contracts differ between layers | P2 | Jobs | 5 | Open | 2026-11-07 | |
+| OI-45 | Document/requirement contracts differ between layers | P2 | Jobs | 5 | Fixed — one 5 MB / 100,000-character limit (plus the parser's 200-page PDF and 20 MB expanded-DOCX limits) in the browser; additional requirements are extracted with the description; a review step shows exactly the requirements that will be scored; an empty list is rejected, never silently re-extracted | 2026-11-07 | 2026-11-27 |
 | OI-46 | Deployment and live integration sign-off outstanding | P2 | Ops | 5 | Open | 2026-11-07 | |
 | OI-47 | Admin rebuild clears restored custom jobs from matching | P2 | Admin | 5 | Fixed — backend change in `24345f6`; regression test `test_admin_rebuild_keeps_custom_jobs_and_uploads_matchable` | 2026-11-07 | 2026-11-19 |
 | OI-48 | Native registration passwords > 72 bytes fail hashing (500) | P2 | Auth | 5 | Fixed | 2026-11-07 | 2026-11-19 |
@@ -367,6 +367,8 @@ Sources: `ResumeUpload.tsx`, `AddCandidatesView.tsx`, `backend/routers/ingest.py
 
 **Completion:** persist candidate applications/job membership separately from reusable profiles and drive per-job counts/results from it.
 
+**Resolution (2026-11-27):** `JobApplication` rows (`backend/services/job_membership.py`) are written by `POST /ingest/resume` with `job_id` and by `POST/DELETE /jobs/{id}/candidates`. `candidate_counts` on job responses and `scope: "applicants"` on `/jd/rank` read them. Candidate erasure removes them. Tests: `backend/tests/test_jobs_wave5.py`, `frontend/src/test/candidateResults.test.tsx`, `wave5.test.tsx`.
+
 ### OI-31 - Job lifecycle, editing and activity remain unavailable
 
 **P2 | Feature gap/code-confirmed.** Jobs has Active/Draft tabs that force an empty result for every non-All status; the backend has no status field. Overview nevertheless labels all available jobs `Active Jobs`. Existing-job Edit is disabled; job activity is an unavailable message. Employment type, experience range and manager are stored as description text rather than independently managed fields. The new client-side job search omits `job.id` and `requirements_preview`, so searching `JOB-001` finds no workspace even though the backend supports ID search; this also blocks the browser ranking scenario before its obsolete ranking selectors are reached.
@@ -374,6 +376,8 @@ Sources: `ResumeUpload.tsx`, `AddCandidatesView.tsx`, `backend/routers/ingest.py
 Sources: `JobsView.tsx`, `OverviewDashboard.tsx`, `JobDetailWorkspace.tsx`, `backend/models/db.py::Job`.
 
 **Completion:** define lifecycle/status/edit/activity contracts and structured fields, or keep unavailable concepts explicit without presenting known-looking zero counts. Align local search with the backend's supported ID/requirement search contract.
+
+**Resolution (2026-11-27):** jobs carry `status`, `employment_type`, `experience_range`, `hiring_manager`, `updated_at` (migration 0005). `PATCH /jobs/{id}` edits custom jobs and keeps the IDs of unchanged requirements; changed requirements clear cached matches. `job_events` back the Activity tab. Jobs from before this change keep the employment type in their description and the UI still reads it from there.
 
 ### OI-32 - Discovery and candidate evidence collection have no working workflow
 
@@ -390,6 +394,8 @@ Sources: `TalentDiscoveryView.tsx`, `IntelligenceOverview.tsx`, available backen
 Sources: `Header.tsx`, `Sidebar.tsx`, `App.tsx`, `backend/routers/admin.py`.
 
 **Completion:** implement the agreed account/admin workflows or document them as external administration responsibilities.
+
+**Resolution (2026-11-27):** `GET /notifications`, `POST /notifications/{id}/read`, `POST /notifications/read-all`; `PATCH /auth/me`; audit-log rows include `user_email`/`user_name` (and filtering by `user_id` no longer returns 500). Upload watches for analysis notifications are in memory, so builds running across a restart do not notify.
 
 ## Authentication, retention and operational behavior
 
@@ -495,6 +501,8 @@ Sources: `CustomJDModal.tsx::save/read`, `frontend/src/services/documentText.ts`
 
 **Completion:** align limits and extraction rules, include all assessed text before extraction, preserve explicit failure/empty states and show exactly which requirements will be scored.
 
+**Resolution (2026-11-27):** `documentText.ts` mirrors `resume_parser.py` limits and stops early on long PDFs. The wizard extracts from description + additional requirements, then shows an editable list (`RequirementsEditor`); extraction failure is shown with a retry and only entered skills are listed. `JobCreate.requirements`: omitted → server extracts; `[]` → 422. Job edits use the same editor.
+
 ### OI-46 - Deployment and live integration sign-off is still outstanding
 
 **P2 | Needs live verification/code-confirmed configuration gap.** Browser API URLs are same-origin and the repository supplies a Vite development proxy, but no production reverse-proxy/deployment configuration. Startup `create_all` creates missing tables but does not apply Alembic changes to existing tables. Neo4j requires both connection configuration and graph seeding enabled; a default deployment cannot populate the graph. LinkedIn is fixture-only, and live identity, signal and AI-provider availability has not been demonstrated by offline suites.
@@ -537,13 +545,13 @@ These items come from the former `open issue.md`, written 2026-11-06 against the
 | BL-02 | Google SSO | Login | **Done** 2026-11-07 (`dba5f96`) | OI-34, OI-35 |
 | BL-03 | Microsoft / Azure AD SSO | Login | Not planned | — |
 | BL-04 | Terms / Privacy pages; SOC 2 badge | Login | Badge removed 2026-11-07; legal pages still needed | — |
-| BL-05 | Structured job fields (employment type, experience range, hiring manager) as DB columns | Job wizard | Backlog: currently kept in JD text | OI-31, OI-45 |
+| BL-05 | Structured job fields (employment type, experience range, hiring manager) as DB columns | Job wizard | **Done** 2026-11-27 (migration 0005) | OI-31, OI-45 |
 | BL-06 | Extract years of experience and work-permit/language requirements | Job wizard | Backlog | — |
 | BL-07 | Dashboard timeframe picker with period deltas | Overview | Backlog | OI-40 |
 | BL-08 | Durable intelligence activity feed / event log | Overview | Backlog | OI-40, OI-08 |
 | BL-09 | Top-fit previews on job cards | Overview, Jobs | Backlog | OI-38 |
-| BL-10 | Job lifecycle status (draft/active/archived/closed) | Jobs | Backlog | OI-31 |
-| BL-11 | Per-job ingested/analyzed/processing counters | Jobs | Backlog | OI-30 |
+| BL-10 | Job lifecycle status (draft/active/archived/closed) | Jobs | **Done** 2026-11-27 | OI-31 |
+| BL-11 | Per-job ingested/analyzed/processing counters | Jobs | **Done** 2026-11-27 (candidates added to the job) | OI-30 |
 | BL-12 | Advanced requisition filter (department, seniority, recruiter, location) | Jobs | Backlog | — |
 | BL-13 | Full intelligence dossier export (PDF/Markdown) | Dossier | Backlog | OI-41 |
 | BL-14 | "Request evidence" candidate portal | Dossier | Backlog: marked unavailable | OI-32 |

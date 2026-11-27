@@ -2,6 +2,10 @@ import type { ExtractedRequirement, RankedCandidate, SimilarJob, MatchResponse }
 import type { ChatMessage, AgentResponse, CandidateBrief, InterviewQuestionSet, CandidateSubgraph, GraphNode, GenerationResult } from '@/types/agent'
 import type {
   Job,
+  JobCandidate,
+  JobCreateRequest,
+  JobEvent,
+  JobUpdateRequest,
   JobFilterParams,
   CandidateSummary,
   CandidateDetail,
@@ -39,6 +43,44 @@ export interface MembershipRequest {
   decided_at: string | null
 }
 export interface WorkspaceSettings { id: string; name: string; allowed_domains: string[] }
+/** In-app notification for the signed-in user (OI-33). */
+export interface AppNotification {
+  id: string
+  kind: 'analysis_ready' | 'analysis_failed' | 'membership_request' | 'job_status' | string
+  title: string
+  body: string
+  candidate_id?: string | null
+  job_id?: string | null
+  created_at: string
+  read_at?: string | null
+}
+export interface NotificationList { items: AppNotification[]; unread_count: number }
+export interface AccountProfile {
+  user_id: string
+  email: string
+  full_name: string
+  roles: string[]
+  status: 'active' | 'pending'
+  email_verified: boolean
+  auth_provider?: string | null
+  workspace?: { id: string; name: string } | null
+}
+export interface AuditLogEntry {
+  id: string
+  user_id: string | null
+  user_email: string | null
+  user_name: string | null
+  role_snapshot: string
+  endpoint: string
+  method: string
+  candidate_id: string | null
+  action_type: string
+  occurred_at: string
+  status_code: number | null
+  detail: Record<string, unknown> | null
+}
+export interface AuditLogQuery { action_type?: string; candidate_id?: string; date_from?: string; date_to?: string; page?: number; page_size?: number }
+export type RankingScope = 'pool' | 'applicants'
 /** Data leaving the app through a download or the clipboard; recorded before the export starts (OI-08). */
 export interface ExportEvent {
   kind: 'brief' | 'evidence' | 'questions'
@@ -108,9 +150,19 @@ export const api = {
     graphRequest(id, jobId ? `graph?job_id=${encodeURIComponent(jobId)}` : 'graph', undefined, signal),
   getGraphEvidence: (id:string, skill:string, signal?:AbortSignal): Promise<GraphNode[] | {status:'unavailable'}> => graphRequest(id, 'graph-evidence', {skill}, signal),
   extractRequirements: (params: {job_id?:string; jd_text?:string}): Promise<ExtractedRequirement[]> => request('/api/v1/jd/extract', {method:'POST',body:JSON.stringify(params)}),
-  rankCandidates: (params: {job_id:string; reference_date?:string}): Promise<RankedCandidate[]> => request('/api/v1/jd/rank', {method:'POST',body:JSON.stringify(params)}),
+  /** `scope: 'applicants'` ranks only candidates added to the job (OI-30); the default is the whole pool. */
+  rankCandidates: (params: {job_id:string; reference_date?:string; scope?:RankingScope}): Promise<RankedCandidate[]> => request('/api/v1/jd/rank', {method:'POST',body:JSON.stringify(params)}),
   getSimilarJobs: (job_id:string): Promise<SimilarJob[]> => request('/api/v1/jd/similar', {method:'POST',body:JSON.stringify({job_id})}),
-  createJob: (job: {title:string; description_raw:string; department:string; location:string; requirements?:unknown[]}): Promise<Job> => request('/api/v1/jobs',{method:'POST',body:JSON.stringify(job)}),
+  createJob: (job: JobCreateRequest): Promise<Job> => request('/api/v1/jobs',{method:'POST',body:JSON.stringify(job)}),
+  /** Edit a custom job or change its lifecycle status (OI-31). */
+  updateJob: (id: string, patch: JobUpdateRequest): Promise<Job> =>
+    request(`/api/v1/jobs/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  getJobActivity: (id: string): Promise<JobEvent[]> => request(`/api/v1/jobs/${encodeURIComponent(id)}/activity`),
+  getJobCandidates: (id: string): Promise<JobCandidate[]> => request(`/api/v1/jobs/${encodeURIComponent(id)}/candidates`),
+  addJobCandidate: (id: string, candidateId: string): Promise<JobCandidate> =>
+    request(`/api/v1/jobs/${encodeURIComponent(id)}/candidates`, { method: 'POST', body: JSON.stringify({ candidate_id: candidateId }) }),
+  removeJobCandidate: (id: string, candidateId: string): Promise<null> =>
+    request(`/api/v1/jobs/${encodeURIComponent(id)}/candidates/${encodeURIComponent(candidateId)}`, { method: 'DELETE' }),
   getCandidateJdMatch: async (id:string, params:{job_id:string;reference_date?:string}): Promise<MatchResponse> => {
     const response = await authFetch(`/api/v1/candidates/${encodeURIComponent(id)}/jd-match`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(params)})
     if (response.status === 202) return {status:'building'}
@@ -163,7 +215,8 @@ export const api = {
     if (params.email) query.set('email', params.email)
     return request(`/api/v1/candidates/resolve?${query}`)
   },
-  uploadResume: (data: FormData): Promise<{ candidate_id: string; status: 'building'; updated_existing?: boolean; context_revision?: string }> =>
+  /** Include a `job_id` field to add the candidate to that job (OI-30). */
+  uploadResume: (data: FormData): Promise<{ candidate_id: string; status: 'building'; updated_existing?: boolean; context_revision?: string; job_id?: string | null; added_to_job?: boolean }> =>
     request('/api/v1/ingest/resume', { method: 'POST', body: data }),
   getCandidateById: (id: string): Promise<CandidateDetail> =>
     request<CandidateDetail>(`/api/v1/candidates/${id}`),
@@ -180,6 +233,20 @@ export const api = {
     request('/api/v1/audit/export', { method: 'POST', body: JSON.stringify(event) }),
   updateWorkspaceDomains: (workspaceId: string, allowed_domains: string[]): Promise<WorkspaceSettings> =>
     request(`/api/v1/admin/workspaces/${encodeURIComponent(workspaceId)}/domains`, { method: 'PATCH', body: JSON.stringify({ allowed_domains }) }),
+
+  // OI-33: notifications, the signed-in account, and HR-admin record review.
+  getNotifications: (): Promise<NotificationList> => request('/api/v1/notifications'),
+  markNotificationRead: (id: string): Promise<null> => request(`/api/v1/notifications/${encodeURIComponent(id)}/read`, { method: 'POST' }),
+  markAllNotificationsRead: (): Promise<{ marked_read: number }> => request('/api/v1/notifications/read-all', { method: 'POST' }),
+  getAccount: (): Promise<AccountProfile> => request('/api/v1/auth/me'),
+  updateAccount: (full_name: string): Promise<AccountProfile> =>
+    request('/api/v1/auth/me', { method: 'PATCH', body: JSON.stringify({ full_name }) }),
+  getAuditLogs: (params: AuditLogQuery = {}): Promise<AuditLogEntry[]> => {
+    const query = new URLSearchParams()
+    for (const [key, value] of Object.entries(params)) if (value !== undefined && value !== '') query.set(key, String(value))
+    return request(`/api/v1/admin/audit-logs${query.toString() ? `?${query}` : ''}`)
+  },
+  deleteCandidate: (id: string): Promise<null> => request(`/api/v1/candidates/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 }
 
 async function generationRequest<T>(id:string, action:string, params:object): Promise<GenerationResult<T>> {

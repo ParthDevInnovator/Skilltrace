@@ -82,7 +82,7 @@ export function OverviewDashboard({ onOpenCustomJDModal }: { onOpenCustomJDModal
     {failed && <div role="alert" className="notice error">Dashboard data could not be loaded. <button onClick={() => setAttempt(a => a+1)}>Retry dashboard</button></div>}
     <section className="overview-metrics" aria-label="Hiring metrics">
       {[
-        {icon:'work',value:jobs.length.toLocaleString(),label:'Active Jobs',note:'Available requisitions'},
+        {icon:'work',value:jobs.filter(job => (job.status ?? 'active') === 'active').length.toLocaleString(),label:'Active Jobs',note:`${jobs.length.toLocaleString()} jobs in total`},
         {icon:'group',value:value(analyses.length),label:'Total Candidates',note:'In your talent pool'},
         {icon:'frame_person',value:canReadContext ? value(recent.length) : '—',label:'Candidates Analyzed',note:canReadContext ? `${recent.length ? Math.round(recent.length / Math.max(1,analyses.length)*100) : 0}% of current pool` : 'Recruiter access required'},
         {icon:'layers',value:canReadContext ? value(evidence.length) : '—',label:'Evidence Discovered',note:canReadContext ? `Across ${sources} ${sources === 1 ? 'platform' : 'platforms'}` : 'Recruiter access required'},

@@ -1,6 +1,5 @@
-import type { ExtractedRequirement } from '@/types/matching'
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
-import type { Job } from '@/types'
+import type { Job, JobCreateRequest, JobUpdateRequest } from '@/types'
 import { api } from '@/services/api'
 
 interface JobContextType {
@@ -9,13 +8,18 @@ interface JobContextType {
   setSelectedJob: (job: Job | null) => void
   customJD: string
   setCustomJD: (jd: string) => void
-  createCustomJob: (title: string, description: string, department?: string, location?: string, requirements?: ExtractedRequirement[], extractionFailed?: boolean) => Promise<void>
+  /** Create a job with the exact requirement list the recruiter reviewed (OI-45). */
+  createCustomJob: (job: JobCreateRequest) => Promise<Job>
+  /** Edit a job or change its status (OI-31); the saved job replaces the cached copy. */
+  updateJob: (jobId: string, patch: JobUpdateRequest) => Promise<Job>
+  /** Reload one job, e.g. after candidates were added, to refresh its counts (OI-30). */
+  refreshJob: (jobId: string) => Promise<void>
   searchQuery: string
   setSearchQuery: (q: string) => void
   selectedSkill: string
   setSelectedSkill: (skill: string) => void
-  activeView: 'overview' | 'jobs' | 'candidates' | 'candidate-detail' | 'evidence' | 'graph' | 'job-detail' | 'add-candidates' | 'pipeline' | 'talent-pool' | 'talent-discovery' | 'comparison' | 'admin-access'
-  setActiveView: (view: 'overview' | 'jobs' | 'candidates' | 'candidate-detail' | 'evidence' | 'graph' | 'job-detail' | 'add-candidates' | 'pipeline' | 'talent-pool' | 'talent-discovery' | 'comparison' | 'admin-access') => void
+  activeView: 'overview' | 'jobs' | 'candidates' | 'candidate-detail' | 'evidence' | 'graph' | 'job-detail' | 'add-candidates' | 'pipeline' | 'talent-pool' | 'talent-discovery' | 'comparison' | 'admin-access' | 'admin-records' | 'account'
+  setActiveView: (view: 'overview' | 'jobs' | 'candidates' | 'candidate-detail' | 'evidence' | 'graph' | 'job-detail' | 'add-candidates' | 'pipeline' | 'talent-pool' | 'talent-discovery' | 'comparison' | 'admin-access' | 'admin-records' | 'account') => void
   startPipeline: (candidateId: string) => void
   selectedCandidateId: string | null
   openCandidateDetail: (candidateId: string) => void
@@ -43,7 +47,7 @@ export function JobProvider({ children }: { children: ReactNode }) {
   const [customJD, setCustomJD] = useState<string>('')
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [selectedSkill, setSelectedSkill] = useState<string>('')
-  const [activeView, setActiveView] = useState<'overview' | 'jobs' | 'candidates' | 'candidate-detail' | 'evidence' | 'graph' | 'job-detail' | 'add-candidates' | 'pipeline' | 'talent-pool' | 'talent-discovery' | 'comparison' | 'admin-access'>(() => window.location.pathname.startsWith('/candidates') ? 'talent-pool' : 'overview')
+  const [activeView, setActiveView] = useState<'overview' | 'jobs' | 'candidates' | 'candidate-detail' | 'evidence' | 'graph' | 'job-detail' | 'add-candidates' | 'pipeline' | 'talent-pool' | 'talent-discovery' | 'comparison' | 'admin-access' | 'admin-records' | 'account'>(() => window.location.pathname.startsWith('/candidates') ? 'talent-pool' : 'overview')
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null)
   const [comparisonIds, setComparisonIdState] = useState<string[]>([])
   const setComparisonIds = useCallback((update: (previous: string[]) => string[]) => setComparisonIdState(previous => [...new Set(update(previous))].slice(0, MAX_COMPARISON)), [])
@@ -65,14 +69,29 @@ export function JobProvider({ children }: { children: ReactNode }) {
     return () => { cancelled = true }
   }, [reloadKey])
 
-  const createCustomJob = async (title: string, description: string, department = 'Custom Requisition', location = 'Remote', requirements: ExtractedRequirement[] = [], extractionFailed = false) => {
-    const saved = await api.createJob({title,description_raw:description,department,location,requirements})
+  const replaceJob = useCallback((saved: Job) => {
+    setJobs(previous => previous.some(job => job.id === saved.id) ? previous.map(job => job.id === saved.id ? saved : job) : [saved, ...previous])
+    setSelectedJob(previous => previous?.id === saved.id ? saved : previous)
+  }, [])
+
+  const createCustomJob = async (request: JobCreateRequest) => {
     // The server's requirement IDs (e.g. CUSTOM-…-REQ-001) are the ones matching and comparison
-    // join on, so the client-side extraction is only used for the extraction-failed flag (OI-09).
-    const newJob: Job = {...saved, requirements: saved.requirements ?? [], extraction_failed:extractionFailed,
-      requirements_preview: saved.requirements_preview?.length ? saved.requirements_preview : description.split('\n').filter(l => l.trim().length > 5).slice(0,4)}
-    setJobs(prev => [newJob,...prev]); setSelectedJob(newJob); setCustomJD(description)
+    // join on, so the saved job replaces what the client sent (OI-09).
+    const saved = await api.createJob(request)
+    const newJob: Job = { ...saved, requirements: saved.requirements ?? [] }
+    setJobs(prev => [newJob, ...prev.filter(job => job.id !== newJob.id)]); setSelectedJob(newJob); setCustomJD(request.description_raw)
+    return newJob
   }
+
+  const updateJob = async (jobId: string, patch: JobUpdateRequest) => {
+    const saved = await api.updateJob(jobId, patch)
+    replaceJob(saved)
+    return saved
+  }
+
+  const refreshJob = useCallback(async (jobId: string) => {
+    try { replaceJob(await api.getJobById(jobId)) } catch { /* counts stay as last loaded */ }
+  }, [replaceJob])
 
   const openCandidateDetail = (candidateId: string) => {
     setSelectedCandidateId(candidateId)
@@ -105,6 +124,8 @@ export function JobProvider({ children }: { children: ReactNode }) {
         customJD,
         setCustomJD,
         createCustomJob,
+        updateJob,
+        refreshJob,
         searchQuery,
         setSearchQuery,
         selectedSkill,

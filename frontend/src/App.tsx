@@ -17,6 +17,8 @@ import { CustomJDModal } from '@/components/dashboard/CustomJDModal'
 import { ChatDrawer } from '@/components/agent/ChatDrawer'
 import { GraphVisualization } from '@/components/graph/GraphVisualization'
 import { AccessManagementView } from '@/components/admin/AccessManagementView'
+import { RecordsView } from '@/components/admin/RecordsView'
+import { AccountView } from '@/components/admin/AccountView'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/context/AuthContext'
 import { ClerkIdentity } from '@/context/ClerkIdentity'
@@ -65,6 +67,10 @@ function WorkspaceContent() {
             <CandidateComparisonView />
           ) : activeView === 'admin-access' ? (
             hasRole('hr_admin') ? <AccessManagementView /> : <section className="panel"><h1>Team access</h1><p>Only HR administrators can manage workspace access.</p></section>
+          ) : activeView === 'admin-records' ? (
+            hasRole('hr_admin') ? <RecordsView /> : <section className="panel"><h1>Records &amp; audit</h1><p>Only HR administrators can delete candidate data or review the audit log.</p></section>
+          ) : activeView === 'account' ? (
+            <AccountView />
           ) : (
             <DashboardOverview onOpenCustomJDModal={() => setIsCustomJDModalOpen(true)} />
           )}

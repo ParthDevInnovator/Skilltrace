@@ -188,7 +188,30 @@ async def me(user: User = Depends(get_current_user), db: AsyncSession = Depends(
     return {"user_id": str(user.id), "email": user.email, "full_name": user.full_name, "roles": user.roles,
             "status": "pending" if is_pending(user.roles) else "active",
             "email_verified": bool(getattr(user, "email_verified", False)),
+            "auth_provider": getattr(user, "auth_provider", None),
             "workspace": {"id": workspace.id, "name": workspace.name} if workspace else None}
+
+
+class ProfileUpdate(BaseModel):
+    full_name: str = Field(min_length=1, max_length=255)
+
+
+@router.patch("/me")
+async def update_me(body: ProfileUpdate, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Self-service profile (OI-33). Clerk accounts are managed in Clerk, so their name is read-only here."""
+    if getattr(user, "auth_provider", "native") == "clerk":
+        raise HTTPException(409, "Your profile is managed by your organization's sign-in provider.")
+    name = " ".join(body.full_name.split())
+    if not name:
+        raise HTTPException(422, "Full name cannot be empty.")
+    stored = await db.get(User, user.id)
+    if stored is None:
+        raise HTTPException(404, "Account not found.")
+    stored.full_name = name
+    await db.commit()
+    await audit_user_action(stored, endpoint="/auth/me", method="PATCH", action_type="UPDATE_PROFILE",
+                            detail={"fields": ["full_name"]}, db=db)
+    return await me(stored, db)
 
 
 def _pkce_challenge(verifier: str) -> str:

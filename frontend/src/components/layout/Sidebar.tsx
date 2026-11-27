@@ -156,15 +156,37 @@ export function Sidebar() {
               Team access
             </button>
           )}
+          {hasRole('hr_admin') && (
+            <button
+              type="button"
+              aria-current={activeView === 'admin-records' ? 'page' : undefined}
+              onClick={() => setActiveView('admin-records')}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all text-left cursor-pointer ${
+                activeView === 'admin-records'
+                  ? 'bg-[#f8f1e3] text-[#141618] shadow-xs relative before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:bg-[#a9874e] before:rounded-r'
+                  : 'text-[#59616b] hover:bg-[#f8f7f4] hover:text-[#141618]'
+              }`}
+            >
+              <span aria-hidden="true" className={`material-symbols-outlined text-[19px] ${activeView === 'admin-records' ? 'text-[#a9874e]' : 'text-[#59616b]'}`}>
+                policy
+              </span>
+              Records &amp; audit
+            </button>
+          )}
           <button
             type="button"
-            disabled title="Settings are not available"
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all text-left text-[#59616b] hover:bg-[#f8f7f4] hover:text-[#141618] cursor-pointer"
+            aria-current={activeView === 'account' ? 'page' : undefined}
+            onClick={() => setActiveView('account')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all text-left cursor-pointer ${
+              activeView === 'account'
+                ? 'bg-[#f8f1e3] text-[#141618] shadow-xs relative before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:bg-[#a9874e] before:rounded-r'
+                : 'text-[#59616b] hover:bg-[#f8f7f4] hover:text-[#141618]'
+            }`}
           >
-            <span className="material-symbols-outlined text-[19px] text-[#59616b]">
-              settings
+            <span aria-hidden="true" className={`material-symbols-outlined text-[19px] ${activeView === 'account' ? 'text-[#a9874e]' : 'text-[#59616b]'}`}>
+              manage_accounts
             </span>
-            Settings
+            Account
           </button>
         </nav>
       </div>

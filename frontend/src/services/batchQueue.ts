@@ -22,6 +22,8 @@ export interface BatchEntry {
   revision?: string
   field?: IdentityField
   corrections: Record<IdentityField, string>
+  /** The job the file was queued for; the upload adds the candidate to it (OI-30). */
+  jobId?: string
 }
 
 export const ANALYSIS_POLL_MS = 4000
@@ -50,13 +52,13 @@ function validate(file: File) {
   return ''
 }
 
-export function addFiles(files: Iterable<File>) {
+export function addFiles(files: Iterable<File>, jobId?: string) {
   const added: BatchEntry[] = []
   for (const file of files) {
     // Skip only the exact same file; a different file that shares a name gets its own entry.
     if ([...entries, ...added].some(entry => sameFile(entry.file, file))) continue
     const problem = validate(file)
-    added.push({ id: `batch-${++nextId}`, file, phase: problem ? 'invalid' : 'queued', message: problem, corrections: { full_name: '', email: '' } })
+    added.push({ id: `batch-${++nextId}`, file, phase: problem ? 'invalid' : 'queued', message: problem, corrections: { full_name: '', email: '' }, jobId })
   }
   if (added.length) { entries = [...entries, ...added]; emit() }
 }
@@ -118,6 +120,7 @@ async function uploadOne(entry: BatchEntry) {
   const data = new FormData()
   data.append('file', entry.file)
   for (const [field, value] of Object.entries(entry.corrections)) if (value.trim()) data.append(field, value.trim())
+  if (entry.jobId) data.append('job_id', entry.jobId)
   try {
     const result = await api.uploadResume(data)
     if (!find(entry.id)) return
@@ -127,7 +130,7 @@ async function uploadOne(entry: BatchEntry) {
     if (!find(entry.id)) return
     if (error instanceof ApiError && error.code === 'missing_identity') {
       update(entry.id, { phase: 'needs_identity', field: error.field === 'full_name' ? 'full_name' : 'email', message: error.detail ?? 'Candidate identity is missing.' })
-    } else if (error instanceof ApiError && (error.status === 422 || error.status === 413)) {
+    } else if (error instanceof ApiError && (error.status === 422 || error.status === 413 || error.code === 'job_closed' || error.code === 'job_not_found')) {
       // Input the server will reject again as is; the file must be fixed or the identity corrected.
       const identity = error.code === 'invalid_identity'
       update(entry.id, { phase: identity ? 'needs_identity' : 'rejected', field: identity ? 'email' : undefined, message: error.detail ?? 'The resume was rejected.' })
