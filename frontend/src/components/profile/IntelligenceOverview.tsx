@@ -4,6 +4,7 @@ import type { Job } from '@/types/job'
 import type { ExtractedRequirement, MatchResponse } from '@/types/matching'
 import { useJdMatch } from '@/hooks/useJdMatch'
 import { assessSkills, observationCount, skillStatus } from '@/types/skills'
+import { contradictionCounts } from '@/types/context'
 
 type Metric = { label: string; percent: number }
 
@@ -25,9 +26,11 @@ export function IntelligenceOverview({ candidate, context, job, inspectClaims, c
   const claims = context?.claims ?? []
   const skills = assessSkills(candidate.top_skills, context)
   const gaps = skills.filter(skill => skill.reported && !skill.observations.length).map(skill => skill.name)
-  const contradictions = claims.filter(claim => claim.verification_state === 'contradicted').length
-  // No verification pass runs yet, so "0 open" would falsely read as "checked, none found" (OI-29).
-  const assessed = context?.claim_assessment === 'assessed' || claims.some(claim => claim.verification_state !== 'unverified')
+  // Open = flagged automatically and not yet reviewed; confirmed = a recruiter agreed (OI-29).
+  // Contexts built before the assessment pass stay "Not assessed" rather than "0 open".
+  const contradictions = contradictionCounts(claims)
+  const assessed = context?.claim_assessment === 'assessed'
+  const contradictionLabel = `${contradictions.open} to review${contradictions.confirmed ? ` · ${contradictions.confirmed} confirmed` : ''}`
   const coverage = (mandatory: boolean): Metric => !job ? { label: 'Select a job', percent: 0 }
     : !canMatch ? { label: 'Restricted', percent: 0 }
     : matchCoverage(match.result, match.requirements, mandatory, match.exhausted)
@@ -38,7 +41,7 @@ export function IntelligenceOverview({ candidate, context, job, inspectClaims, c
         <h2>A. Intelligence Overview</h2>
         <p className="intelligence-summary">{candidate.summary || 'Review the candidate’s reported experience alongside supporting public evidence.'}</p>
         <div className="intelligence-metrics">
-          {[{ title: 'Mandatory coverage', ...coverage(true) }, { title: 'Preferred coverage', ...coverage(false) }, { title: 'Contradictions', label: !context ? 'Pending' : assessed ? `${contradictions} open` : 'Not assessed', percent: context && assessed && !contradictions ? 100 : 0 }].map(metric => <div className="intelligence-metric" key={metric.title}><span>{metric.title}</span><strong>{metric.label}</strong><div className="intelligence-track"><i style={{ width: `${metric.percent}%` }} /></div></div>)}
+          {[{ title: 'Mandatory coverage', ...coverage(true) }, { title: 'Preferred coverage', ...coverage(false) }, { title: 'Contradictions', label: !context ? 'Pending' : assessed ? contradictionLabel : 'Not assessed', percent: context && assessed && !contradictions.open && !contradictions.confirmed ? 100 : 0 }].map(metric => <div className="intelligence-metric" key={metric.title}><span>{metric.title}</span><strong>{metric.label}</strong><div className="intelligence-track"><i style={{ width: `${metric.percent}%` }} /></div></div>)}
         </div>
         {(matchFailed || match.exhausted) && <p role="alert" className="intelligence-summary">Coverage could not be loaded. <button type="button" onClick={match.retry}>Retry coverage</button></p>}
       </section>
@@ -59,7 +62,7 @@ export function IntelligenceOverview({ candidate, context, job, inspectClaims, c
     <aside className="intelligence-aside">
       <section className="intelligence-panel"><h2>Source Profiles</h2>{Object.entries(candidate.external_identifiers ?? {}).filter(([, url]) => url).map(([source, url]) => <a className="intelligence-source" key={source} href={/^https?:\/\//i.test(url!) ? url! : undefined} target="_blank" rel="noreferrer"><span className="intelligence-project-icon material-symbols-outlined">{source === 'github' ? 'code' : source === 'linkedin' ? 'work' : 'terminal'}</span><span><strong>{source === 'github' ? 'GitHub' : source === 'linkedin' ? 'LinkedIn' : 'LeetCode'}</strong><small>{records.filter(record => record.source_type === source).length} linked observations</small></span></a>)}{!Object.values(candidate.external_identifiers ?? {}).some(Boolean) && <p className="intelligence-summary">No source profiles linked.</p>}</section>
       <section className="intelligence-panel intelligence-gaps"><h2><span className="material-symbols-outlined">warning</span> Intelligence Gaps</h2><p className="intelligence-summary">{!context ? 'Evidence assessment is pending.' : gaps.length ? `${gaps.join(', ')}: no public evidence available.` : 'No gaps found among the listed skills.'}</p><button type="button" onClick={inspectClaims}>Review Evidence & Claims</button></section>
-      <section className="intelligence-panel intelligence-legend"><h2>Verification Legend</h2><p>Supported: evidence supports a reported claim. Demonstrated: linked observations are available. Unverified: claim without supporting evidence. Contradictory: evidence conflicts.</p><p>Missing public evidence does not imply a lack of competence.</p></section>
+      <section className="intelligence-panel intelligence-legend"><h2>Verification Legend</h2><p>Claims are linked to public evidence automatically as “supported by evidence” or “possible contradiction”. These are suggestions: a claim stays unverified until a recruiter confirms the link. Supported: a recruiter confirmed the evidence link. Contradictory: a recruiter confirmed the conflict. Demonstrated: linked observations are available.</p><p>Missing public evidence does not imply a lack of competence.</p></section>
     </aside>
   </div>
 }

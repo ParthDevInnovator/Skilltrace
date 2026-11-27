@@ -7,12 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.workspace import in_workspace
 from backend.models.db import (ApplicationHistory, AuditLog, Candidate, CandidateResume, ChatHistory,
-    ContextBuildStatus, EvidenceRecord, InterviewFeedback, MatchResult, ResumeClaim)
+    ClaimReview, ContextBuildStatus, EvidenceRecord, InterviewFeedback, MatchResult, ResumeClaim)
 from backend.services.audit import audit_user_action
 
 logger = logging.getLogger(__name__)
 
-SQL_MODELS = (ChatHistory, InterviewFeedback, ApplicationHistory, EvidenceRecord, ResumeClaim, MatchResult,
+SQL_MODELS = (ChatHistory, InterviewFeedback, ApplicationHistory, EvidenceRecord, ResumeClaim, ClaimReview, MatchResult,
               ContextBuildStatus, CandidateResume, AuditLog)
 
 

@@ -102,6 +102,8 @@ class RuntimePersistence:
         """Refill the caches: custom jobs, candidates, resumes and finished contexts."""
         from backend.services.deduplicator import PendingContextBuild
         counts = {"jobs": 0, "candidates": 0, "resumes": 0, "contexts": 0}
+        # Recruiter claim reviews first, so restored and rebuilt contexts both carry them (OI-29).
+        counts["claim_reviews"] = await builder.reviews.load()
         async with self.sessions()() as db:
             for row in (await db.scalars(select(DBJob).where(DBJob.is_custom.is_(True)))).all():
                 requirements = (await db.scalars(select(JobRequirement).where(JobRequirement.job_id == row.id)
@@ -137,6 +139,9 @@ class RuntimePersistence:
             if build.status == "ready" and build.context_json:
                 try:
                     context = CandidateContext.model_validate(build.context_json)
+                    from backend.services.claim_assessor import apply_reviews
+                    context = context.model_copy(update={
+                        "claims": apply_reviews(context.claims, builder.reviews.for_candidate(row.id))})
                 except Exception:
                     logger.exception("Stored context could not be restored candidate=%s", row.id)
                     continue

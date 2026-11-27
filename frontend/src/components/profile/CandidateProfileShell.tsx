@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { IntelligenceOverview } from './IntelligenceOverview'
+import { ClaimReviewCard } from './ClaimReviewCard'
 import type { CandidateDetail } from '@/types'
 import { api } from '@/services/api'
 import { useJob } from '@/context/JobContext'
@@ -25,7 +26,7 @@ export function CandidateProfileShell() {
   const [chatOpen, setChatOpen] = useState(false)
   const [exportRequest, setExportRequest] = useState(0)
 
-  const { context, phase, message: contextMessage, retry } = useCandidateContext(selectedCandidateId, hasRole('recruiter'))
+  const { context, phase, message: contextMessage, retry, updateClaim } = useCandidateContext(selectedCandidateId, hasRole('recruiter'))
 
   useEffect(() => {
     if (!selectedCandidateId) return
@@ -347,18 +348,7 @@ export function CandidateProfileShell() {
                 )}
                 <div className="space-y-3">
                   {context.claims.map(claim => (
-                    <article key={claim.id} className="p-4 rounded-xl bg-[#f8f7f4] border border-[#e7e2d9]">
-                      <div className="flex items-center justify-between mb-1">
-                        <strong className="text-xs font-bold text-[#141618]">
-                          {claim.section}{claim.skill ? ` - ${claim.skill}` : ''}
-                        </strong>
-                        <span className="text-[11px] px-2 py-0.5 rounded bg-white border border-[#e7e2d9] text-[#59616b]">
-                          {claim.verification_state}
-                        </span>
-                      </div>
-                      <p className="text-xs text-[#141618] mb-1">{claim.claim_text}</p>
-                      <small className="text-[10px] text-[#59616b]">{claim.provenance}</small>
-                    </article>
+                    <ClaimReviewCard key={claim.id} claim={claim} context={context} canReview={hasRole('recruiter')} onUpdated={updateClaim} />
                   ))}
                 </div>
 

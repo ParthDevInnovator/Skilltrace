@@ -134,6 +134,24 @@ class ResumeClaim(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+class ClaimReview(Base):
+    """A recruiter's confirm/dismiss decision on a claim's automatic evidence link (OI-29).
+
+    Claim IDs are stable across rebuilds, so the decision outlives the context it was made on.
+    candidate_id is a plain identifier, not a foreign key: bundled fixture candidates have no
+    candidates row. Candidate erasure deletes these rows explicitly.
+    """
+    __tablename__ = "claim_reviews"
+    candidate_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    claim_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    decision: Mapped[str] = mapped_column(String(16))
+    reviewed_link: Mapped[str] = mapped_column(String(32))
+    reviewed_by: Mapped[str] = mapped_column(String(255))
+    reviewer_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    reviewed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    workspace_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+
+
 class EvidenceRecord(Base):
     __tablename__ = "evidence_records"
     id: Mapped[str] = mapped_column(String(64), primary_key=True)

@@ -8,7 +8,7 @@ The redesigned screens are treated as the accepted UI. This backlog concerns beh
 
 **This is the single open-issues file for the project.** The former mockup-gap list (`open issue.md`, 2026-11-06) has been merged into [Feature backlog](#feature-backlog-from-the-redesign-mockups) below and removed. `PRODUCT_DESIGN_AUDIT.md` and `REDESIGN_REPAIR_STATUS.md` are historical findings and sign-offs that do not all describe the present code.
 
-Last status review: 2026-11-26. Fix Phase 1 (`FIX_PHASE_1_TASKS.md`) closed all 10 P1 issues (OI-02 mitigated) plus OI-34, OI-42 and OI-48 on branch `fix/phase1-frontend-access`. Follow-up branch `fix/phase1-followups` closes OI-47 (regression test) and Wave 2 issues OI-10, OI-12, OI-18 and OI-19. OI-11 was fixed on 2026-11-26 after its scoring policy was agreed. Branch `fix/phase2-wave3` (2026-11-23) closes Wave 3: OI-13 to OI-17 and OI-24 to OI-28; OI-29 is partly fixed; its verification workflow was decided 2026-11-26. Branch `fix/phase2-wave4` (2026-11-25, built on `fix/phase2-wave3`) closes Wave 4: OI-20 to OI-23 (graph); the new Cypher has unit tests against fakes and still needs a live Neo4j run. Both Phase 2 branches are merged to `main` (Wave 3 in PR #17, Wave 4 in PR #16). Update the **Status** and **Closed** columns as fixes land.
+Last status review: 2026-11-26. Fix Phase 1 (`FIX_PHASE_1_TASKS.md`) closed all 10 P1 issues (OI-02 mitigated) plus OI-34, OI-42 and OI-48 on branch `fix/phase1-frontend-access`. Follow-up branch `fix/phase1-followups` closes OI-47 (regression test) and Wave 2 issues OI-10, OI-12, OI-18 and OI-19. OI-11 was fixed on 2026-11-26 after its scoring policy was agreed. OI-29 was completed on 2026-11-27 (claim-evidence links with recruiter review). Branch `fix/phase2-wave3` (2026-11-23) closes Wave 3: OI-13 to OI-17 and OI-24 to OI-28. Branch `fix/phase2-wave4` (2026-11-25, built on `fix/phase2-wave3`) closes Wave 4: OI-20 to OI-23 (graph); the new Cypher has unit tests against fakes and still needs a live Neo4j run. Both Phase 2 branches are merged to `main` (Wave 3 in PR #17, Wave 4 in PR #16). Update the **Status** and **Closed** columns as fixes land.
 
 ## Issue tracker
 
@@ -44,7 +44,7 @@ Status values: `Open`, `In progress`, `Fixed`, `Mitigated`, `Won't fix`. Wave = 
 | OI-26 | Batch identity failures can't be corrected in place | P2 | Uploads | 3 | Fixed — structured ingest errors (`code`, `field`), inline identity correction, queue survives navigation | 2026-11-07 | 2026-11-23 |
 | OI-27 | Retry evidence doesn't restart a failed context build | P2 | Processing | 3 | Fixed — `POST /candidates/{id}/context/rebuild` (failed builds only); Retry analysis uses it | 2026-11-07 | 2026-11-23 |
 | OI-28 | Pipeline stages are inferred rather than measured | P2 | Processing | 3 | Fixed — build records per-stage state, counts and timestamps; Pipeline shows them and runs the real match | 2026-11-07 | 2026-11-23 |
-| OI-29 | Claim verification/contradiction assessment not implemented | P2 | Intelligence | 3 | Partly fixed — `claim_assessment` + "Not assessed" metric; Kafka/Redis extracted. Decided 2026-11-26: claims are auto-linked to public evidence as "supported by evidence" or "possible contradiction", and a recruiter can confirm or dismiss; nothing is labelled verified automatically | 2026-11-07 | |
+| OI-29 | Claim verification/contradiction assessment not implemented | P2 | Intelligence | 3 | Fixed — each build links claims to evidence (`claim_assessor`: `supported_by_evidence` / `possible_contradiction` / `no_evidence`, with evidence IDs and a reason); recruiters confirm or dismiss (`PUT/DELETE /candidates/{id}/claims/{claim_id}/review`, `claim_reviews` table, migration 0004). Only a confirmation sets `verification_state`; reviews survive rebuilds by claim ID and are set aside if the link changes. Missing evidence is never a contradiction | 2026-11-07 | 2026-11-27 |
 | OI-30 | Candidates not associated with the job used for upload | P2 | Product gap | 5 | Open | 2026-11-07 | |
 | OI-31 | Job lifecycle, editing, activity unavailable; job ID search broken | P2 | Product gap | 5 | Open | 2026-11-07 | |
 | OI-32 | Discovery and candidate evidence collection have no workflow | P2 | Product gap | 5 | Won't fix (this phase) — decided 2026-11-26: Talent Discovery and Request evidence stay marked unavailable; future work tracked as BL-14 and BL-29 | 2026-11-07 | 2026-11-26 |
@@ -355,6 +355,8 @@ Sources: `backend/services/claim_extractor.py`, `context_builder.py`, `models/co
 
 **Completion:** distinguish not-assessed from assessed-zero, define verification/review operations, and cover representative resume formats and taxonomy aliases. Do not silently call available observations verified claims.
 
+**Resolution (2026-11-27):** `backend/services/claim_assessor.py` runs after evidence collection in every build and marks each claim `supported_by_evidence` (public observations name the claimed skill; the LinkedIn stub does not count), `possible_contradiction` (negative interview feedback on the skill, or the claim names a public repository whose language/topics do not include the skill) or `no_evidence`. Absence of evidence is never a contradiction. Contexts carry `claim_assessment: "assessed"`. A recruiter or HR admin confirms or dismisses each link from the Claims tab; confirming sets `verification_state` to `supported` or `contradicted` (contradicted claims stop counting toward matching), dismissing leaves it `unverified`. Decisions are stored in `claim_reviews`, audited as `CLAIM_REVIEW`, erased with the candidate, and re-applied on rebuild only while the link is unchanged. Overview shows "N to review · M confirmed". Remaining limits: contradiction rules are deliberately narrow, and no source currently populates interview feedback.
+
 ## Unfinished product behavior
 
 ### OI-30 - Candidates are not associated with the job used for upload
@@ -545,7 +547,7 @@ These items come from the former `open issue.md`, written 2026-11-06 against the
 | BL-12 | Advanced requisition filter (department, seniority, recruiter, location) | Jobs | Backlog | — |
 | BL-13 | Full intelligence dossier export (PDF/Markdown) | Dossier | Backlog | OI-41 |
 | BL-14 | "Request evidence" candidate portal | Dossier | Backlog: marked unavailable | OI-32 |
-| BL-15 | Contradiction detection engine | Dossier | Backlog | OI-29 |
+| BL-15 | Contradiction detection engine | Dossier | Partial: rule-based possible contradictions with recruiter review (2026-11-27); no richer detection | OI-29 |
 | BL-16 | Async multi-file batch ingestion queue | Add candidates | Partial: client-side queue (`services/batchQueue.ts`) tracks each file through analysis since 2026-11-23 (`4b03b43`); no server-side queue | OI-24, OI-25, OI-26 |
 | BL-17 | Resume metadata (size, pages, OCR confidence) | Add candidates | Backlog | — |
 | BL-18 | Live 8-stage pipeline via SSE/WebSocket | Pipeline | Backlog | OI-28 |

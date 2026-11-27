@@ -76,8 +76,9 @@ it('shows context-building, retries an error, and keeps claims unverified beside
   // Claims moved from the overview to the "Evidence & Claims" tab in the redesign.
   await user.click(screen.getByRole('button', { name: 'Evidence & Claims' }))
   expect(await screen.findByText('Built Python services')).toBeVisible()
-  expect(screen.getByText('unverified')).toBeVisible()
-  expect(screen.queryByText('supported')).not.toBeInTheDocument()
+  // OI-29: a claim without an evidence link shows "Not assessed" and nothing marks it confirmed.
+  expect(screen.getByText('Not assessed')).toBeVisible()
+  expect(screen.queryByText(/Confirmed by/)).not.toBeInTheDocument()
   expect(screen.getByText('Synthetic evidence fixtures - not live verification')).toBeVisible()
   await user.click(screen.getByRole('button', { name: 'Reported Skills' }))
   expect(screen.getByText(/1 observations/)).toBeVisible()
